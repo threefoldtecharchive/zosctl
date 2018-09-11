@@ -16,6 +16,7 @@ proc executeVBoxManage(cmd: string): TaintedString =
 
 proc executeVBoxManageModify(cmd: string): TaintedString= 
     let command = "vboxmanage modifyvm " & cmd
+    echo fmt"** executing command {command}"
     let (output, rc) = execCmdEx(command)
     if rc != 0:
         raise newException(Exception, fmt"Failed to execute {command}") 
@@ -109,8 +110,11 @@ proc exists*(this: VM): bool =
           return true
   return false
 
-proc create*(this: Disk, size:int=10000): Disk =
-  discard executeVBoxManage(fmt"""createhd --filename "{this.path}" --size {size}""")
+proc create*(this: Disk, size:int=1000): Disk =
+  try:
+    discard executeVBoxManage(fmt"""createhd --filename "{this.path}" --size {size}""")
+  except:
+    discard # IMPORTANT FIXME
   return this
 
 proc diskInfo*(this: Disk): TableRef[string, string] = 
@@ -158,15 +162,23 @@ proc newVM(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000
   let cmd = fmt"""createvm --name "{vmName}" --ostype "Linux_64" --register """
   discard executeVBoxManage(cmd)
   
-  var cmdsconfig = fmt"""{vmName} --memory={memory} --ioapic on --boot1 dvd --boot2 disk --nic1 nat --nic2 hostonly --hostonlyadapter2 vboxnet0 --vrde on """
-  cmdsconfig &= fmt"""--natpf1 "redis,tcp,,{redisPort},,6379" """
-  
-  discard executeVBoxManageModify(cmdsconfig)
+  var cmdsmodify = fmt"""
+--memory={memory}
+--ioapic on
+--boot1 dvd --boot2 disk
+--nic1 nat --nic2 hostonly
+--hostonlyadapter2 vboxnet0
+--vrde on 
+--natpf1 "redis,tcp,,{redisPort},,6379" """
+  for l in cmdsmodify.splitLines:
+    if l.isNilOrEmpty() or l.startsWith("#"):
+      continue
+    discard executeVBoxManageModify(fmt"""{vmName} {l}""")
 
   let vm = getVMByName(vmName)
 
   if datadisksize > 0:
-      let disk = vm.createDisk("adisk", datadiskSize)
+      let disk = vm.createDisk("main", datadiskSize)
       discard executeVBoxManage(fmt"""storagectl {vmName} --name "SATA Controller" --add sata  --controller IntelAHCI """)
       discard executeVBoxManage(fmt"""storageattach {vmName} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "{disk.path}" """)
 
