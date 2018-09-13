@@ -226,8 +226,6 @@ proc downloadZOSIso(networkId: string="", overwrite:bool=false): string =
 
 
 
-
-
 proc startContainer(name, flist, host: string, port: int):int = 
   echo name, flist, host, $port
   result = 1
