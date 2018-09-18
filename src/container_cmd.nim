@@ -2,6 +2,9 @@ import  redisclient, redisparser
 import os, strutils, strformat, osproc, tables, uri
 import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 
+if findExe("vboxmanage").isNilOrEmpty():
+  echo "Please make sure to have VirtualBox installed"
+  quit 1
 
 proc flagifyId(id: string): string =
   result = fmt"result:{id}:flag" 
@@ -40,11 +43,12 @@ proc zosSend(payload: JsonNode, bash=false, host="localhost", port=4444, timeout
     echo $cmdres
 
   let parsed = parseJson(getResponseString(cmdid, con))
+  result = parsed.pretty(2)
+
   let response_state = $parsed["state"].getStr()
   if response_state != "SUCCESS":
-    echo "FAILED TO EXECUTE"
-    echo $parsed
-    quit 1
+    echo fmt"FAILED TO EXECUTE with error {parsed}"
+    echo result
   else:
     if bash == true:
       if parsed["code"].getInt() == 0:
@@ -52,10 +56,8 @@ proc zosSend(payload: JsonNode, bash=false, host="localhost", port=4444, timeout
       else:
         echo parsed["streams"][1].getStr() # stderr
     else:
-      echo parsed["data"].getStr()
+      result = parsed["data"].getStr().parseJson().pretty(2)
     
-  return $parsed
-
 proc zosBash(command: string="hostname", host: string="localhost", port=4444, timeout:int=5, debug=false): string =
   let cmdid = newUUID()
   let payload = %*{
@@ -86,19 +88,12 @@ proc zosCorePrivate(command: string="core.ping", payloadNode:JsonNode=nil, host:
   return zosSend(payload, false, host, port, timeout, debug)
     
 
-proc zosCore(command: string="core.ping", arguments:string, host: string="localhost", port=4444, timeout:int=5, debug=false): string =
-  let payloadNode = %*arguments
-  let cmdid = newUUID()
-  let payload = %*{
-    "id": cmdid,
-    "command": command,
-    "arguments": %*payloadNode,
-    "queue": nil,
-    "max_time": nil,
-    "stream": false,
-    "tags": nil
-  }
-  return zosSend(payload, false, host, port, timeout, debug)
+proc zosCore(command: string="core.ping", arguments="", host: string="localhost", port=4444, timeout:int=5, debug=false): string =
+  var payloadNode: JsonNode = nil
+  if not arguments.isNilOrEmpty():
+    payloadNode = parseJson(arguments) 
+  return zosCorePrivate(command, payloadNode, host, port, timeout, debug)
+
     
 
 type 
@@ -323,58 +318,51 @@ proc downloadZOSIso(networkId: string="", overwrite:bool=false): string =
 
 
 
-proc startContainer(name:string, root:string, hostname:string, privileged=false, extraconfig="",  host="localhost", port=6379, timeout=30, debug=false):int = 
-
-  discard """
-    Creater a new container with the given root flist, mount points and
-    zerotier id, and connected to the given bridges
-    :param root_url: The root filesystem flist
-    :param mount: a dict with {host_source: container_target} mount points.
-                  where host_source directory must exists.
-                  host_source can be a url to a flist to mount.
-    :param host_network: Specify if the container should share the same network stack as the host.
-                        if True, container creation ignores both zerotier, bridge and ports arguments below. Not
-                        giving errors if provided.
-    :param nics: Configure the attached nics to the container
-                each nic object is a dict of the format
-                {
-                    'type': nic_type # one of default, bridge, zerotier, macvlan, passthrough, vlan, or vxlan (note, vlan and vxlan only supported by ovs)
-                    'id': id # depends on the type
-                        bridge: bridge name,
-                        zerotier: network id,
-                        macvlan: the parent link name,
-                        passthrough: the link name,
-                        vlan: the vlan tag,
-                        vxlan: the vxlan id
-                    'name': name of the nic inside the container (ignored in zerotier type)
-                    'hwaddr': Mac address of nic.
-                    'config': { # config is only honored for bridge, vlan, and vxlan types
-                        'dhcp': bool,
-                        'cidr': static_ip # ip/mask
-                        'gateway': gateway
-                        'dns': [dns]
-                    }
-                }
-    :param port: A dict of host_port: container_port pairs (only if default networking is enabled)
-                  Example:
-                    `port={8080: 80, 7000:7000}`
-                  Source Format: NUMBER, IP:NUMBER, IP/MAST:NUMBER, or DEV:NUMBER
-    :param hostname: Specific hostname you want to give to the container.
-                    if None it will automatically be set to core-x,
-                    x beeing the ID of the container
-    :param privileged: If true, container runs in privileged mode.
-    :param storage: A Url to the ardb storage to use to mount the root flist (or any other mount that requires g8fs)
-                    if not provided, the default one from core0 configuration will be used.
-    :param name: Optional name for the container
-    :param identity: Container Zerotier identity, Only used if at least one of the nics is of type zerotier
-    :param env: a dict with the environment variables needed to be set for the container
-    :param cgroups: custom list of cgroups to apply to this container on creation. formated as [(subsystem, name), ...]
-                    please refer to the cgroup api for more detailes.
-    :param config: a map with the config file path as a key and content as a value. This only works when creating a VM from an flist. The
-            config files are written to the machine before booting.
-            Example:
-            config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
-    """
+proc startContainer(name:string, root:string, hostname:string, privileged=false, extraconfig="",  host="localhost", port=6379, timeout=30, debug=false, info=false):int = 
+  if info == true:
+    echo """
+    extraconfig is json encoded string contains
+      mount: a dict with {host_source: container_target} mount points.
+                    where host_source directory must exists.
+                    host_source can be a url to a flist to mount.
+      host_network: Specify if the container should share the same network stack as the host.
+                          if True, container creation ignores both zerotier, bridge and ports arguments below. Not
+                          giving errors if provided.
+      nics: Configure the attached nics to the container
+                  each nic object is a dict of the format
+                  {
+                      'type': nic_type # one of default, bridge, zerotier, macvlan, passthrough, vlan, or vxlan (note, vlan and vxlan only supported by ovs)
+                      'id': id # depends on the type
+                          bridge: bridge name,
+                          zerotier: network id,
+                          macvlan: the parent link name,
+                          passthrough: the link name,
+                          vlan: the vlan tag,
+                          vxlan: the vxlan id
+                      'name': name of the nic inside the container (ignored in zerotier type)
+                      'hwaddr': Mac address of nic.
+                      'config': { # config is only honored for bridge, vlan, and vxlan types
+                          'dhcp': bool,
+                          'cidr': static_ip # ip/mask
+                          'gateway': gateway
+                          'dns': [dns]
+                      }
+                  }
+      port: A dict of host_port: container_port pairs (only if default networking is enabled)
+                    Example:
+                      `port={8080: 80, 7000:7000}`
+                    Source Format: NUMBER, IP:NUMBER, IP/MAST:NUMBER, or DEV:NUMBER
+      storage: A Url to the ardb storage to use to mount the root flist (or any other mount that requires g8fs)
+                      if not provided, the default one from core0 configuration will be used.
+      identity: Container Zerotier identity, Only used if at least one of the nics is of type zerotier
+      env: a dict with the environment variables needed to be set for the container
+      cgroups: custom list of cgroups to apply to this container on creation. formated as [(subsystem, name), ...]
+                      please refer to the cgroup api for more detailes.
+      config: a map with the config file path as a key and content as a value. This only works when creating a VM from an flist. The
+              config files are written to the machine before booting.
+              Example:
+              config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
+      """
   let args = %*{
     "name": name,
     "hostname": hostname,
@@ -392,7 +380,7 @@ proc startContainer(name:string, root:string, hostname:string, privileged=false,
       args[k] = %*v
 
   let command = "corex.create"
-  discard zosCorePrivate(command, args, host, port, timeout, debug)
+  echo zosCorePrivate(command, args, host, port, timeout, debug)
   # echo name, flist, host, $port
   result = 0
 
@@ -409,7 +397,7 @@ proc sandboxContainer(name:string,  host="localhost", port=6379, timeout=30, deb
 
 proc listContainers(host="localhost", port=6379):int = 
   let resp = parseJson(zosCorePrivate("corex.list", nil, host, port))
-  echo $(resp["data"].getStr().parseJson().pretty(2))
+  echo resp.pretty(2)
 
   result = 0
 
