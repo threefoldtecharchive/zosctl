@@ -1,16 +1,20 @@
 # container_cmd
 zos-container manager can be used on local or remote zos machine
 
-# Preparing local zos machine
+## compilation
+- nim c -d:ssl "SRCPATH/container_cmd.nim"
+- nimble build -d:ssl
+
+## Preparing local zos machine
 ```bash
 ./container_cmd newZos -v zmachine3 --redisPort 4444
 ```
 This will create a local virtual machine `zmachine3` with ZOS installed and forwards the localhost 4444 to zos redis port 6379
 
 
-# Interacting with ZOS
+## Interacting with ZOS
 
-## ZOS Builtin commands
+### ZOS Builtin commands
 
 ### Examples
 
@@ -243,7 +247,7 @@ Output
   }
 }
 ```
-## User defined commands
+### User defined commands
 
 you can use zosBash subcommand to execute bash commands on the zos directly
 ```
@@ -271,11 +275,12 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 ```
 
 
-## Spawning container
+### Spawning container
 Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
 
 ```
-./container_cmd startContainer --name=rediscont3 --hostname aredishost --root="https://hub.grid.tf/thabet/redis.flist" --extraconfig='{"port":{"3000":3500}, "nics":[{"type":"default"}]}' --port=4444
+./container_cmd startContainer --name=rediscont3 --hostname aredishost --root="https://hub.grid.tf/thabet/redis.flist" --
+extraconfig='{"port":{"3000":3500}, "nics":[{"type":"default"}]}' --port=4444
 ```
 
 Output (new container id)
@@ -283,7 +288,7 @@ Output (new container id)
 2
 ```
 
-### extraconfig
+#### extraconfig
 Please consult the documentation for more updated info on the allowed configurations
 ```
     extraconfig is json encoded string contains
@@ -330,7 +335,7 @@ Please consult the documentation for more updated info on the allowed configurat
 ```
 
 
-## Listing running containers
+### Listing running containers
  ```./container_cmd listContainers --port=4444``
 
 ```
@@ -442,7 +447,7 @@ Please consult the documentation for more updated info on the allowed configurat
 ```
 
 
-## Terminating a container
+### Terminating a container
 
 ```
 ./container_cmd stopContainer --id=3 --port 4444

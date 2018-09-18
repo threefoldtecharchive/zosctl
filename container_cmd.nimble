@@ -10,4 +10,4 @@ bin           = @["container_cmd"]
 
 # Dependencies
 
-requires "nim >= 0.18.1", "cligen"
+requires "nim >= 0.18.1", "cligen", "redisclient", "uuid"
