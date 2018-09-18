@@ -1,9 +1,7 @@
 import  redisclient, redisparser
 import os, strutils, strformat, osproc, tables, uri
-import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, typetraits
+import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 
-
-const zosVirtualBoxMachinePrefix = "_zosPrivate"
 
 proc flagifyId(id: string): string =
   result = fmt"result:{id}:flag" 
@@ -110,7 +108,7 @@ proc executeVBoxManage(cmd: string): TaintedString =
     let command = "vboxmanage " & cmd
     let (output, rc) = execCmdEx(command)
     if rc != 0:
-        raise newException(Exception, fmt"Failed to execute {command}") 
+        raise newException(Exception, fmt"Failed to execute {command}  \n{output}") 
     return output
 
 proc executeVBoxManageModify(cmd: string): TaintedString= 
@@ -118,7 +116,7 @@ proc executeVBoxManageModify(cmd: string): TaintedString=
     echo fmt"** executing command {command}"
     let (output, rc) = execCmdEx(command)
     if rc != 0:
-        raise newException(Exception, fmt"Failed to execute {command}") 
+        raise newException(Exception, fmt"Failed to execute {command} \n{output}") 
     return output
     
 type VM = object of RootObj
@@ -264,8 +262,9 @@ proc newVM(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000
 --memory={memory}
 --ioapic on
 --boot1 dvd --boot2 disk
---nic1 nat --nic2 hostonly
---hostonlyadapter2 vboxnet0
+--nic1 nat
+#--nic2 hostonly
+#--hostonlyadapter2 vboxnet0
 --vrde on 
 --natpf1 "redis,tcp,,{redisPort},,6379" """
   for l in cmdsmodify.splitLines:
@@ -276,7 +275,7 @@ proc newVM(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000
   let vm = getVMByName(vmName)
 
   if datadisksize > 0:
-      let disk = vm.createDisk("main", datadiskSize)
+      let disk = vm.createDisk(fmt"main{vmName}", datadiskSize)
       discard executeVBoxManage(fmt"""storagectl {vmName} --name "SATA Controller" --add sata  --controller IntelAHCI """)
       discard executeVBoxManage(fmt"""storageattach {vmName} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "{disk.path}" """)
 
@@ -414,20 +413,25 @@ proc listContainers(host="localhost", port=6379):int =
 
   result = 0
 
-proc prepareZeroOSLocally(vboxMachineName="testzosvm", start=true): int = 
+proc newZos(vboxMachineName="myzosmachine", datadiskSize=1000, memory=1000, redisPort=4444): int = 
   let isopath = downloadZOSIso()
   try:
-    newVM(vboxMachineName)
+    newVM(vboxMachineName, "/tmp/zos.iso", datadiskSize, memory, redisPort)
   except:
     echo "ERROR HAPPENED " & getCurrentExceptionMsg()
   echo fmt"Created machine {vboxMachineName}"
 
-  if start == true:
-    # code to start vm
-    discard
+  var args = ""
+
+  when defined linux:
+    if not existsEnv("DISPLAY"):
+      args = "--type headless"
+  let cmd = fmt"""startvm {args} "{vboxMachineName}" """
+  discard executeVBoxManage(cmd)
+  echo fmt"Started VM {vboxMachineName}"
   result = 0
 
 
 when isMainModule:
   import cligen
-  dispatchMulti([startContainer], [stopContainer], [listContainers], [sandboxContainer], [prepareZeroOSLocally], [zosCore], [zosBash])
+  dispatchMulti([startContainer], [stopContainer], [listContainers], [sandboxContainer], [newZos], [zosCore], [zosBash])
