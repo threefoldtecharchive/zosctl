@@ -1,8 +1,7 @@
 # container_cmd
 zos-container manager can be used on local or remote zos machine
 
-## compilation
-- nim c -d:ssl "SRCPATH/container_cmd.nim"
+## Building
 - nimble build -d:ssl
 
 ## Preparing local zos machine
