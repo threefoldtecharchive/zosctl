@@ -144,9 +144,9 @@ proc vmGuid*(this: Disk): string =
       return vmguid
 
 
-
 proc delete*(this: Disk): string =
   discard executeVBoxManage(fmt"closemedium disk {this.diskUUID()} --delete")
+
 
 proc createDisk*(this: VM, name:string, size:int=10000): Disk =
   var d = initDisk(fmt"{this.getPath()}/{name}.vdi")
@@ -210,7 +210,7 @@ proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =
     downloadLink = fmt"https://bootstrap.grid.tf/iso/development/{networkId}/development%20debug"
     destPath = fmt"/tmp/zos_{networkId}.iso"
 
-  echo fmt"DOWNLOAD LINK: {downloadLink}"
+  # echo fmt"DOWNLOAD LINK: {downloadLink}"
   if overwrite == true or not fileExists(destpath):
     let cmd = fmt"curl {downloadLink} --output {destPath}" 
     let (output, rc) = execCmdEx(cmd)
