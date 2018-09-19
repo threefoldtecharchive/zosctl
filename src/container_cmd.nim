@@ -3,7 +3,14 @@ import os, strutils, strformat, osproc, tables, uri
 import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 import vboxpkg/vbox
 import zosclientpkg/zosclient
+import parsecfg
 
+
+let configdir = ospaths.getConfigDir()
+let configfile = configdir / "zos.toml"
+
+if not fileExists(configfile):
+  open(configfile, fmWrite).close()
 
 if findExe("vboxmanage").isNilOrEmpty():
   echo "Please make sure to have VirtualBox installed"
@@ -94,27 +101,94 @@ proc listContainers(host="localhost", port=6379):int =
 
   result = 0
 
-proc init(vboxMachineName="local", datadiskSize=1000, memory=2048, redisPort=4444): int = 
+
+
+type ZosConnectionInfo = object
+      name*: string
+      address*: string
+      port*: int
+
+proc newZosConnectionInfo(name, address: string, port:int): ZosConnectionInfo = 
+  result = ZosConnectionInfo(name:name, address:address, port:port)
+  
+
+
+proc getConnectionInfoForInstance(name: string): ZosConnectionInfo =
+  let tbl = loadConfig(configfile)
+  let address = tbl.getSectionValue(name, "address")
+  let port = parseInt(tbl.getSectionValue(name, "port"))
+  result = newZosConnectionInfo(name, address, port)
+  
+proc getCurrentConnectionInfo(): ZosConnectionInfo =
+  let tbl = loadConfig(configfile)
+  let name = tbl.getSectionValue("app", "defaultzos")
+
+  result = getConnectionInfoForInstance(name)
+
+
+proc getCurrentAppInfo(): OrderedTableRef[string, string] =
+  let tbl = loadConfig(configfile)
+  result = tbl.getOrDefault("app")
+
+proc cmd*(command: string="core.ping", arguments="", timeout=5): string =
+  let currentconnection = getCurrentConnectionInfo()
+  let appconfig = getCurrentAppInfo()
+
+  result = zosCore(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  echo $result
+
+
+proc exec*(command: string="hostname", timeout:int=5, debug=false): string =
+  let currentconnection = getCurrentConnectionInfo()
+  let appconfig = getCurrentAppInfo()
+
+  return zosBash(command, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+
+proc configure*(name="local", address="127.0.0.1", port=4444, secret="", sshkey="", args:seq[string]): string =
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey(name, "address", address)
+  tbl.setSectionKey(name, "port", $port)
+  tbl.setSectionKey(name, "secret", secret)
+  tbl.setSectionKey(name, "sshkey", sshkey)
+  tbl.writeConfig(configfile)
+
+
+proc setdefault*(name="local", debug=false, args:seq[string])=
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey("app", "defaultzos", name)
+  tbl.setSectionKey("app", "debug", $debug)
+  tbl.writeConfig(configfile)
+  
+proc showconfig*(args:seq[string]) =
+  let tbl = loadConfig(configfile)
+  echo $tbl.getOrDefault("app")
+
+
+proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444): int = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
-  try:
-    newVM(vboxMachineName, "/tmp/zos.iso", datadiskSize, memory, redisPort)
+  try
+    newVM(name, "/tmp/zos.iso", datadiskSize, memory, redisPort)
   except:
     echo "ERROR HAPPENED " & getCurrentExceptionMsg()
-  echo fmt"Created machine {vboxMachineName}"
+  echo fmt"Created machine {name}"
 
   var args = ""
 
   when defined linux:
     if not existsEnv("DISPLAY"):
       args = "--type headless"
-  let cmd = fmt"""startvm {args} "{vboxMachineName}" """
+  let cmd = fmt"""startvm {args} "{name}" """
   discard executeVBoxManage(cmd)
-  echo fmt"Started VM {vboxMachineName}"
+  echo fmt"Started VM {name}"
+  # configure and make that machine the default
+  discard configure(name, "127.0.0.1", redisPort)
+
   result = 0
+  
 
 
 
 when isMainModule:
   import cligen
-  dispatchMulti([startContainer], [stopContainer], [listContainers], [sandboxContainer], [init], [zosCore], [zosBash])
+  dispatchMulti([init], [configure], [showconfig], [setdefault], [cmd], [exec], [startContainer], [stopContainer], [listContainers], [sandboxContainer])

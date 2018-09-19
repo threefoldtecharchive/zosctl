@@ -1,3 +1,4 @@
+
 # Package
 
 version       = "0.1.0"
@@ -10,4 +11,8 @@ bin           = @["container_cmd"]
 
 # Dependencies
 
-requires "nim >= 0.18.1", "cligen", "redisclient", "uuid"
+requires "nim >= 0.18.1", "cligen", "redisclient", "uuid", "parsetoml"
+
+task zosbuild, "Creating zos binary":
+    exec "nimble build -d:ssl --nilseqs:on"
+    exec "mv container_cmd zos"

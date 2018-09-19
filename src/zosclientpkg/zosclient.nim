@@ -89,8 +89,9 @@ proc zosCoreWithJsonNode*(command: string="core.ping", payloadNode:JsonNode=nil,
   }
   if payloadNode != nil:
     payload["arguments"] = payloadNode
+
   return zosSend(payload, false, host, port, timeout, debug)
-    
+  
 
 proc zosCore*(command: string="core.ping", arguments="", host: string="localhost", port=4444, timeout:int=5, debug=false): string =
   var payloadNode: JsonNode = nil
