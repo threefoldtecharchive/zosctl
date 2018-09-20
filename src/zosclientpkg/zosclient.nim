@@ -59,7 +59,73 @@ proc zosSend*(payload: JsonNode, bash=false, host="localhost", port=4444, timeou
     else:
       result = parsed["data"].getStr().parseJson().pretty(2)
     
+  echo $result
 
+
+proc containersCoreSend*(payload: JsonNode, bash=false, host="localhost", port=4444, timeout=5, debug=false): string =
+  let cmdid = payload["command"]["id"].getStr()
+
+  if debug == true:
+    echo "payload" & $payload
+  
+  let con = open(host, port.Port, true)
+  let flag = flagifyId(cmdid)
+  let reskey = resultifyId(cmdid) 
+
+  var cmdres: RedisValue
+  cmdres = con.execCommand("RPUSH", @["core:default", $payload])
+  if debug:
+    echo $cmdres
+  cmdres = con.execCommand("BRPOPLPUSH", @[flag, flag, $timeout])
+  if debug:
+    echo $cmdres
+
+  let parsed = parseJson(getResponseString(cmdid, con))
+  result = parsed.pretty(2)
+
+  let response_state = $parsed["state"].getStr()
+  if response_state != "SUCCESS":
+    echo fmt"FAILED TO EXECUTE with error {parsed}"
+    echo result
+  else:
+    if bash == true:
+      if parsed["code"].getInt() == 0:
+        echo parsed["streams"][0].getStr() # stdout
+      else:
+        echo parsed["streams"][1].getStr() # stderr
+    else:
+      result = parsed["data"].getStr().parseJson().pretty(2)
+    
+  echo $result
+
+
+proc containersCoreWithJsonNode*(containerid:int, command: string="hostname", payloadNode:JsonNode=nil, host: string="localhost", port=4444, timeout:int=5, debug=false): string =
+
+  let cmdid = newUUID()
+  let payload = %*{
+    "container": containerid,
+    "command": %*{
+      "id": cmdid,
+      "command": command,
+      "arguments": nil,
+      "queue": nil,
+      "max_time": nil,
+      "stream": false,
+      "tags": nil
+    }
+  }
+  if payloadNode != nil:
+    payload["command"]["arguments"] = payloadNode
+
+  return containersCoreSend(payload, false, host, port, timeout, debug)
+  
+
+proc containersCore*(containerid: int, command: string="hostname", arguments="", host: string="localhost", port=4444, timeout:int=5, debug=false):string =
+  var payloadNode: JsonNode = nil
+  if arguments != "":
+    payloadNode = parseJson(arguments) 
+  
+  return containersCoreWithJsonNode(containerid, command, payloadNode, host, port, timeout, debug)
 
 proc zosBash*(command: string="hostname", host: string="localhost", port=4444, timeout:int=5, debug=false): string =
   let cmdid = newUUID()

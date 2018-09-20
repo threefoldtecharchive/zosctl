@@ -6,19 +6,124 @@ import zosclientpkg/zosclient
 import parsecfg
 
 
+
 let configdir = ospaths.getConfigDir()
 let configfile = configdir / "zos.toml"
 
-if not fileExists(configfile):
-  open(configfile, fmWrite).close()
-
-if findExe("vboxmanage").isNilOrEmpty():
-  echo "Please make sure to have VirtualBox installed"
-  quit 1
 
 
+proc sandboxContainer(name:string,  host="localhost", port=6379, timeout=30, debug=false):int =
+  echo name, host, $port
+  result = 0
 
-proc startContainer(name:string, root:string, hostname:string, privileged=false, extraconfig="",  host="localhost", port=6379, timeout=30, debug=false, info=false):int = 
+
+
+type ZosConnectionConfig = object
+      name*: string
+      address*: string
+      port*: int
+
+proc newZosConnectionConfig(name, address: string, port:int): ZosConnectionConfig = 
+  result = ZosConnectionConfig(name:name, address:address, port:port)
+  
+
+
+proc getConnectionConfigForInstance(name: string): ZosConnectionConfig =
+  let tbl = loadConfig(configfile)
+  let address = tbl.getSectionValue(name, "address")
+  let parsed = tbl.getSectionValue(name, "port")
+  var port = 6379
+  try:
+    port = parseInt(parsed)
+  except:
+    echo fmt"Invalid port value: {parsed} will use default for now."
+  result = newZosConnectionConfig(name, address, port)
+
+
+
+proc getCurrentConnectionConfig(): ZosConnectionConfig =
+  let tbl = loadConfig(configfile)
+  let name = tbl.getSectionValue("app", "defaultzos")
+
+  result = getConnectionConfigForInstance(name)
+
+
+proc getCurrentAppConfig(): OrderedTableRef[string, string] =
+  let tbl = loadConfig(configfile)
+  result = tbl.getOrDefault("app")
+
+
+let currentconnection = getCurrentConnectionConfig()
+let appconfig = getCurrentAppConfig()
+
+
+proc cmd*(command: string="core.ping", arguments="", timeout=5): string =
+  result = zosCore(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  echo $result
+
+
+proc exec*(command: string="hostname", timeout:int=5, debug=false): string =
+  return zosBash(command, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+
+
+
+proc configure*(name="local", address="127.0.0.1", port=4444, secret="", sshkey="", args:seq[string] = @[]): string =
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey(name, "address", address)
+  tbl.setSectionKey(name, "port", $port)
+  tbl.setSectionKey(name, "secret", secret)
+  tbl.setSectionKey(name, "sshkey", sshkey)
+  tbl.writeConfig(configfile)
+
+
+proc setdefault*(name="local", debug=false, args:seq[string]= @[])=
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey("app", "defaultzos", name)
+  tbl.setSectionKey("app", "debug", $debug)
+  tbl.writeConfig(configfile)
+
+
+proc isConfigured*(): bool =
+  let tbl = getCurrentAppConfig()
+  return tbl["defaultzos"].len() != 0
+
+  
+proc showconfig*(args:seq[string]) =
+  let tbl = loadConfig(configfile)
+  echo $tbl.getOrDefault("app")
+
+
+proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444): int = 
+  # TODO: add cores parameter.
+  let isopath = downloadZOSIso()
+  try:
+    newVM(name, "/tmp/zos.iso", datadiskSize, memory, redisPort)
+  except:
+    echo "[-] Error: " & getCurrentExceptionMsg()
+  echo fmt"Created machine {name}"
+
+  var args = ""
+
+  when defined linux:
+    if not existsEnv("DISPLAY"):
+      args = "--type headless"
+  let cmd = fmt"""startvm {args} "{name}" """
+  discard executeVBoxManage(cmd)
+  echo fmt"Started VM {name}"
+  # configure and make that machine the default
+  discard configure(name, "127.0.0.1", redisPort)
+
+  result = 0
+  
+
+proc listContainers(args:seq[string]):int =
+  let resp = parseJson(zosCoreWithJsonNode("corex.list", nil, currentconnection.address, currentconnection.port))
+  echo resp.pretty(2)
+  result = 0
+
+
+
+proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false, extraconfig="", authorizedkeys="", timeout=30, info=false):int = 
   if info == true:
     echo """
     extraconfig is json encoded string contains
@@ -63,132 +168,78 @@ proc startContainer(name:string, root:string, hostname:string, privileged=false,
               Example:
               config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
       """
+  if name == "":
+    echo "Please provide a container name"
+    quit 2
+  if root == "":
+    echo "Please provide flist url https://hub.grid.tf/thabet/redis.flist"
+
+  var connection: ZosConnectionConfig
+  if zosmachine == appconfig["defaultzos"]:
+    connection = currentconnection
+  else:
+    connection = getConnectionConfigForInstance(zosmachine)
+
+  var containerHostName = hostname
+  if containerHostName == "":
+    containerHostName = name
+  let currentconnection = getCurrentConnectionConfig()
   let args = %*{
     "name": name,
-    "hostname": hostname,
+    "hostname": containerHostName,
     "root": root,
     "privileged": privileged,
   }
-  
 
   var extraArgs: JsonNode
-  if not extraconfig.isNilOrEmpty():
+  if extraconfig != "":
     extraArgs = parseJson(extraconfig)
   
   if extraArgs != nil:
     for k,v in extraArgs.pairs:
       args[k] = %*v
+  
+  args["config"]["authorized_keys"] = %*open(authorizedkeys, fmRead).readAll()
 
+  echo fmt"args: {args}"
+  let appconfig = getCurrentAppConfig()
   let command = "corex.create"
-  echo zosCoreWithJsonNode(command, args, host, port, timeout, debug)
-  # echo name, flist, host, $port
+  echo zosCoreWithJsonNode(command, args, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
   result = 0
 
-proc stopContainer(id:int,  host="localhost", port=6379, timeout=30, debug=false):int =
+
+
+
+proc stopContainer(id:int, timeout=30):int =
 
   let command = "corex.terminate"
   let arguments = %*{"container": id}
-  discard zosCoreWithJsonNode(command, arguments, host, port, timeout, debug)
-  result = 0
-
-proc sandboxContainer(name:string,  host="localhost", port=6379, timeout=30, debug=false):int =
-  echo name, host, $port
-  result = 0
-
-proc listContainers(host="localhost", port=6379):int = 
-  let resp = parseJson(zosCoreWithJsonNode("corex.list", nil, host, port))
-  echo resp.pretty(2)
-
+  discard zosCoreWithJsonNode(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
   result = 0
 
 
-
-type ZosConnectionInfo = object
-      name*: string
-      address*: string
-      port*: int
-
-proc newZosConnectionInfo(name, address: string, port:int): ZosConnectionInfo = 
-  result = ZosConnectionInfo(name:name, address:address, port:port)
-  
-
-
-proc getConnectionInfoForInstance(name: string): ZosConnectionInfo =
-  let tbl = loadConfig(configfile)
-  let address = tbl.getSectionValue(name, "address")
-  let port = parseInt(tbl.getSectionValue(name, "port"))
-  result = newZosConnectionInfo(name, address, port)
-  
-proc getCurrentConnectionInfo(): ZosConnectionInfo =
-  let tbl = loadConfig(configfile)
-  let name = tbl.getSectionValue("app", "defaultzos")
-
-  result = getConnectionInfoForInstance(name)
-
-
-proc getCurrentAppInfo(): OrderedTableRef[string, string] =
-  let tbl = loadConfig(configfile)
-  result = tbl.getOrDefault("app")
-
-proc cmd*(command: string="core.ping", arguments="", timeout=5): string =
-  let currentconnection = getCurrentConnectionInfo()
-  let appconfig = getCurrentAppInfo()
-
-  result = zosCore(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+proc execContainer*(containerid:int, command: string="hostname", arguments="", timeout=5): string =
+  result = containersCore(containerid, command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
   echo $result
-
-
-proc exec*(command: string="hostname", timeout:int=5, debug=false): string =
-  let currentconnection = getCurrentConnectionInfo()
-  let appconfig = getCurrentAppInfo()
-
-  return zosBash(command, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
-
-proc configure*(name="local", address="127.0.0.1", port=4444, secret="", sshkey="", args:seq[string]): string =
-  var tbl = loadConfig(configfile)
-  tbl.setSectionKey(name, "address", address)
-  tbl.setSectionKey(name, "port", $port)
-  tbl.setSectionKey(name, "secret", secret)
-  tbl.setSectionKey(name, "sshkey", sshkey)
-  tbl.writeConfig(configfile)
-
-
-proc setdefault*(name="local", debug=false, args:seq[string])=
-  var tbl = loadConfig(configfile)
-  tbl.setSectionKey("app", "defaultzos", name)
-  tbl.setSectionKey("app", "debug", $debug)
-  tbl.writeConfig(configfile)
-  
-proc showconfig*(args:seq[string]) =
-  let tbl = loadConfig(configfile)
-  echo $tbl.getOrDefault("app")
-
-
-proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444): int = 
-  # TODO: add cores parameter.
-  let isopath = downloadZOSIso()
-  try
-    newVM(name, "/tmp/zos.iso", datadiskSize, memory, redisPort)
-  except:
-    echo "ERROR HAPPENED " & getCurrentExceptionMsg()
-  echo fmt"Created machine {name}"
-
-  var args = ""
-
-  when defined linux:
-    if not existsEnv("DISPLAY"):
-      args = "--type headless"
-  let cmd = fmt"""startvm {args} "{name}" """
-  discard executeVBoxManage(cmd)
-  echo fmt"Started VM {name}"
-  # configure and make that machine the default
-  discard configure(name, "127.0.0.1", redisPort)
-
-  result = 0
-  
 
 
 
 when isMainModule:
+  if not fileExists(configfile):
+    open(configfile, fmWrite).close()
+  
+  if findExe("vboxmanage") == "":
+    echo "Please make sure to have VirtualBox installed"
+    quit 1
+  
+  if not isConfigured():
+    echo "Please run `zos configure` first"
+    quit 2
+
   import cligen
-  dispatchMulti([init], [configure], [showconfig], [setdefault], [cmd], [exec], [startContainer], [stopContainer], [listContainers], [sandboxContainer])
+  # [startContainer], [stopContainer], [listContainers], [sandboxContainer]
+  dispatchMulti([init], [configure], [showconfig], [setdefault],
+                [cmd], [exec],
+                [listContainers, cmdname="containers-list"], [newContainer, cmdname="containers-new"], [execContainer, cmdname="containers-exec"], [stopContainer, cmdname="containers-delete"])
+
+
