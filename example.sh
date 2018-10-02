@@ -1,5 +1,3 @@
-authkeys=$(cat ~/.ssh/authorized_keys)
-./zos containers-list
-
-./zos containers-new -n cont2 --root https://hub.grid.tf/thabet/busyssh.flist -p --extraconfig  '{"port":{"2215":22}, "config":{}, "nics":[{"type":"default"}]}' --authorizedkeys ~/.ssh/authorized_keys
-# ./zos containers-list
+nimble zosbuild && ./zos container list && ./zos container new --name=mycont --root="https://hub.grid.tf/thabet/busyssh.flist" --extraconfig='{"port":{"2215":22}, "config":{}, "nics":[{"type":"default"}]}'
+# nimble zosbuild && ./zos container list && ./zos container new --name=mycont --root="https://hub.grid.tf/tf-official-apps/ubuntu-bionic-build.flist" --extraconfig='{"port":{"2215":22}, "config":{}, "nics":[{"type":"default"}]}'
+./zos container list

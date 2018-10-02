@@ -11,7 +11,7 @@ bin           = @["container_cmd"]
 
 # Dependencies
 
-requires "nim >= 0.18.1", "cligen", "redisclient", "uuid", "parsetoml"
+requires "nim >= 0.18.1", "docopt", "redisclient", "uuid", "parsetoml"
 
 task zosbuild, "Creating zos binary":
     exec "nimble build -d:ssl --nilseqs:on"
