@@ -168,7 +168,7 @@ proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=100
   --vrde on 
   --natpf1 "redis,tcp,,{redisPort},,6379" """
   for l in cmdsmodify.splitLines:
-    if l.isNilOrEmpty() or l.startsWith("#"):
+    if l == "" or l.startsWith("#"):
       continue
     discard executeVBoxManageModify(fmt"""{vmName} {l}""")
 

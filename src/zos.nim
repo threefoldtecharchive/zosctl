@@ -54,17 +54,18 @@ proc getCurrentAppConfig(): OrderedTableRef[string, string] =
   result = tbl.getOrDefault("app")
 
 
-let currentconnection = getCurrentConnectionConfig()
+let currentconnectionConfig = getCurrentConnectionConfig()
+let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
 let appconfig = getCurrentAppConfig()
 
 
 proc cmd*(command: string="core.ping", arguments="{}", timeout=5): string =
-  result = zosCore(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  result = currentconnection.zosCore(command, arguments, timeout, appconfig["debug"] == "true")
   echo $result
 
 
 proc exec*(command: string="hostname", timeout:int=5, debug=false): string =
-  return zosBash(command, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  return currentconnection.zosBash(command,timeout, appconfig["debug"] == "true")
 
 
 proc configure*(name="local", address="127.0.0.1", port=4444, sshkey="", secret="") =
@@ -126,7 +127,7 @@ proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444) =
 
 
 proc listContainers() =
-  let resp = parseJson(zosCoreWithJsonNode("corex.list", nil, currentconnection.address, currentconnection.port))
+  let resp = parseJson(currentconnection.zosCoreWithJsonNode("corex.list", nil))
   echo resp.pretty(2)
 
 
@@ -137,16 +138,18 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
   if root == "":
     echo "Please provide flist url https://hub.grid.tf/thabet/redis.flist"
 
-  var connection: ZosConnectionConfig
+  var connectionConfig: ZosConnectionConfig
   if zosmachine == appconfig["defaultzos"]:
-    connection = currentconnection
+    connectionConfig = currentconnectionConfig
   else:
-    connection = getConnectionConfigForInstance(zosmachine)
+    connectionConfig = getConnectionConfigForInstance(zosmachine)
+
+  let currentconnection = open(connectionConfig.address, connectionConfig.port.Port, true)
 
   var containerHostName = hostname
   if containerHostName == "":
     containerHostName = name
-  let currentconnection = getCurrentConnectionConfig()
+  
   var args = %*{
     "name": name,
     "hostname": containerHostName,
@@ -168,9 +171,9 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
     echo "DOENST HAVE CONFIG KEY"
     extraArgs["config"] = newJObject()
 
-  echo fmt"sshkeypath: {currentconnection.sshkey}"
+  echo fmt"sshkeypath: {connectionConfig.sshkey}"
   if not extraArgs["config"].hasKey("/root/.ssh/authorized_keys"):
-    extraArgs["config"]["/root/.ssh/authorized_keys"] = %*(open(currentconnection.sshkey & ".pub", fmRead).readAll())
+    extraArgs["config"]["/root/.ssh/authorized_keys"] = %*(open(connectionConfig.sshkey & ".pub", fmRead).readAll())
 
   if extraArgs != nil:
     for k,v in extraArgs.pairs:
@@ -183,17 +186,17 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
   let command = "corex.create"
   echo fmt"new container: {command} {args}" 
   
-  echo zosCoreWithJsonNode(command, args, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
 
 
 proc stopContainer(id:int, timeout=30) =
   let command = "corex.terminate"
   let arguments = %*{"container": id}
-  discard zosCoreWithJsonNode(command, arguments, currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  discard currentconnection.zosCoreWithJsonNode(command, arguments, timeout, appconfig["debug"] == "true")
 
 
 proc execContainer*(containerid:int, command: string="hostname", timeout=5): string =
-  result = containersCore(containerid, command, "", currentconnection.address, currentconnection.port, timeout, appconfig["debug"] == "true")
+  result = currentconnection.containersCore(containerid, command, "", timeout, appconfig["debug"] == "true")
   echo $result
 
 
