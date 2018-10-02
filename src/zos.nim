@@ -12,7 +12,6 @@ let configdir = ospaths.getConfigDir()
 let configfile = configdir / "zos.toml"
 
 
-
 proc sandboxContainer(name:string,  host="localhost", port=6379, timeout=30, debug=false):int =
   echo name, host, $port
   result = 0
@@ -23,22 +22,34 @@ type ZosConnectionConfig = object
       address*: string
       port*: int
       sshkey*: string 
+      secret*: string
+      lastsshport*:int
 
 
-proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa"): ZosConnectionConfig = 
-  result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey)
+proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa", secret="", lastsshport:int=2320): ZosConnectionConfig = 
+  result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, secret:secret, lastsshport:lastsshport)
   
 
 proc getConnectionConfigForInstance(name: string): ZosConnectionConfig =
   let tbl = loadConfig(configfile)
   let address = tbl.getSectionValue(name, "address")
   let parsed = tbl.getSectionValue(name, "port")
+  let sshkey = tbl.getSectionValue(name, "sshkey")
+  let secret = tbl.getSectionValue(name, "secret")
   var port = 6379
+  var lastsshport_str = tbl.getSectionValue(name, "lastsshport")
   try:
     port = parseInt(parsed)
   except:
     echo fmt"Invalid port value: {parsed} will use default for now."
-  result = newZosConnectionConfig(name, address, port)
+  
+  var lastsshport = 2320
+  try:
+    lastsshport = parseInt(lastsshport_str)
+  except:
+    echo fmt"Invalid last sshport {lastsshport_str} will use 2320 for now."
+
+  result = newZosConnectionConfig(name, address, port, sshkey, secret, lastsshport)
 
 
 
@@ -48,13 +59,23 @@ proc getCurrentConnectionConfig(): ZosConnectionConfig =
 
   result = getConnectionConfigForInstance(name)
 
+proc getContainerConfig(containerid:int): OrderedTableRef[string, string] = 
+  var tbl = loadConfig(configfile)
+  if tbl.hasKey(fmt"container-{containerid}"):
+    return tbl[fmt"container-{containerid}"]
+  else:
+    tbl.setSectionKey(fmt("container-{containerid}"), "sshenabled", "false")
+    tbl.setSectionKey(fmt("container-{containerid}"), "sshport", "0")
+  
+  tbl.writeConfig(configfile)
+  return tbl[fmt"container-{containerid}"]
 
 proc getCurrentAppConfig(): OrderedTableRef[string, string] =
   let tbl = loadConfig(configfile)
   result = tbl.getOrDefault("app")
 
 
-let currentconnectionConfig = getCurrentConnectionConfig()
+var currentconnectionConfig = getCurrentConnectionConfig()
 let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
 let appconfig = getCurrentAppConfig()
 
@@ -68,11 +89,12 @@ proc exec*(command: string="hostname", timeout:int=5, debug=false): string =
   return currentconnection.zosBash(command,timeout, appconfig["debug"] == "true")
 
 
-proc configure*(name="local", address="127.0.0.1", port=4444, sshkey="", secret="") =
+proc configure*(name="local", address="127.0.0.1", port=4444, sshkey="", secret="", lastsshport=2320) =
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
   tbl.setSectionKey(name, "secret", secret)
+  tbl.setSectionKey(name, "lastsshport", $lastsshport )
   var sshkeyfilename = ""
   let defaultsshfile = getHomeDir() / ".ssh" / "id_rsa" 
 
@@ -199,6 +221,40 @@ proc execContainer*(containerid:int, command: string="hostname", timeout=5): str
   result = currentconnection.containersCore(containerid, command, "", timeout, appconfig["debug"] == "true")
   echo $result
 
+proc sshEnable*(containerid:int): string =
+  var currentContainerConfig = getContainerConfig(containerid)
+  var currentContainerSshPort = currentContainerConfig["sshport"]
+  
+  # if currentContainerConfig["sshenabled"] == "true":
+  #   return fmt"ssh root@{currentconnectionConfig.address} -p {currentContainerSshPort}"
+  
+  var startSsh = currentconnectionConfig.lastsshport + 1
+  
+  # echo "MKNOD" & $execContainer(containerid, "/bin/busybox mknod /dev/urandom c 1 9")
+  echo "START DROPBEAR: " & $execContainer(containerid, fmt"/usr/sbin/dropbear -RE -p {startSsh}")
+  var args = %* {
+    "container": containerid,
+    "host_port": $startSsh,
+    "container_port": startSsh
+  }
+  ## TODO: if that doesn't work increment startSsh port 
+  echo $currentconnection.zosCore("corex.portforward-add", args.pretty())
+  args = %* {
+    "port": startSsh,
+    "interface": nil,
+    "subnet":nil
+  }
+  echo "PORT FORWARD: " & $currentconnection.zosCore("nft.open_port", args.pretty())
+
+   
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey(fmt("container-{containerid}"), "sshenabled", "true")
+  tbl.setSectionKey(fmt("container-{containerid}"), "sshport", $startSsh)
+  tbl.writeConfig(configfile)
+
+  configure(currentconnectionConfig.name, currentconnectionConfig.address, currentconnectionConfig.port, currentconnectionConfig.sshkey, currentconnectionConfig.secret, startSsh)
+  return fmt"ssh root@{currentconnectionConfig.address} -p {startSsh}"
+
 
 when isMainModule:
   if not fileExists(configfile):
@@ -218,7 +274,7 @@ when isMainModule:
   
   Usage:
     zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-    zos configure --name=<zosmachine> --address=<address> --port=<port> [--sshkey=<sshkeyname>] [--secret=<secret>]
+    zos configure --name=<zosmachine> --address=<address> --port=<port> [--sshkey=<sshkeyname>] [--secret=<secret>] [--lastsshport=<lastsshport>]
     zos showconfig
     zos setdefault <zosmachine>
     zos cmd <zoscommand> [--jsonargs=<args>]
@@ -226,9 +282,9 @@ when isMainModule:
     zos container list
     zos container delete <containerid>
     zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--extraconfig=<extraconfig>] [--on=<zosmachine>]
-    zos container <containerid> exec <command>
-    zos container enablessh
-    zos container shell
+    zos container <id> exec <command>
+    zos container <id> sshenable
+    zos container <id> shell
     zos --version
 
   
@@ -239,8 +295,9 @@ when isMainModule:
     --disksize=<disksize>           disk size [default: 1000]
     --memory=<memorysize>           memory size [default: 2048]
     --redisport=<redisport>         redis port [default: 4444]
+    --lastsshport=<lastsshport>     last open sshport for a container in the machine [default: 2320]
     --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
-    --secret=<secret>               secret
+    --secret=<secret>               secret [default: ""]
     --privileged                    privileged container [default: false]
     --hostname=<hostname>           container hostname [default: ""]
     --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
@@ -301,6 +358,7 @@ when isMainModule:
     let port = parseInt($args["--port"])
     let sshkeyname = $args["--sshkey"]
     let secret = $args["--secret"]
+    let lastsshport = $args["--lastsshport"]
     # echo fmt"dispatching {name} {address} {port} {sshkeyname}"
     configure(name, address, port, sshkeyname, secret)
   elif args["showconfig"]:
@@ -335,10 +393,15 @@ when isMainModule:
     echo fmt"dispatch creating {containername} on machine {zosmachine} {rootflist} {privileged} {extraconfig}"
     discard newContainer(containername, rootflist, zosmachine, hostname, privileged, extraconfig)
   elif args["container"] and args["exec"]:
-    let containerid = parseInt($args["<containerid>"])
+    let containerid = parseInt($args["<id>"])
     let command = $args["<command>"]
     discard execContainer(containerid, command)
     # echo fmt"dispatch container exec {containerid} {command}"
+  elif args["container"] and args["sshenable"]:
+    let containerid = parseInt($args["<id>"])
+    echo fmt"Enabling ssh for container {containerid}"
+    echo sshEnable(containerid)
+    
   else:
     echo "Unsupported command"
   
