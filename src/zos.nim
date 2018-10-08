@@ -178,7 +178,8 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
     "root": root,
     "privileged": privileged,
   }
-
+  
+  echo "NEW CONTAINER ARGS:" & $args
   var extraArgs: JsonNode
   extraArgs = parseJson(extraconfig)
 
@@ -187,12 +188,14 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
 
   # FIXME NOW:
   if not extraArgs.hasKey("nics"):
-    extraArgs["nics"] = %*{"type": "default"}
+    # extraArgs["nics"] = %*
+    extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":"9bee8941b55787f3"}]
+
 
   if not extraArgs.hasKey("config"):
     echo "DOENST HAVE CONFIG KEY"
     extraArgs["config"] = newJObject()
-
+  
   echo fmt"sshkeypath: {connectionConfig.sshkey}"
   if not extraArgs["config"].hasKey("/root/.ssh/authorized_keys"):
     extraArgs["config"]["/root/.ssh/authorized_keys"] = %*(open(connectionConfig.sshkey & ".pub", fmRead).readAll())
@@ -231,13 +234,22 @@ proc sshEnable*(containerid:int): string =
   var startSsh = currentconnectionConfig.lastsshport + 1
   
   # echo "MKNOD" & $execContainer(containerid, "/bin/busybox mknod /dev/urandom c 1 9")
-  echo "START DROPBEAR: " & $execContainer(containerid, fmt"/usr/sbin/dropbear -RE -p {startSsh}")
+  discard execContainer(containerid, "mkdir -p /root/.ssh")
+
+   
+
+  echo $execContainer(containerid, "chmod 700 -R /etc/ssh")
+  # discard execContainer(containerid, "chmod 700 /etc/ssh")
+  discard $execContainer(containerid, fmt"service ssh start")
+
+
+
   var args = %* {
     "container": containerid,
-    "host_port": $startSsh,
-    "container_port": startSsh
+    "host_port": $startSsh ,
+    "container_port": 22
   }
-  ## TODO: if that doesn't work increment startSsh port 
+  # TODO: if that doesn't work increment startSsh port 
   echo $currentconnection.zosCore("corex.portforward-add", args.pretty())
   args = %* {
     "port": startSsh,
@@ -246,7 +258,9 @@ proc sshEnable*(containerid:int): string =
   }
   echo "PORT FORWARD: " & $currentconnection.zosCore("nft.open_port", args.pretty())
 
-   
+
+  echo $currentconnection.zosCore("corex.portforward-add", args.pretty())
+
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(fmt("container-{containerid}"), "sshenabled", "true")
   tbl.setSectionKey(fmt("container-{containerid}"), "sshport", $startSsh)
