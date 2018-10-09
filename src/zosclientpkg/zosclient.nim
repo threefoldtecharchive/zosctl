@@ -150,6 +150,8 @@ proc zosCoreWithJsonNode*(con:Redis|AsyncRedis, command: string="core.ping", pay
 
   return con.zosSend(payload, false,timeout, debug)
   
+proc zosContainerCmd*(con: Redis|AsyncRedis, containerid:int, command:string, timeout=5, debug=false): string =
+  return con.zosCoreWithJsonNode(command, %*{"container":containerid}) 
 
 proc zosCore*( con:Redis|AsyncRedis, command: string="core.ping", arguments="", timeout:int=5, debug=false): string =
   var payloadNode: JsonNode = nil
