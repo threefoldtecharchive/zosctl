@@ -1,17 +1,39 @@
-# container_cmd
+# zos
 zos-container manager can be used on local or remote zos machine
 
 ## Building
-- nimble build -d:ssl
+Project is built using `nimble zosbuild` or `nimble build -d:ssl`
+
+## Using zos for the first time
+In the first time of using zos you will see a friendly message indicating what you should do
+
+```bash
+To create new machine in VirtualBox use
+  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+
+To configure it to use a specific zosmachine
+  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
+```
 
 ## Preparing local zos machine
 ```bash
-./container_cmd newZos -v zmachine3 --redisPort 4444
+zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 ```
-This will create a local virtual machine `zmachine3` with ZOS installed and forwards the localhost 4444 to zos redis port 6379
+This will create a local virtual machine `mymachine` with ZOS installed and forwards the `localhost 4444` to zos redis port `6379`
+- memorysize is defaulted to 2 GB
+- disk size is defaulted to 1 GB disk
 
+
+## Using an existing Zos machine
+Lots of time you will have a local development of zero-os using qemu, and to configure zos against that you can use `configure` subcommand to do so
+
+```bash
+./zos configure --name local --address 192.168.122.147 --port 6379  
+```
+To configure an existing zos machine named `local` to use address `192.168.122.147` and port `6379`
 
 ## Interacting with ZOS
+
 
 ### ZOS Builtin commands
 
@@ -19,7 +41,7 @@ This will create a local virtual machine `zmachine3` with ZOS installed and forw
 
 - `ping`
 ```
-./container_cmd zosCore --command="core.ping" --host 127.0.0.1 --port 4444
+./zos cmd "core.ping" 
 ```
 You should see response
 ```
@@ -29,9 +51,8 @@ You should see response
 
 - `disk.list`
 ```
-~> ./container_cmd zosCore --command="disk.list" --host 127.0.0.1 --port 4444
+~> ./zos cmd "disk.list" 
 ```
-
 Output:
 ```
 [
@@ -198,59 +219,12 @@ Output:
   }
 ]
 ```
-- info.dmi
-This commands requires extra arguments to be passed like specifying types this can be achieved by sending the payload of the command in `--arguments` switch as encoded json string. (you need to consult the zero-os documentation about various commands and their parameters)
-```./container_cmd zosCore --command="info.dmi" --host 127.0.0.1 --port 4444 --arguments='{"types":["bios"]}'```
 
-Output
-
-```
-{
-  "BIOS Information": {
-    "handleline": "Handle 0x0000, DMI type 0, 20 bytes",
-    "title": "BIOS Information",
-    "typestr": "BIOS",
-    "typenum": 0,
-    "properties": {
-      "Address": {
-        "value": "0xE0000"
-      },
-      "Characteristics": {
-        "value": "",
-        "items": [
-          "ISA is supported",
-          "PCI is supported",
-          "Boot from CD is supported",
-          "Selectable boot is supported",
-          "8042 keyboard services are supported (int 9h)",
-          "CGA/mono video services are supported (int 10h)",
-          "ACPI is supported"
-        ]
-      },
-      "ROM Size": {
-        "value": "128 kB"
-      },
-      "Release Date": {
-        "value": "12/01/2006"
-      },
-      "Runtime Size": {
-        "value": "128 kB"
-      },
-      "Vendor": {
-        "value": "innotek GmbH"
-      },
-      "Version": {
-        "value": "VirtualBox"
-      }
-    }
-  }
-}
-```
 ### User defined commands
 
 you can use zosBash subcommand to execute bash commands on the zos directly
 ```
-~> ./container_cmd zosBash --command="ls /var" --host127.0.0.1 --port 4444
+~> ./zos exec "ls /var"
 cache
 empty
 lib
@@ -259,14 +233,14 @@ log
 run
 
 
-~> ./container_cmd zosBash --command="ls /root -al" --host 127.0.0.1 --port 4444
+~> ./zos exec "ls /root -al"
 total 0
 drwxr-xr-x    3 root     root            60 Sep 17 13:09 .
 drwxrwxrwt   14 root     root           340 Sep 17 16:28 ..
 drwx------    2 root     root            60 Sep 17 13:09 .ssh
 
 
-~> ./container_cmd zosBash --command="cat /root/.ssh/authorized_keys" --host 127.0.0.1 --port 4444
+~> ./zos exec "cat /root/.ssh/authorized_keys"
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG79ZtZZmeYspcUmMx9462AsbkA6T9RmxqrNBYnN9W+8XgTtRH9k/KQ83tui5eB3/zPtTi5ujX2geIn+h8PerG1Y96akj6vfFkR2jQld4WWHVzZAY9eEJ1IeMA30tz/LtAuyxxCLKsU/nZSsT2G0sHE0mKb9bnqy1FnmtG2oqZe5hZ5rEpePTKrh7y/Ev3zSQnnmQot6xErN51vOwdR22hJFlX75VoO+q6LJT2g82xezGsbLEv9QIRYcGby1RbjWsXjjfP6trD/+w8gYyVjjIqA6sexs7WXINeeZ4NLXIwPEVmt
 
 .... output omitted
@@ -278,10 +252,8 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
 
 ```
-./container_cmd startContainer --name=rediscont3 --hostname aredishost --root="https://hub.grid.tf/thabet/redis.flist" --
-extraconfig='{"port":{"3000":3500}, "nics":[{"type":"default"}]}' --port=4444
+ ./zos container new --name=mycont --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist" --privileged  --extraconfig='{"config":{}}'
 ```
-
 Output (new container id)
 ```
 2
@@ -333,11 +305,133 @@ Please consult the documentation for more updated info on the allowed configurat
               config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
 ```
 
+### Container information
+
+```bash
+./zos container 5 info                                                       
+{
+  "id": "5",
+  "cpu": 0.0,
+  "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
+  "hostname": "dmdm",
+  "pid": 29671
+```
+
+### Containers information
+using `./zos container list` or `./zos container info`
+
+```bash
+[
+  {
+    "id": "1",
+    "cpu": 0.03423186237547345,
+    "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
+    "hostname": "",
+    "pid": 446
+  },
+  {
+    "id": "2",
+    "cpu": 0.01141061719069141,
+    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
+    "hostname": "\"\"",
+    "pid": 2207
+  },
+  {
+    "id": "3",
+    "cpu": 0.0,
+    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
+    "hostname": "nil",
+    "pid": 27567
+  },
+  {
+    "id": "4",
+    "cpu": 0.0,
+    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
+    "hostname": "nil",
+    "pid": 28848
+  },
+  {
+    "id": "5",
+    "cpu": 0.0,
+    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
+    "hostname": "dmdm",
+    "pid": 29671
+  }
+]
+```
+
+### Inspect single container
+using `inspect` command
+```bash
+./zos container 1 inspect                                                     ✔  ahmed@ahmedheaven
+{
+  "cpu": 0.01674105440884163,
+  "rss": 7946240,
+  "vms": 398368768,
+  "swap": 0,
+  "container": {
+    "arguments": {
+      "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
+      "mount": {
+        "/var/cache/zrobot/config": "/opt/code/local/stdorg/config",
+        "/var/cache/zrobot/data": "/opt/var/data/zrobot/zrobot_data",
+        "/var/cache/zrobot/jsconfig": "/root/jumpscale/cfg",
+        "/var/cache/zrobot/ssh": "/root/.ssh",
+        "/var/run/redis.sock": "/tmp/redis.sock"
+      },
+      "host_network": false,
+      "identity": "",
+      "nics": [
+        {
+          "type": "default",
+          "id": "",
+          "hwaddr": "",
+          "config": {
+            "dhcp": false,
+            "cidr": "",
+            "gateway": "",
+            "dns": null
+          },
+          "monitor": false,
+          "state": "configured"
+        }
+      ],
+      "port": {
+        "6600": 6600
+      },
+      "privileged": false,
+      "hostname": "",
+      "storage": "zdb://hub.grid.tf:9900",
+      "name": "zrobot",
+      "tags": [
+        "zrobot"
+      ],
+      "env": {
+        "HOME": "/root",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8"
+      },
+      "cgroups": [
+        [
+          "devices",
+          "corex"
+        ]
+      ],
+      "config": null
+    },
+    "root": "/mnt/containers/1",
+    "pid": 446
+  }
+}
+```
+### Inspect all containers
+`./zos container inspect`
+Shows a detailed information about the container
 
 ### Listing running containers
- ```./container_cmd listContainers --port=4444``
 
-```
+```bash
+./zos container list
 {  "1": {
     "cpu": 0.0216872378245448,
     "rss": 7151616,
@@ -447,29 +541,10 @@ Please consult the documentation for more updated info on the allowed configurat
 
 
 ### Terminating a container
+using subcommand `delete`
+```bash
+./zos container 5 delete  
+```
 
-```
-./container_cmd stopContainer --id=3 --port 4444
-./container_cmd stopContainer --id=11 --port 4444
-```
 
-```
-FAILED TO EXECUTE with error {"id":"8a6a61e0-dca4-43c6-b9e8-b8c78822eb2c","command":"corex.terminate","data":"\"no container with id '11'\"","streams":["",""],"level":20,"state":"ERROR","code":500,"starttime":1537258389944,"time":0,"tags":null,"container":0}
-{
-  "id": "8a6a61e0-dca4-43c6-b9e8-b8c78822eb2c",
-  "command": "corex.terminate",
-  "data": "\"no container with id '11'\"",
-  "streams": [
-    "",
-    ""
-  ],
-  "level": 20,
-  "state": "ERROR",
-  "code": 500,
-  "starttime": 1537258389944,
-  "time": 0,
-  "tags": null,
-  "container": 0
-}
-```
 
