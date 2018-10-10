@@ -1,7 +1,6 @@
-import  redisclient, redisparser
+import redisclient, redisparser
 import os, strutils, strformat, osproc, tables, uri
-import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
-
+import uuids, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 
 proc flagifyId*(id: string): string =
   result = fmt"result:{id}:flag" 
@@ -13,9 +12,7 @@ proc streamId*(id: string): string =
   result = fmt"stream:{id}" 
 
 proc newUUID*(): string = 
-  var cmduid: Tuuid
-  uuid_generate_random(cmduid)
-  result = cmduid.to_hex
+  result = $uuids.genUUID()
 
 proc getResponseString*(con: Redis|AsyncRedis, id: string, timeout=10): Future[string] {.multisync.} = 
   let exists = $(await con.execCommand("EXISTS", @[flagifyId(id)]))

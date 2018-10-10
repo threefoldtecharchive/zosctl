@@ -11,7 +11,7 @@ bin           = @["zos"]
 
 # Dependencies
 
-requires "nim >= 0.18.1", "docopt", "redisclient", "uuid", "parsetoml"
+requires "nim >= 0.18.1", "docopt", "redisclient", "uuids"
 
 task zosbuild, "Creating zos binary":
     exec "nimble build -d:ssl"
