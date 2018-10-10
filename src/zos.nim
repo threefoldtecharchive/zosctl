@@ -1,6 +1,6 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
 import net, asyncdispatch, asyncnet
-import redisclient, redisparser, uuid, docopt
+import redisclient, redisparser, docopt
 import vboxpkg/vbox
 import zosclientpkg/zosclient
 
