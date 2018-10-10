@@ -14,4 +14,10 @@ bin           = @["zos"]
 requires "nim >= 0.18.1", "docopt", "redisclient", "uuid", "parsetoml"
 
 task zosbuild, "Creating zos binary":
-    exec "nimble build -d:ssl --nilseqs:on"
+    exec "nimble build -d:ssl"
+
+task static, "Creating zos static binary":
+    exec "nimble build -d:ssl --app:console"
+
+
+
