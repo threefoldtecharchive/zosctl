@@ -547,4 +547,10 @@ using subcommand `delete`
 ```
 
 
+### Enabling SSH
+enabling ssh on the container is as easy as `./zos container 3 sshenable`
+
+
+### Access SSH
+executing `./zos container 3 shell` will connect through ssh
 
