@@ -233,11 +233,11 @@ proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444) =
   when defined linux:
     if not existsEnv("DISPLAY"):
       args = "--type headless"
+  configure(name, "127.0.0.1", redisPort, setdefault=true)
   let cmd = fmt"""startvm {args} "{name}" """
   discard executeVBoxManage(cmd)
   echo fmt"Started VM {name}"
   # configure and make that machine the default
-  configure(name, "127.0.0.1", redisPort)
 
 proc containersInspect(): string=
   let currentconnectionConfig = getCurrentConnectionConfig()
