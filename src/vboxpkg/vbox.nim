@@ -1,5 +1,5 @@
 import os, strutils, strformat, osproc, tables, uri
-import uuid, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
+import json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 
 type 
   VirtualBoxClient* = ref object of RootObj
@@ -163,8 +163,6 @@ proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=100
   --ioapic on
   --boot1 dvd --boot2 disk
   --nic1 nat
-  #--nic2 hostonly
-  #--hostonlyadapter2 vboxnet0
   --vrde on 
   --natpf1 "redis,tcp,,{redisPort},,6379" """
   for l in cmdsmodify.splitLines:
