@@ -5,9 +5,27 @@ import vboxpkg/vbox
 import zosclientpkg/zosclient
 
 
+# """
+# errorCodes
+# 1: can't create configdir
+# 2: sshkey not found
+# 3: container not found
+# 4: vbox not found
+# 5: unconfigured zos
+# """
+
+
+let firstTimeMessage = """First time to run zos?
+To create new machine in VirtualBox use
+  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+
+To configure it to use a specific zosmachine 
+  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
+"""
+
+
 let doc = """
 Usage:
-  zos
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
   zos showconfig
@@ -27,13 +45,8 @@ Usage:
   zos container <id> sshenable
   zos container <id> sshinfo
   zos container <id> shell
-  zos help init
-  zos help configure
-  zos help setdefault
-  zos help showconfig
-  zos help cmd
-  zos help exec
-  zos help container
+  zos help <cmdname>
+
   zos --version
 
 
@@ -53,8 +66,103 @@ Options:
 """
 
 
+proc getHelp(cmdname:string) = 
+  if cmdname == "init":
+    echo """
+          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+
+          creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
+            --disksize=<disksize>           disk size [default: 1000]
+            --memory=<memorysize>           memory size [default: 2048]
+            --port=<port>  
+
+    """
+  elif cmdname == "configure":
+    echo """
+          zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
+            configures instance with name zosmachine on address <address>
+            --port=<port>                   zero-os port [default: 6379]
+            --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
+            --setdefault                    sets the configured machine to be default one
+            
+            """
+  elif cmdname == "showconfig":
+    echo """
+        zos showconfig
+            Shows application config
+        """
+  elif cmdname == "setdefault":
+    echo """
+        zos setdefault <zosmachine>
+          Sets the default instance to work with
+    """
+  elif cmdname == "cmd":
+    echo """
+        zos cmd <zoscommand>
+          executes zero-os command e.g "core.ping"
+    """
+  elif cmdname == "exec":
+    echo """
+        zos exec <bashcommand> 
+          execute shell command on zero-os host e.g "ls /root -al"
+    """
+  elif cmdname == "container":
+    echo """
+
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
+    creates a new container 
+
+  zos container inspect
+    inspect the current running container (showing full info)
+
+  zos container info
+    shows summarized info on running containers
+  zos container list
+    alias to `zos container info`
+
+  zos container <id> inspect
+    shows detailed information on container 
+
+  zos container <id> info
+    show summarized container info
+
+  zos container <id> delete
+    deletes containers
+
+  zos container <id> zerotierinfo
+    shows zerotier info of a container
+
+  zos container <id> zerotierlist
+    shows zerotier networks info
+
+  zos container <id> exec <command>
+    executes a command on a specific container
+
+  zos container <id> sshenable
+    enables ssh on a container
+
+  zos container <id> sshinfo
+    shows sshinfo to access container
+
+  zos container <id> shell
+    ssh into a container
+    """
+
+  else:
+    echo firstTimeMessage
+    echo doc
+
+
+
 let configdir = ospaths.getConfigDir()
 let configfile = configdir / "zos.toml"
+
+try:
+  createDir(configdir)
+except:
+  echo fmt"Couldn't create {configdir}"
+  quit 1
+
 
 proc getCurrentAppConfig(): OrderedTableRef[string, string] =
   let tbl = loadConfig(configfile)
@@ -72,19 +180,11 @@ if not fileExists(configfile):
   t.writeConfig(configfile)
 
 
-let firstTimeMessage = """First time to run zos?
-To create new machine in VirtualBox use
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-
-To configure it to use a specific zosmachine 
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
-"""
-
 let currentAppConfig = getCurrentAppConfig()
 
 var zerotierId: string
 if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
-  zerotierId = "9bee8941b55787f3" #  "" pub xmonader network
+  zerotierId = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
 else:
   zerotierId = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
 
@@ -162,11 +262,11 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
     keypath = getHomeDir() / ".ssh" / sshkeyname
     if not existsFile(keypath):
       echo fmt"SSH Key not found: {keypath}"
-      quit 6
+      quit 2
   else:
     if not existsFile(defaultsshfile):
       echo fmt"SSH Key not found: {keypath}"
-      quit 6 
+      quit  2
 
   keypath = defaultsshfile
   tbl.setSectionKey(name, "sshkey", keypath)
@@ -177,7 +277,7 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
 
 proc showconfig*() =
   let tbl = loadConfig(configfile)
-  echo $tbl.getOrDefault("app")
+  echo $tbl
 
 proc init(name="local", datadiskSize=2, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
@@ -260,10 +360,9 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
   let currentconnectionConfig = getCurrentConnectionConfig()
   if name == "":
     echo "Please provide a container name"
-    quit 2
+    quit 3
   if root == "":
     echo "Please provide flist url https://hub.grid.tf/thabet/redis.flist"
-
   var connectionConfig: ZosConnectionConfig
   if zosmachine == appconfig["defaultzos"]:
     connectionConfig = currentconnectionConfig
@@ -350,7 +449,6 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
   let parsedZts = parseJson(ztsJson)
   # if len(parsedZts)>0:
   let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
-  echo "assignedAddresses " & $assignedAddresses
   for el in assignedAddresses:
     var ip = el.getStr()
     if ip.count('.') == 3:
@@ -363,7 +461,6 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
         echo getCurrentExceptionMsg()
         continue
 
-      echo fmt"setting ip to {ip}"
       tbl.setSectionKey(fmt("container-{containerid}"), "ip", ip)
       tbl.writeConfig(configfile)
 
@@ -371,100 +468,21 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
       echo result
 
 when isMainModule:
-  if findExe("vboxmanage") == "":
-    echo "Please make sure to have VirtualBox installed"
-    quit 3 
+
   
   let args = docopt(doc, version="zos 0.1.0")
   
   if args["help"]:
-    if args["init"]:
-      echo """
-            zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-
-            creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
-              --disksize=<disksize>           disk size [default: 1000]
-              --memory=<memorysize>           memory size [default: 2048]
-              --port=<port>  
-
-      """
-    elif args["configure"]:
-      echo """
-            zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
-              configures instance with name zosmachine on address <address>
-              --port=<port>                   zero-os port [default: 6379]
-              --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
-              --setdefault                    sets the configured machine to be default one
-              
-              """
-    elif args["showconfig"]:
-      echo """
-            Shows application config
-           """
-    elif args["setdefault"]:
-      echo """
-          zos setdefault <zosmachine>
-            Sets the default instance to work with
-      """
-    elif args["cmd"]:
-      echo """
-          zos cmd <zoscommand>
-            executes zero-os command e.g "core.ping"
-      """
-    elif args["exec"]:
-      echo """
-          zos exec <bashcommand> 
-            execute shell command on zero-os host e.g "ls /root -al"
-      """
-    elif args["container"]:
-      echo """
-
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
-      creates a new container 
-
-  zos container inspect
-      inspect the current running container (showing full info)
-
-  zos container info
-      shows summarized info on running containers
-  zos container list
-      alias to `zos container info`
-
-  zos container <id> inspect
-      shows detailed information on container 
-
-  zos container <id> info
-      show summarized container info
-
-  zos container <id> delete
-      deletes containers
-
-  zos container <id> zerotierinfo
-      shows zerotier info of a container
-
-  zos container <id> zerotierlist
-      shows zerotier networks info
-
-  zos container <id> exec <command>
-      executes a command on a specific container
-
-  zos container <id> sshenable
-      enables ssh on a container
-
-  zos container <id> sshinfo
-      shows sshinfo to access container
-
-  zos container <id> shell
-      ssh into a container
-      """
-
-    
-    else:
-      echo firstTimeMessage
-      echo doc
+    let cmdname = $args["<cmdname>"]
+    getHelp(cmdname)
     quit 0
+
   if not isConfigured():
     if args["init"]:
+      if findExe("vboxmanage") == "":
+        echo "Please make sure to have VirtualBox installed"
+        quit 4 
+
       let name = $args["--name"]
       let disksize = parseInt($args["--disksize"])
       let memory = parseInt($args["--memory"])
@@ -485,8 +503,8 @@ when isMainModule:
       setdefault(name)
     else:
       echo firstTimeMessage
-      # echo doc
       quit 5
+  
   else:
     if args["init"]:
       let name = $args["--name"]
