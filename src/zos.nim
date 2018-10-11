@@ -3,6 +3,8 @@ import net, asyncdispatch, asyncnet
 import redisclient, redisparser, docopt
 import vboxpkg/vbox
 import zosclientpkg/zosclient
+import zosapp/settings
+import zosapp/apphelp
 
 
 # """
@@ -14,148 +16,6 @@ import zosclientpkg/zosclient
 # 5: unconfigured zos
 # """
 
-
-let firstTimeMessage = """First time to run zos?
-To create new machine in VirtualBox use
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-
-To configure it to use a specific zosmachine 
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
-"""
-
-
-let doc = """
-Usage:
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
-  zos showconfig
-  zos setdefault <zosmachine>
-  zos cmd <zoscommand> [--jsonargs=<args>]
-  zos exec <bashcommand> 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
-  zos container inspect
-  zos container info
-  zos container list
-  zos container <id> inspect
-  zos container <id> info
-  zos container <id> delete
-  zos container <id> zerotierinfo
-  zos container <id> zerotierlist
-  zos container <id> exec <command>
-  zos container <id> sshenable
-  zos container <id> sshinfo
-  zos container <id> shell
-  zos help <cmdname>
-
-  zos --version
-
-
-Options:
-  -h --help                       Show this screen.
-  --version                       Show version.
-  --on=<zosmachine>               Zero-OS machine instance name.
-  --disksize=<disksize>           disk size in GB [default: 2]
-  --memory=<memorysize>           memory size in GB [default: 2]
-  --redisport=<redisport>         redis port [default: 4444]
-  --port=<port>                   zero-os port [default: 6379]
-  --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
-  --setdefault                    sets the configured machine to be default one
-  --privileged                    privileged container [default: false]
-  --hostname=<hostname>           container hostname [default:]
-  --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
-"""
-
-
-proc getHelp(cmdname:string) = 
-  if cmdname == "init":
-    echo """
-          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-
-          creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
-            --disksize=<disksize>           disk size [default: 1000]
-            --memory=<memorysize>           memory size [default: 2048]
-            --port=<port>  
-
-    """
-  elif cmdname == "configure":
-    echo """
-          zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
-            configures instance with name zosmachine on address <address>
-            --port=<port>                   zero-os port [default: 6379]
-            --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
-            --setdefault                    sets the configured machine to be default one
-            
-            """
-  elif cmdname == "showconfig":
-    echo """
-        zos showconfig
-            Shows application config
-        """
-  elif cmdname == "setdefault":
-    echo """
-        zos setdefault <zosmachine>
-          Sets the default instance to work with
-    """
-  elif cmdname == "cmd":
-    echo """
-        zos cmd <zoscommand>
-          executes zero-os command e.g "core.ping"
-    """
-  elif cmdname == "exec":
-    echo """
-        zos exec <bashcommand> 
-          execute shell command on zero-os host e.g "ls /root -al"
-    """
-  elif cmdname == "container":
-    echo """
-
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
-    creates a new container 
-
-  zos container inspect
-    inspect the current running container (showing full info)
-
-  zos container info
-    shows summarized info on running containers
-  zos container list
-    alias to `zos container info`
-
-  zos container <id> inspect
-    shows detailed information on container 
-
-  zos container <id> info
-    show summarized container info
-
-  zos container <id> delete
-    deletes containers
-
-  zos container <id> zerotierinfo
-    shows zerotier info of a container
-
-  zos container <id> zerotierlist
-    shows zerotier networks info
-
-  zos container <id> exec <command>
-    executes a command on a specific container
-
-  zos container <id> sshenable
-    enables ssh on a container
-
-  zos container <id> sshinfo
-    shows sshinfo to access container
-
-  zos container <id> shell
-    ssh into a container
-    """
-
-  else:
-    echo firstTimeMessage
-    echo doc
-
-
-
-let configdir = ospaths.getConfigDir()
-let configfile = configdir / "zos.toml"
 
 try:
   createDir(configdir)
@@ -356,7 +216,7 @@ proc containersInfo(): string =
   result = parseJson($$(info)).pretty(2)
 
 
-proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false, timeout=30):int = 
+proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30):int = 
   let currentconnectionConfig = getCurrentConnectionConfig()
   if name == "":
     echo "Please provide a container name"
