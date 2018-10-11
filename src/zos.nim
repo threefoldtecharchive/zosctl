@@ -41,8 +41,8 @@ Options:
   -h --help                       Show this screen.
   --version                       Show version.
   --on=<zosmachine>               Zero-OS machine instance name.
-  --disksize=<disksize>           disk size [default: 1000]
-  --memory=<memorysize>           memory size [default: 2048]
+  --disksize=<disksize>           disk size in GB [default: 2]
+  --memory=<memorysize>           memory size in GB [default: 2]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
   --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
@@ -179,11 +179,11 @@ proc showconfig*() =
   let tbl = loadConfig(configfile)
   echo $tbl.getOrDefault("app")
 
-proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444) = 
+proc init(name="local", datadiskSize=2, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
   try:
-    newVM(name, "/tmp/zos.iso", datadiskSize, memory, redisPort)
+    newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
   except:
     echo "[-] Error: " & getCurrentExceptionMsg()
   echo fmt"Created machine {name}"
