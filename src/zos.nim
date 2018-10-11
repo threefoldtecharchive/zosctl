@@ -1,5 +1,5 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
-import net, asyncdispatch, asyncnet
+import net, asyncdispatch, asyncnet, streams
 import redisclient, redisparser, docopt
 import vboxpkg/vbox
 import zosclientpkg/zosclient
@@ -136,8 +136,6 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
 
 proc showconfig*() =
   echo readFile(configfile)
-  # let tbl = loadConfig(configfile)
-  # echo $tbl
 
 proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
@@ -451,6 +449,8 @@ when isMainModule:
       let containerid = parseInt($args["<id>"])
       let sshcmd = sshEnable(containerid, true)
       let p = startProcess("/usr/bin/ssh", args=[sshcmd], options={poInteractive, poParentStreams})
+      if p.hasData:
+        p.inputStream.write("echo hello")
       discard p.waitForExit()
     else:
       echo "Unsupported command"

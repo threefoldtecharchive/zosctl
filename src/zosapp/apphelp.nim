@@ -17,7 +17,7 @@ Usage:
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <bashcommand>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--ssh] [--on=<zosmachine>]
   zos container inspect
   zos container info
   zos container list
@@ -46,6 +46,7 @@ Options:
   --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
+  --ssh                          privileged container [default: false]
   --hostname=<hostname>           container hostname [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
 """
@@ -94,7 +95,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>] [--ssh]
     creates a new container 
 
   zos container inspect
