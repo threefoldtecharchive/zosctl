@@ -8,14 +8,13 @@ import zosclientpkg/zosclient
 let doc = """
 Usage:
   zos
-  zos help
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>] [--setdefault]
+  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <bashcommand> 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--extraconfig=<extraconfig>] [--on=<zosmachine>]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
   zos container inspect
   zos container info
   zos container list
@@ -28,66 +27,29 @@ Usage:
   zos container <id> sshenable
   zos container <id> sshinfo
   zos container <id> shell
-
+  zos help init
+  zos help configure
+  zos help setdefault
+  zos help showconfig
+  zos help cmd
+  zos help exec
+  zos help container
   zos --version
 
 
 Options:
   -h --help                       Show this screen.
   --version                       Show version.
-  --on=<zosmachine>               Zero-OS machine instance name [default: local].
+  --on=<zosmachine>               Zero-OS machine instance name.
   --disksize=<disksize>           disk size [default: 1000]
   --memory=<memorysize>           memory size [default: 2048]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
   --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
-  --secret=<secret>               secret [default:]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
   --hostname=<hostname>           container hostname [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
-  --extraconfig=<extraconfig>     configurations for building container json encoded [default: "{}"]
-            mount: a dict with {host_source: container_target} mount points.
-                where host_source directory must exists.
-                host_source can be a url to a flist to mount.
-            host_network: Specify if the container should share the same network stack as the host.
-                      if True, container creation ignores both zerotier, bridge and ports arguments below. Not
-                      giving errors if provided.
-            nics: Configure the attached nics to the container
-              each nic object is a dict of the format
-              {
-                  'type': nic_type # one of default, bridge, zerotier, macvlan, passthrough, vlan, or vxlan (note, vlan and vxlan only supported by ovs)
-                  'id': id # depends on the type
-                      bridge: bridge name,
-                      zerotier: network id,
-                      macvlan: the parent link name,
-                      passthrough: the link name,
-                      vlan: the vlan tag,
-                      vxlan: the vxlan id
-                  'name': name of the nic inside the container (ignored in zerotier type)
-                  'hwaddr': Mac address of nic.
-                  'config': { # config is only honored for bridge, vlan, and vxlan types
-                      'dhcp': bool,
-                      'cidr': static_ip # ip/mask
-                      'gateway': gateway
-                      'dns': [dns]
-                  }
-              }
-            port: A dict of host_port: container_port pairs (only if default networking is enabled)
-                Example:
-                  `port={8080: 80, 7000:7000}`
-                Source Format: NUMBER, IP:NUMBER, IP/MAST:NUMBER, or DEV:NUMBER
-            storage: A Url to the ardb storage to use to mount the root flist (or any other mount that requires g8fs)
-                  if not provided, the default one from core0 configuration will be used.
-            identity: Container Zerotier identity, Only used if at least one of the nics is of type zerotier
-            env: a dict with the environment variables needed to be set for the container
-            cgroups: custom list of cgroups to apply to this container on creation. formated as [(subsystem, name), ...]
-                  please refer to the cgroup api for more detailes.
-            config: a map with the config file path as a key and content as a value. This only works when creating a VM from an flist. The
-            config files are written to the machine before booting.
-            Example:
-            config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
-
 """
 
 
@@ -108,6 +70,7 @@ if not fileExists(configfile):
   t.setSectionKey("app", "defaultzos", "false")
   t.setSectionKey("app", "debug", "false")
   t.writeConfig(configfile)
+
 
 let firstTimeMessage = """First time to run zos?
 To create new machine in VirtualBox use
@@ -133,23 +96,21 @@ type ZosConnectionConfig = object
       address*: string
       port*: int
       sshkey*: string 
-      secret*: string
 
-proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa", secret=""): ZosConnectionConfig = 
-  result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, secret:secret)
+proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa"): ZosConnectionConfig = 
+  result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey)
   
 proc getConnectionConfigForInstance(name: string): ZosConnectionConfig =
   let tbl = loadConfig(configfile)
   let address = tbl.getSectionValue(name, "address")
   let parsed = tbl.getSectionValue(name, "port")
   let sshkey = tbl.getSectionValue(name, "sshkey")
-  let secret = tbl.getSectionValue(name, "secret")
   var port = 6379
   try:
     port = parseInt(parsed)
   except:
     echo fmt"Invalid port value: {parsed} will use default for now."
-  result = newZosConnectionConfig(name, address, port, sshkey, secret)
+  result = newZosConnectionConfig(name, address, port, sshkey)
 
 proc getCurrentConnectionConfig(): ZosConnectionConfig =
   let tbl = loadConfig(configfile)
@@ -188,11 +149,10 @@ proc setdefault*(name="local", debug=false)=
   tbl.writeConfig(configfile)
   
 
-proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", secret="", setdefault=false) =
+proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", setdefault=false) =
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
-  tbl.setSectionKey(name, "secret", secret)
   let defaultsshfile = getHomeDir() / ".ssh" / "id_rsa" 
   var keypath= ""
 
@@ -234,9 +194,19 @@ proc init(name="local", datadiskSize=1000, memory=2048, redisPort=4444) =
     if not existsEnv("DISPLAY"):
       args = "--type headless"
   configure(name, "127.0.0.1", redisPort, setdefault=true)
-  let cmd = fmt"""startvm {args} "{name}" """
+  let cmd = fmt"""startvm {args} "{name}" &"""
   discard executeVBoxManage(cmd)
   echo fmt"Started VM {name}"
+  
+  # give it 10 mins
+  var trials = 0
+  while trials != 120:
+    try:
+      let con = open("127.0.0.1", redisPort.Port, true)
+    except:
+      echo "Still pending to have a connection to zos"
+      sleep(5)
+      trials += 5
   # configure and make that machine the default
 
 proc containersInspect(): string=
@@ -284,10 +254,9 @@ proc containersInfo(): string =
     let pid = parsedJson[k]["container"]["pid"].getInt()
     info.add(ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid))
   result = parseJson($$(info)).pretty(2)
-  
 
 
-proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false, extraconfig="{}", timeout=30):int = 
+proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false, timeout=30):int = 
   let currentconnectionConfig = getCurrentConnectionConfig()
   if name == "":
     echo "Please provide a container name"
@@ -315,10 +284,7 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
   }
   
   var extraArgs: JsonNode
-  extraArgs = parseJson(extraconfig)
-
-  # echo fmt"extraconfig: {extraconfig} {extraArgs}"
-  # echo extraArgs.type.name
+  extraArgs = newJObject()
 
   if not extraArgs.hasKey("nics"):
     extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
@@ -334,7 +300,6 @@ proc newContainer(name="", root="", zosmachine="", hostname="", privileged=false
     for k,v in extraArgs.pairs:
       args[k] = %*v
   
-  echo fmt"args: {args}"
   let appconfig = getCurrentAppConfig()
   let command = "corex.create"
   echo fmt"new container: {command} {args}" 
@@ -387,7 +352,6 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
   let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
   echo "assignedAddresses " & $assignedAddresses
   for el in assignedAddresses:
-    echo "EL" & $el
     var ip = el.getStr()
     if ip.count('.') == 3:
       # potential ip4
@@ -414,8 +378,90 @@ when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
   
   if args["help"]:
-    echo firstTimeMessage
-    echo doc
+    if args["init"]:
+      echo """
+            zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+
+            creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
+              --disksize=<disksize>           disk size [default: 1000]
+              --memory=<memorysize>           memory size [default: 2048]
+              --port=<port>  
+
+      """
+    elif args["configure"]:
+      echo """
+            zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
+              configures instance with name zosmachine on address <address>
+              --port=<port>                   zero-os port [default: 6379]
+              --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
+              --setdefault                    sets the configured machine to be default one
+              
+              """
+    elif args["showconfig"]:
+      echo """
+            Shows application config
+           """
+    elif args["setdefault"]:
+      echo """
+          zos setdefault <zosmachine>
+            Sets the default instance to work with
+      """
+    elif args["cmd"]:
+      echo """
+          zos cmd <zoscommand>
+            executes zero-os command e.g "core.ping"
+      """
+    elif args["exec"]:
+      echo """
+          zos exec <bashcommand> 
+            execute shell command on zero-os host e.g "ls /root -al"
+      """
+    elif args["container"]:
+      echo """
+
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>]
+      creates a new container 
+
+  zos container inspect
+      inspect the current running container (showing full info)
+
+  zos container info
+      shows summarized info on running containers
+  zos container list
+      alias to `zos container info`
+
+  zos container <id> inspect
+      shows detailed information on container 
+
+  zos container <id> info
+      show summarized container info
+
+  zos container <id> delete
+      deletes containers
+
+  zos container <id> zerotierinfo
+      shows zerotier info of a container
+
+  zos container <id> zerotierlist
+      shows zerotier networks info
+
+  zos container <id> exec <command>
+      executes a command on a specific container
+
+  zos container <id> sshenable
+      enables ssh on a container
+
+  zos container <id> sshinfo
+      shows sshinfo to access container
+
+  zos container <id> shell
+      ssh into a container
+      """
+
+    
+    else:
+      echo firstTimeMessage
+      echo doc
     quit 0
   if not isConfigured():
     if args["init"]:
@@ -430,11 +476,10 @@ when isMainModule:
       let address = $args["--address"]
       let port = parseInt($args["--port"])
       let sshkeyname = $args["--sshkey"]
-      let secret = $args["--secret"]
       if args["--setdefault"]:
-        configure(name, address, port, sshkeyname, secret, true) 
+        configure(name, address, port, sshkeyname, true) 
       else:
-        configure(name, address, port, sshkeyname, secret) 
+        configure(name, address, port, sshkeyname) 
     elif args["setdefault"]:
       let name = $args["<zosmachine>"]
       setdefault(name)
@@ -455,11 +500,10 @@ when isMainModule:
       let address = $args["--address"]
       let port = parseInt($args["--port"])
       let sshkeyname = $args["--sshkey"]
-      let secret = $args["--secret"]
       if args["--setdefault"]:
-        configure(name, address, port, sshkeyname, secret, true) 
+        configure(name, address, port, sshkeyname, true) 
       else:
-        configure(name, address, port, sshkeyname, secret) 
+        configure(name, address, port, sshkeyname) 
     elif args["setdefault"]:
       let name = $args["<zosmachine>"]
       setdefault(name)
@@ -498,13 +542,14 @@ when isMainModule:
       var hostname = containername 
       if args["--hostname"]:
         hostname = $args["<hostname>"]
-      let zosmachine = $args["--on"]
+      var zosmachine = getCurrentAppConfig()["defaultzos"]
+      if args["--on"]:
+        zosmachine = $args["<zosmachine>"]
       var privileged=false
       if args["--privileged"]:
         privileged=true
-      let extraconfig = $args["--extraconfig"]
-      echo fmt"dispatch creating {containername} on machine {zosmachine} {rootflist} {privileged} {extraconfig}"
-      discard newContainer(containername, rootflist, zosmachine, hostname, privileged, extraconfig)
+      echo fmt"dispatch creating {containername} on machine {zosmachine} {rootflist} {privileged}"
+      discard newContainer(containername, rootflist, zosmachine, hostname, privileged)
     elif args["container"] and args["exec"]:
       let containerid = parseInt($args["<id>"])
       let command = $args["<command>"]
