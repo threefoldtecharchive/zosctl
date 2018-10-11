@@ -39,8 +39,8 @@ Options:
   -h --help                       Show this screen.
   --version                       Show version.
   --on=<zosmachine>               Zero-OS machine instance name.
-  --disksize=<disksize>           disk size in GB [default: 2]
-  --memory=<memorysize>           memory size in GB [default: 2]
+  --disksize=<disksize>           disk size in GB [default: 20]
+  --memory=<memorysize>           memory size in GB [default: 4]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
   --sshkey=<sshkeyname>           sshkey name [default: id_rsa]

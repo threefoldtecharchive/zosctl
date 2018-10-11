@@ -7,6 +7,7 @@ import zosapp/settings
 import zosapp/apphelp
 
 
+
 # """
 # errorCodes
 # 1: can't create configdir
@@ -24,12 +25,12 @@ except:
   quit 1
 
 
-proc getCurrentAppConfig(): OrderedTableRef[string, string] =
+proc getappconfig(): OrderedTableRef[string, string] =
   let tbl = loadConfig(configfile)
   result = tbl.getOrDefault("app")
 
 proc isConfigured*(): bool =
-  let tbl = getCurrentAppConfig()
+  let tbl = getappconfig()
   return tbl["defaultzos"] != "false"
   
 if not fileExists(configfile):
@@ -40,7 +41,7 @@ if not fileExists(configfile):
   t.writeConfig(configfile)
 
 
-let currentAppConfig = getCurrentAppConfig()
+let appconfig = getappconfig()
 
 var zerotierId: string
 if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
@@ -85,8 +86,6 @@ proc getContainerConfig(containerid:int): OrderedTableRef[string, string] =
     tbl.setSectionKey(fmt("container-{containerid}"), "sshenabled", "false")
   tbl.writeConfig(configfile)
   return tbl[fmt"container-{containerid}"]
-
-let appconfig = getCurrentAppConfig()
 
 
 proc cmd*(command: string="core.ping", arguments="{}", timeout=5): string =
@@ -136,10 +135,11 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
   
 
 proc showconfig*() =
-  let tbl = loadConfig(configfile)
-  echo $tbl
+  echo readFile(configfile)
+  # let tbl = loadConfig(configfile)
+  # echo $tbl
 
-proc init(name="local", datadiskSize=2, memory=4, redisPort=4444) = 
+proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
   try:
@@ -259,7 +259,7 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
     for k,v in extraArgs.pairs:
       args[k] = %*v
   
-  let appconfig = getCurrentAppConfig()
+  let appconfig = getappconfig()
   let command = "corex.create"
   echo fmt"new container: {command} {args}" 
   
@@ -420,7 +420,7 @@ when isMainModule:
       var hostname = containername 
       if args["--hostname"]:
         hostname = $args["<hostname>"]
-      var zosmachine = getCurrentAppConfig()["defaultzos"]
+      var zosmachine = getappconfig()["defaultzos"]
       if args["--on"]:
         zosmachine = $args["<zosmachine>"]
       var privileged=false
