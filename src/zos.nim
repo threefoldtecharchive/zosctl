@@ -130,7 +130,7 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
   keypath = defaultsshfile
   tbl.setSectionKey(name, "sshkey", keypath)
   tbl.writeConfig(configfile)
-  if setdefault:
+  if setdefault or appconfig["defaultzos"] == "false" :
     setdefault(name)
   
 
