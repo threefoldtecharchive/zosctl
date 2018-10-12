@@ -201,8 +201,8 @@ proc containerInfo(containerid:int): string =
   result = parseJson($$(cont)).pretty(2)
 
 
-proc containersInfo(): string =
-  var info = newSeq[ContainerInfo]()
+proc getContainerInfoList(): seq[ContainerInfo] =
+  var result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(containersInspect())
   for k,v in parsedJson.pairs:
     let id = k
@@ -210,8 +210,16 @@ proc containersInfo(): string =
     let root = parsedJson[k]["container"]["arguments"]["root"].getStr()
     let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
-    info.add(ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid))
+    result.add(ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid))
+
+proc containersInfo(): string =
+  let info = getContainerInfoList()
   result = parseJson($$(info)).pretty(2)
+
+
+proc getLastContainerId(): string = 
+  let info = getContainerInfoList()
+  result = info[^1].id
 
 
 proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30):int = 
@@ -426,6 +434,8 @@ when isMainModule:
         privileged=true
       echo fmt"dispatch creating {containername} on machine {zosmachine} {rootflist} {privileged}"
       discard newContainer(containername, rootflist, zosmachine, hostname, privileged)
+      if args["--ssh"]:
+        discard sshEnable(parseInt(getLastContainerId()))
     elif args["container"] and args["exec"]:
       let containerid = parseInt($args["<id>"])
       let command = $args["<command>"]
