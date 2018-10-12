@@ -52,8 +52,10 @@ Options:
 """
 
 
-proc getHelp*(cmdname:string) = 
-  if cmdname == "init":
+proc getHelp*(cmdname:string) =
+  if cmdname == "":
+    echo doc 
+  elif cmdname == "init":
     echo """
           zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 

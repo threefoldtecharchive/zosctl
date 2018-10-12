@@ -15,6 +15,7 @@ import zosapp/apphelp
 # 3: container not found
 # 4: vbox not found
 # 5: unconfigured zos
+# 6: unknown command
 # """
 
 
@@ -202,7 +203,7 @@ proc containerInfo(containerid:int): string =
 
 
 proc getContainerInfoList(): seq[ContainerInfo] =
-  var result = newSeq[ContainerInfo]()
+  result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(containersInspect())
   for k,v in parsedJson.pairs:
     let id = k
@@ -461,5 +462,6 @@ when isMainModule:
       let p = startProcess("/usr/bin/ssh", args=[sshcmd], options={poInteractive, poParentStreams})
       discard p.waitForExit()
     else:
-      echo "Unsupported command"
+      getHelp("")
+      quit 6
   
