@@ -449,8 +449,6 @@ when isMainModule:
       let containerid = parseInt($args["<id>"])
       let sshcmd = sshEnable(containerid, true)
       let p = startProcess("/usr/bin/ssh", args=[sshcmd], options={poInteractive, poParentStreams})
-      if p.hasData:
-        p.inputStream.write("echo hello")
       discard p.waitForExit()
     else:
       echo "Unsupported command"
