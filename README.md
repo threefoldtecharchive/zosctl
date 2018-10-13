@@ -2,7 +2,7 @@
 zos-container manager can be used on local or remote zos machine
 
 ## Building
-Project is built using `nimble zosbuild` or `nimble build -d:ssl`
+Project is built using `nimble build` or `nimble build -d:ssl`
 
 ### examples on OSX
 
