@@ -23,6 +23,7 @@ addHandler(fL)
 # 4: vbox not found
 # 5: unconfigured zos
 # 6: unknown command
+# 7: scp not installed
 # """
 
 proc prepareConfig() = 
@@ -476,7 +477,54 @@ when isMainModule:
         discard
       let sshcmd = sshEnable(containerid, false) & fmt""" '{args["<command>"]}'"""
       discard execCmd(sshcmd)
+    elif args["container"] and args["upload"]:
+      if findExe("scp") == "":
+        error("need to have scp")
+        quit 7
+
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
+      let file = $args["<file>"]
+      if not fileExists(file):
+        error(fmt"file {file} doesn't exist")
+        quit 7
+      let dest = $args["<dest>"]
+      let containerConfig = getContainerConfig(containerid)
+      discard sshEnable(containerid) 
+
+      let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
+
+      var isDir = false
+      if getFileInfo(file).kind == pcDir:
+        isDir=true
+      discard execCmd(rsyncUpload(file, sshDest, isDir))
       # discard sshExec(sshcmd)
+    elif args["container"] and args["download"]:
+      if findExe("scp") == "":
+        error("need to have scp")
+        quit 7
+
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
+      let file = $args["<file>"]
+      if not fileExists(file):
+        error(fmt"file {file} doesn't exist")
+        quit 7
+      let dest = $args["<dest>"]
+      let containerConfig = getContainerConfig(containerid)
+      discard sshEnable(containerid) 
+
+      let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
+      var isDir = true # always true.
+      discard execCmd(rsyncDownload(file, sshDest, isDir))
+      # discard sshExec(sshcmd)
+
     else:
       getHelp("")
       quit 6

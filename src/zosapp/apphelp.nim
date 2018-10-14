@@ -33,6 +33,10 @@ Usage:
   zos container <id> exec <command>
   zos container shell
   zos container exec <command>
+  zos container <id> upload <file> <dest>
+  zos container <id> download <file> <dest>
+  zos container upload <file> <dest>
+  zos container download <file> <dest>
   zos help <cmdname>
 
   zos --version
