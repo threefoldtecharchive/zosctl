@@ -12,11 +12,11 @@ To configure it to use a specific zosmachine
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
+  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
-  zos exec <bashcommand>
+  zos exec <command>
   zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--ssh] [--on=<zosmachine>]
   zos container inspect
   zos container info
@@ -26,10 +26,11 @@ Usage:
   zos container <id> delete
   zos container <id> zerotierinfo
   zos container <id> zerotierlist
-  zos container <id> exec <command>
+  zos container <id> zosexec <command>
   zos container <id> sshenable
   zos container <id> sshinfo
   zos container <id> shell
+  zos container <id> exec <command>
   zos help <cmdname>
 
   zos --version
@@ -41,12 +42,13 @@ Options:
   --on=<zosmachine>               Zero-OS machine instance name.
   --disksize=<disksize>           disk size in GB [default: 20]
   --memory=<memorysize>           memory size in GB [default: 4]
+  --address=<address>             zos ip [default: 127.0.0.1]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
   --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
-  --ssh                          privileged container [default: false]
+  --ssh                           enable ssh on container [default: false]
   --hostname=<hostname>           container hostname [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
 """
@@ -91,7 +93,7 @@ proc getHelp*(cmdname:string) =
     """
   elif cmdname == "exec":
     echo """
-        zos exec <bashcommand> 
+        zos exec <command> 
           execute shell command on zero-os host e.g "ls /root -al" (can be very dangerous)
     """
   elif cmdname == "container":

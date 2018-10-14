@@ -5,7 +5,7 @@ import vboxpkg/vbox
 import zosclientpkg/zosclient
 import zosapp/settings
 import zosapp/apphelp
-
+import zosapp/sshexec
 
 
 # """
@@ -18,31 +18,31 @@ import zosapp/apphelp
 # 6: unknown command
 # """
 
+proc prepareConfig() = 
+  try:
+    createDir(configdir)
+  except:
+    echo fmt"couldn't create {configdir}"
+    quit 1
 
-try:
-  createDir(configdir)
-except:
-  echo fmt"Couldn't create {configdir}"
-  quit 1
+  if not fileExists(configfile):
+    open(configfile, fmWrite).close()
+    var t = loadConfig(configfile)
+    t.setSectionKey("app", "debug", "false")
+    t.writeConfig(configfile)
+    echo firstTimeMessage
 
+prepareConfig()
 
-proc getappconfig(): OrderedTableRef[string, string] =
+proc getAppConfig(): OrderedTableRef[string, string] =
   let tbl = loadConfig(configfile)
   result = tbl.getOrDefault("app")
 
+let appconfig = getAppConfig()
+
 proc isConfigured*(): bool =
-  let tbl = getappconfig()
-  return tbl["defaultzos"] != "false"
-  
-if not fileExists(configfile):
-  open(configfile, fmWrite).close()
-  var t = loadConfig(configfile)
-  t.setSectionKey("app", "defaultzos", "false")
-  t.setSectionKey("app", "debug", "false")
-  t.writeConfig(configfile)
+  return appconfig.hasKey("defaultzos") == true
 
-
-let appconfig = getappconfig()
 
 var zerotierId: string
 if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
@@ -131,7 +131,7 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
   keypath = defaultsshfile
   tbl.setSectionKey(name, "sshkey", keypath)
   tbl.writeConfig(configfile)
-  if setdefault or appconfig["defaultzos"] == "false" :
+  if setdefault or not isConfigured():
     setdefault(name)
   
 
@@ -266,7 +266,7 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
     for k,v in extraArgs.pairs:
       args[k] = %*v
   
-  let appconfig = getappconfig()
+  let appconfig = getAppConfig()
   let command = "corex.create"
   echo fmt"new container: {command} {args}" 
   
@@ -335,14 +335,7 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
       echo result
 
 when isMainModule:
-
-  
   let args = docopt(doc, version="zos 0.1.0")
-  
-  if args["help"]:
-    let cmdname = $args["<cmdname>"]
-    getHelp(cmdname)
-    quit 0
 
   if not isConfigured():
     if args["init"]:
@@ -368,11 +361,12 @@ when isMainModule:
     elif args["setdefault"]:
       let name = $args["<zosmachine>"]
       setdefault(name)
-    else:
-      echo firstTimeMessage
-      quit 5
-  
+
+
+
   else:
+    let currentconnectionConfig = getCurrentConnectionConfig()
+ 
     if args["init"]:
       let name = $args["--name"]
       let disksize = parseInt($args["--disksize"])
@@ -402,9 +396,13 @@ when isMainModule:
       discard cmd(command, jsonargs)
       ### more... 
     elif args["exec"] and not args["container"]:
-      let command = $args["<bashcommand>"]
+      let command = $args["<command>"]
       # echo fmt"Dispatching {command}"
       discard exec(command)
+    elif args["--ssh"] and not args["container"]:
+      let command = $args["<command>"]
+      let sshstring = fmt"ssh root@{currentconnectionConfig.address} '{command}'"
+      discard execCmd(sshstring)
     elif args["inspect"] and args["<id>"]:
       let containerid = parseInt($args["<id>"])
       echo containerInspect(containerid)
@@ -427,7 +425,7 @@ when isMainModule:
       var hostname = containername 
       if args["--hostname"]:
         hostname = $args["<hostname>"]
-      var zosmachine = getappconfig()["defaultzos"]
+      var zosmachine = getAppConfig()["defaultzos"]
       if args["--on"]:
         zosmachine = $args["<zosmachine>"]
       var privileged=false
@@ -437,7 +435,7 @@ when isMainModule:
       discard newContainer(containername, rootflist, zosmachine, hostname, privileged)
       if args["--ssh"]:
         discard sshEnable(parseInt(getLastContainerId()))
-    elif args["container"] and args["exec"]:
+    elif args["container"] and args["zosexec"]:
       let containerid = parseInt($args["<id>"])
       let command = $args["<command>"]
       discard execContainer(containerid, command)
@@ -459,8 +457,12 @@ when isMainModule:
     elif args["container"] and args["shell"]:
       let containerid = parseInt($args["<id>"])
       let sshcmd = sshEnable(containerid, true)
-      let p = startProcess("/usr/bin/ssh", args=[sshcmd], options={poInteractive, poParentStreams})
-      discard p.waitForExit()
+      discard sshExec(sshcmd)
+    elif args["container"] and args["exec"]:
+      let containerid = parseInt($args["<id>"])
+      let sshcmd = sshEnable(containerid, false) & fmt""" '{args["<command>"]}'"""
+      discard execCmd(sshcmd)
+      # discard sshExec(sshcmd)
     else:
       getHelp("")
       quit 6
