@@ -1,5 +1,7 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
 import net, asyncdispatch, asyncnet, streams
+import logging
+import algorithm
 import redisclient, redisparser, docopt
 import vboxpkg/vbox
 import zosclientpkg/zosclient
@@ -7,6 +9,11 @@ import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
 
+
+var L = newConsoleLogger()
+var fL = newFileLogger("zos.log", fmtStr = verboseFmtStr)
+addHandler(L)
+addHandler(fL)
 
 # """
 # errorCodes
@@ -22,7 +29,7 @@ proc prepareConfig() =
   try:
     createDir(configdir)
   except:
-    echo fmt"couldn't create {configdir}"
+    error(fmt"couldn't create {configdir}")
     quit 1
 
   if not fileExists(configfile):
@@ -30,7 +37,7 @@ proc prepareConfig() =
     var t = loadConfig(configfile)
     t.setSectionKey("app", "debug", "false")
     t.writeConfig(configfile)
-    echo firstTimeMessage
+    info(firstTimeMessage)
 
 prepareConfig()
 
@@ -47,6 +54,7 @@ proc isConfigured*(): bool =
 var zerotierId: string
 if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
   zerotierId = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
+  info(fmt"using special zerotier network {zerotierId}")
 else:
   zerotierId = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
 
@@ -71,7 +79,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig =
   try:
     port = parseInt(parsed)
   except:
-    echo fmt"Invalid port value: {parsed} will use default for now."
+    warn("Invalid port value: {parsed} will use default for now.")
   result = newZosConnectionConfig(name, address, port, sshkey)
 
 proc getCurrentConnectionConfig(): ZosConnectionConfig =
@@ -121,11 +129,11 @@ proc configure*(name="local", address="127.0.0.1", port=4444, sshkeyname="", set
   if sshkeyname != "":
     keypath = getHomeDir() / ".ssh" / sshkeyname
     if not existsFile(keypath):
-      echo fmt"SSH Key not found: {keypath}"
+      error("SSH Key not found: {keypath}")
       quit 2
   else:
     if not existsFile(defaultsshfile):
-      echo fmt"SSH Key not found: {keypath}"
+      error(fmt"SSH Key not found: {keypath}")
       quit  2
 
   keypath = defaultsshfile
@@ -144,8 +152,8 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   try:
     newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
   except:
-    echo "[-] Error: " & getCurrentExceptionMsg()
-  echo fmt"Created machine {name}"
+    error(getCurrentExceptionMsg())
+  info(fmt"Created machine {name}")
 
   var args = ""
 
@@ -155,7 +163,7 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   configure(name, "127.0.0.1", redisPort, setdefault=true)
   let cmd = fmt"""startvm {args} "{name}" &"""
   discard executeVBoxManage(cmd)
-  echo fmt"Started VM {name}"
+  info(fmt"Started VM {name}")
   
   # give it 10 mins
   var trials = 0
@@ -163,7 +171,7 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
     try:
       let con = open("127.0.0.1", redisPort.Port, true)
     except:
-      echo "Still pending to have a connection to zos"
+      info("still pending to have a connection to zos")
       sleep(5)
       trials += 5
   # configure and make that machine the default
@@ -179,7 +187,7 @@ proc containerInspect(containerid:int): string =
   let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
   let resp = parseJson(currentconnection.zosCoreWithJsonNode("corex.list", nil))
   if not resp.hasKey($containerid):
-    echo fmt"container {containerid} not found."
+    error(fmt"container {containerid} not found.")
     quit 3
   else:
     result = resp[$containerid].pretty(2) 
@@ -212,7 +220,8 @@ proc getContainerInfoList(): seq[ContainerInfo] =
     let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
     result.add(ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid))
-
+    result = result.sortedByIt(parseInt(it.id))
+  
 proc containersInfo(): string =
   let info = getContainerInfoList()
   result = parseJson($$(info)).pretty(2)
@@ -226,10 +235,10 @@ proc getLastContainerId(): string =
 proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30):int = 
   let currentconnectionConfig = getCurrentConnectionConfig()
   if name == "":
-    echo "Please provide a container name"
+    error("Please provide a container name")
     quit 3
   if root == "":
-    echo "Please provide flist url https://hub.grid.tf/thabet/redis.flist"
+    error("Please provide flist url https://hub.grid.tf/thabet/redis.flist")
   var connectionConfig: ZosConnectionConfig
   if zosmachine == appconfig["defaultzos"]:
     connectionConfig = currentconnectionConfig
@@ -268,7 +277,7 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   
   let appconfig = getAppConfig()
   let command = "corex.create"
-  echo fmt"new container: {command} {args}" 
+  info(fmt"new container: {command} {args}") 
   
   echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
 
@@ -332,7 +341,8 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
       tbl.writeConfig(configfile)
 
       result = fmt"ssh root@{ip}"
-      echo result
+      info(result)
+      break
 
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
@@ -340,7 +350,7 @@ when isMainModule:
   if not isConfigured():
     if args["init"]:
       if findExe("vboxmanage") == "":
-        echo "Please make sure to have VirtualBox installed"
+        error("Please make sure to have VirtualBox installed")
         quit 4 
 
       let name = $args["--name"]
@@ -361,8 +371,6 @@ when isMainModule:
     elif args["setdefault"]:
       let name = $args["<zosmachine>"]
       setdefault(name)
-
-
 
   else:
     let currentconnectionConfig = getCurrentConnectionConfig()
@@ -448,18 +456,20 @@ when isMainModule:
       discard cmdContainer(containerid, "corex.zerotier.info")
     elif args["container"] and args["sshenable"]:
       let containerid = parseInt($args["<id>"])
-      echo fmt"Enabling ssh for container {containerid}"
       echo sshEnable(containerid)
     elif args["container"] and args["sshinfo"]:
       let containerid = parseInt($args["<id>"])
-      echo fmt"Enabling ssh for container {containerid}"
       echo sshEnable(containerid)
     elif args["container"] and args["shell"]:
       let containerid = parseInt($args["<id>"])
       let sshcmd = sshEnable(containerid, true)
       discard sshExec(sshcmd)
     elif args["container"] and args["exec"]:
-      let containerid = parseInt($args["<id>"])
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
       let sshcmd = sshEnable(containerid, false) & fmt""" '{args["<command>"]}'"""
       discard execCmd(sshcmd)
       # discard sshExec(sshcmd)
