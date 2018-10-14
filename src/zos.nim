@@ -461,7 +461,11 @@ when isMainModule:
       let containerid = parseInt($args["<id>"])
       echo sshEnable(containerid)
     elif args["container"] and args["shell"]:
-      let containerid = parseInt($args["<id>"])
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
       let sshcmd = sshEnable(containerid, true)
       discard sshExec(sshcmd)
     elif args["container"] and args["exec"]:

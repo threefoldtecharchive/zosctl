@@ -31,6 +31,7 @@ Usage:
   zos container <id> sshinfo
   zos container <id> shell
   zos container <id> exec <command>
+  zos container shell
   zos container exec <command>
   zos help <cmdname>
 
