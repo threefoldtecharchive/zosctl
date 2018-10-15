@@ -1,4 +1,4 @@
-import osproc, strformat
+import osproc, strformat, ospaths, os
 
 proc sshExec*(cmd:string): int =
   let p = startProcess("/usr/bin/ssh", args=[cmd], options={poInteractive, poParentStreams})
@@ -13,6 +13,21 @@ proc sshExec*(cmd:string): int =
 #   let cmd = fmt"""rsync -avzhe ssh --progress {sshSrc} {dest}""" 
 #   echo cmd
 
+
+
+proc getAgentPublicKeys*(): string = 
+  let (output, rc) = execCmdEx("ssh-add -L")
+  if rc == 0:
+    return $output
+
+proc getPublicSshKeyByName*(keyname="id_rsa"): string =
+  let path = getHomeDir() / ".ssh" / fmt"{keyname}.pub"
+  if fileExists(path):
+    result = readFile(path)
+
+proc getPublicSshkeyFromKeyPath*(keypath=getHomeDir()/".ssh"/"id_rsa"):string = 
+  if fileExists(keypath):
+    result = readFile(keypath & ".pub")
 
 proc rsyncUpload*(src: string, sshDest:string, isDir=false):string =
   var rflag = ""
