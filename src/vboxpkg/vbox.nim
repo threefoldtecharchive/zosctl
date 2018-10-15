@@ -39,6 +39,20 @@ proc getPath*(this: VM|string): string =
     return fmt"{getHomeDir()}VirtualBox VMs/{this.name}"
 
 
+proc startVm*(this: VM|string) =
+  var name = ""
+  when this is VM:
+    name = this.name
+  else:
+    name = this
+
+  var args = ""
+  when defined linux:
+    if not existsEnv("DISPLAY"):
+      args = "--type headless"
+  let cmd = fmt"""startvm {args} "{name}" """
+  discard executeVBoxManage(cmd)
+
 proc listVMs*(): seq[VM] =
   var vms = newSeq[VM]()
   let output = executeVBoxManage("list vms")
@@ -100,10 +114,14 @@ proc modify*(this: VM, cmd: string): string =
   let command = fmt"{this.name} {cmd}"
   return executeVBoxManageModify(cmd)
 
-proc exists*(this: VM): bool =
+proc exists*(this: VM|string): bool =
   for vm in listVMs():
-      if this.name in vm.name or this.guid in vm.guid:
-          return true
+      when this is VM:
+        if this.name in vm.name or this.guid in vm.guid:
+            return true
+      else:
+        return this in vm.guid or this in vm.name
+
   return false
 
 proc create*(this: Disk, size:int=1000): Disk =
@@ -154,6 +172,7 @@ proc createDisk*(this: VM, name:string, size:int=10000): Disk =
 
 
 proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000, memory:int=2000, redisPort=4444) = 
+
 
   let cmd = fmt"""createvm --name "{vmName}" --ostype "Linux_64" --register """
   discard executeVBoxManage(cmd)

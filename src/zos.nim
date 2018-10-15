@@ -1,14 +1,15 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
-import net, asyncdispatch, asyncnet, streams
+import net, asyncdispatch, asyncnet, streams, threadpool
 import logging
 import algorithm
 import redisclient, redisparser, docopt
+#import spinny, colorize
+
 import vboxpkg/vbox
 import zosclientpkg/zosclient
 import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
-
 
 var L = newConsoleLogger()
 var fL = newFileLogger("zos.log", fmtStr = verboseFmtStr)
@@ -150,31 +151,42 @@ proc showconfig*() =
 proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
-  try:
-    newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
-  except:
-    error(getCurrentExceptionMsg())
-  info(fmt"Created machine {name}")
+  if not exists(name):
+    try:
+      newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
+    except:
+      error(getCurrentExceptionMsg())
+    info(fmt"created machine {name}")
+  else:
+    info(fmt"machine {name} exists already")
 
-  var args = ""
-
-  when defined linux:
-    if not existsEnv("DISPLAY"):
-      args = "--type headless"
   configure(name, "127.0.0.1", redisPort, setdefault=true)
-  let cmd = fmt"""startvm {args} "{name}" &"""
-  discard executeVBoxManage(cmd)
-  info(fmt"Started VM {name}")
+
+  # var spinner = newSpinny("Preparing zos machine..".fgWhite, "dots")
+  # spinner.setSymbolColor(colorize.fgBlue)
+
+  # spinner.start()
+  spawn(startVm(name))
   
+  info("preparing zos machine...") # should show a spinner here.
   # give it 10 mins
+  let maxTrials = 300
   var trials = 0
-  while trials != 120:
+  while trials < maxTrials:
     try:
       let con = open("127.0.0.1", redisPort.Port, true)
+      echo $con.execCommand("PING", @[])
+      echo "preparing machine..\r"
+      break
     except:
-      info("still pending to have a connection to zos")
       sleep(5)
-      trials += 5
+      trials += 1
+
+  if trials == maxTrials:
+    echo("couldn't prepare zos machine.")
+  else:
+    echo("created zos machine and we are ready.")
+  
   # configure and make that machine the default
 
 proc containersInspect(): string=
