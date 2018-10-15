@@ -525,9 +525,6 @@ when isMainModule:
       except:
         discard
       let file = $args["<file>"]
-      if not fileExists(file):
-        error(fmt"file {file} doesn't exist")
-        quit 7
       let dest = $args["<dest>"]
       let containerConfig = getContainerConfig(containerid)
       discard sshEnable(containerid) 

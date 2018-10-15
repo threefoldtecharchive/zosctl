@@ -65,7 +65,6 @@ proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, d
 
 proc containerSend*(con:Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, debug=false): string =
   var first = con.zosSend(payload, bash, timeout, debug)
-  echo(first)
   if first.startsWith("\""):
     first = first[1..^2]
   result = outputFromResponse(con.getResponseString(first))
