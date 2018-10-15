@@ -5,19 +5,19 @@ To create new machine in VirtualBox use
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 
 To configure it to use a specific zosmachine 
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
+  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkey>] [--secret=<secret>]
 """
 
 
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
+  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--sshkey=<sshkey>] [--setdefault]
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--ssh] [--on=<zosmachine>]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] [--on=<zosmachine>]
   zos container inspect
   zos container info
   zos container list
@@ -51,7 +51,7 @@ Options:
   --address=<address>             zos ip [default: 127.0.0.1]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
-  --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
+  --sshkey=<sshkey>               sshkey name or full path [default: id_rsa]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
   --ssh                           enable ssh on container [default: false]
@@ -105,7 +105,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--privileged] [--on=<zosmachine>] [--ssh]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--on=<zosmachine>] [--ssh]
     creates a new container 
 
   zos container inspect
