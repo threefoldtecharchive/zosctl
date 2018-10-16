@@ -2,9 +2,9 @@
 zos-container manager can be used on local or remote zos machine
 
 ## Building
-Project is built using `nimble zos` or `nimble build -d:ssl`
+Project is built using `nimble zos` 
 
-### examples on OSX
+### Building on OSX
 
 ```bash
 #example script to install
@@ -12,8 +12,9 @@ brew install nim
 mkdir -p  ~/code/github;cd ~/code/github
 git clone https://github.com/threefoldtech/zos 
 cd zos
-nimble build -d:ssl
+nimble zos
 ```
+> You can use isntall_osx.sh the repository
 
 ## Using zos for the first time
 In the first time of using zos you will see a friendly message indicating what you should do
@@ -26,22 +27,42 @@ To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
 ```
 
-## Preparing local zos machine
+## Preparing local Zero-OS machine
 ```bash
 zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 ```
+
 This will create a local virtual machine `mymachine` with ZOS installed and forwards the `localhost 4444` to zos redis port `6379`
-- memorysize is defaulted to 2 GB
-- disk size is defaulted to 1 GB disk
+- memorysize is defaulted to 4 GB
+- disk size is defaulted to 20 GB disk
 
+### Example
+```bash
+./zos init --name=firstmachine --disksize=1 --memory=2 --redisport=5555
+** executing command vboxmanage modifyvm firstmachine   --memory=2048
+** executing command vboxmanage modifyvm firstmachine   --ioapic on
+** executing command vboxmanage modifyvm firstmachine   --boot1 dvd --boot2 disk
+** executing command vboxmanage modifyvm firstmachine   --nic1 nat
+** executing command vboxmanage modifyvm firstmachine   --vrde on 
+** executing command vboxmanage modifyvm firstmachine   --natpf1 "redis,tcp,,5555,,6379" 
+INFO created machine firstmachine
+INFO preparing zos machine...
+```
+At this moment zos is preparing your machine on virtualbox and it may take sometime depending on your internet 
+> There's a work on progress to make speed that up for the next init calls.
 
-## Using an existing Zos machine
+## Using an existing Zero-OS machine
 Lots of time you will have a local development of zero-os using qemu, and to configure zos against that you can use `configure` subcommand to do so
 
 ```bash
-./zos configure --name local --address 192.168.122.147 --port 6379  
+./zos configure --name=local --address=192.168.122.147 --port=6379  
 ```
 To configure an existing zos machine named `local` to use address `192.168.122.147` and port `6379`
+
+## Zos configurations
+- Configurations `zos.toml` is saved in your configurations directory (e.g `~/.config` in linux)
+
+- T 
 
 ## Interacting with ZOS
 
@@ -58,7 +79,6 @@ You should see response
 ```
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
 ```
-
 
 - `disk.list`
 ```
@@ -233,7 +253,7 @@ Output:
 
 ### User defined commands
 
-you can use zosBash subcommand to execute bash commands on the zos directly
+you can use exec subcommand to execute bash commands on the zos directly
 ```
 ~> ./zos exec "ls /var"
 cache
@@ -552,16 +572,17 @@ Shows a detailed information about the container
 
 
 ### Terminating a container
-using subcommand `delete`
+Using subcommand `delete`
 ```bash
 ./zos container 5 delete  
 ```
 
 
 ### Enabling SSH
-enabling ssh on the container is as easy as `./zos container 3 sshenable`
+Enabling ssh on the container is as easy as `./zos container 3 sshenable`
 
 
 ### Access SSH
-executing `./zos container 3 shell` will connect through ssh
+Executing `./zos container 3 shell` will connect through SSH 
 
+> Calling `zos container 3 shell` will understand that you want to enablessh and will do it for you.

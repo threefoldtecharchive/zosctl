@@ -26,7 +26,7 @@ proc outputFromResponse*(resp: string): string =
 
   let response_state = $parsed["state"].getStr()
   if response_state != "SUCCESS":
-    echo fmt"[-]{parsed}"
+    echo parsed["streams"][1].getStr()
   else: 
     let dataStr = parsed["data"].getStr()
     result = dataStr
