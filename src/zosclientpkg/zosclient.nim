@@ -26,10 +26,18 @@ proc outputFromResponse*(resp: string): string =
 
   let response_state = $parsed["state"].getStr()
   if response_state != "SUCCESS":
-    echo parsed["streams"][1].getStr()
+    if parsed.hasKey("streams"):
+      echo parsed["streams"][1].getStr()
+    else:
+      echo parsed.pretty(2)
   else: 
     let dataStr = parsed["data"].getStr()
-    result = dataStr
+    try:
+      result = dataStr.parseJson().pretty(2)
+      return 
+    except:
+      result = dataStr
+
     let code = parsed["code"].getInt()
     let streamout = parsed["streams"][0].getStr()
     let streamerr = parsed["streams"][1].getStr()

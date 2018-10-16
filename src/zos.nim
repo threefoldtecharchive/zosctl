@@ -18,6 +18,8 @@ var fL = newFileLogger("zos.log", fmtStr = verboseFmtStr)
 addHandler(L)
 addHandler(fL)
 
+
+
 # """
 # errorCodes
 # 1: can't create configdir
@@ -130,7 +132,6 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false) 
   if setdefault or not isConfigured():
     setdefault(name)
   
-
 proc showconfig*() =
   echo readFile(configfile)
 
@@ -258,11 +259,6 @@ proc getContainerConfig(containerid:int): OrderedTableRef[string, string] =
 
 proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30, sshkey=""):int = 
   let currentconnectionConfig = getCurrentConnectionConfig()
-  if name == "":
-    error("Please provide a container name")
-    quit 3
-  if root == "":
-    error("Please provide flist url https://hub.grid.tf/thabet/redis.flist")
   var connectionConfig: ZosConnectionConfig
   if zosmachine == appconfig["defaultzos"]:
     connectionConfig = currentconnectionConfig
@@ -326,6 +322,32 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   
   echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
 
+proc layerSSH(containerid:int, timeout=30): bool =
+  let currentconnectionConfig = getCurrentConnectionConfig()
+  let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
+  let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
+
+  var args = %*{
+    "path": fmt"/mnt/containers/{containerid}/usr/bin/ssh"
+  }
+  var command = "filesystem.exists"  
+  var exists = currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true") == "true"
+
+  if not exists:
+    args = %*{
+      "container": containerid,
+      "flist": sshflist
+    }
+    command = "corex.flist-layer"
+    info("layering sshflist on container")
+    echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+
+    command = "filesystem.exists"  
+    exists = currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true") == "true"
+
+  result = exists
+  
+
 
 proc stopContainer(id:int, timeout=30) =
   let currentconnectionConfig = getCurrentConnectionConfig()
@@ -349,6 +371,8 @@ proc cmdContainer*(containerid:int, command: string, timeout=5): string =
   echo $result  
 
 proc sshEnable*(containerid:int, sshconnectionstring=false): string =
+
+  discard layerSSH(containerid)
   let containerName = getContainerNameById(containerid)
 
   let currentconnectionConfig = getCurrentConnectionConfig()
