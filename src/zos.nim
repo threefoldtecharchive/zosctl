@@ -26,8 +26,16 @@ addHandler(fL)
 # 4: vbox not found
 # 5: unconfigured zos
 # 6: unknown command
-# 7: scp not installed
+# 7: ssh tools not installed
 # """
+
+let sshtools = @["ssh", "scp"]
+
+proc sshBinsCheck() = 
+  for b in sshtools:
+    if findExe(b) == "":
+      error("ssh tools aren't installed")
+      quit 7
 
 proc prepareConfig() = 
   try:
@@ -518,6 +526,7 @@ when isMainModule:
       let containerid = parseInt($args["<id>"])
       echo sshEnable(containerid)
     elif args["container"] and args["shell"]:
+      sshBinsCheck()
       var containerid = parseInt(getLastContainerId())
       try:
         containerid = parseInt($args["<id>"])
@@ -526,6 +535,7 @@ when isMainModule:
       let sshcmd = sshEnable(containerid, true)
       discard sshExec(sshcmd)
     elif args["container"] and args["exec"]:
+      sshBinsCheck()
       var containerid = parseInt(getLastContainerId())
       try:
         containerid = parseInt($args["<id>"])
@@ -534,9 +544,7 @@ when isMainModule:
       let sshcmd = sshEnable(containerid, false) & fmt""" '{args["<command>"]}'"""
       discard execCmd(sshcmd)
     elif args["container"] and args["upload"]:
-      if findExe("scp") == "":
-        error("need to have scp")
-        quit 7
+      sshBinsCheck()
 
       var containerid = parseInt(getLastContainerId())
       try:
@@ -559,9 +567,7 @@ when isMainModule:
       discard execCmd(rsyncUpload(file, sshDest, isDir))
       # discard sshExec(sshcmd)
     elif args["container"] and args["download"]:
-      if findExe("scp") == "":
-        error("need to have scp")
-        quit 7
+      sshBinsCheck()
 
       var containerid = parseInt(getLastContainerId())
       try:
@@ -573,9 +579,9 @@ when isMainModule:
       let containerConfig = getContainerConfig(containerid)
       discard sshEnable(containerid) 
 
-      let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
+      let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
       var isDir = true # always true.
-      discard execCmd(rsyncDownload(file, sshDest, isDir))
+      discard execCmd(rsyncDownload(sshSrc, dest, isDir))
       # discard sshExec(sshcmd)
 
     else:

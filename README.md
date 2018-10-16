@@ -135,118 +135,61 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
 
 ```
- ./zos container new --name=mycont --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist" --privileged  --extraconfig='{"config":{}}'
+./zos container new --name=reem2 --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
 ```
 Output (new container id)
 ```
 2
 ```
 
-#### extraconfig
-Please consult the documentation for more updated info on the allowed configurations
-```
-    extraconfig is json encoded string contains
-      mount: a dict with {host_source: container_target} mount points.
-                    where host_source directory must exists.
-                    host_source can be a url to a flist to mount.
-      host_network: Specify if the container should share the same network stack as the host.
-                          if True, container creation ignores both zerotier, bridge and ports arguments below. Not
-                          giving errors if provided.
-      nics: Configure the attached nics to the container
-                  each nic object is a dict of the format
-                  {
-                      'type': nic_type # one of default, bridge, zerotier, macvlan, passthrough, vlan, or vxlan (note, vlan and vxlan only supported by ovs)
-                      'id': id # depends on the type
-                          bridge: bridge name,
-                          zerotier: network id,
-                          macvlan: the parent link name,
-                          passthrough: the link name,
-                          vlan: the vlan tag,
-                          vxlan: the vxlan id
-                      'name': name of the nic inside the container (ignored in zerotier type)
-                      'hwaddr': Mac address of nic.
-                      'config': { # config is only honored for bridge, vlan, and vxlan types
-                          'dhcp': bool,
-                          'cidr': static_ip # ip/mask
-                          'gateway': gateway
-                          'dns': [dns]
-                      }
-                  }
-      port: A dict of host_port: container_port pairs (only if default networking is enabled)
-                    Example:
-                      `port={8080: 80, 7000:7000}`
-                    Source Format: NUMBER, IP:NUMBER, IP/MAST:NUMBER, or DEV:NUMBER
-      storage: A Url to the ardb storage to use to mount the root flist (or any other mount that requires g8fs)
-                      if not provided, the default one from core0 configuration will be used.
-      identity: Container Zerotier identity, Only used if at least one of the nics is of type zerotier
-      env: a dict with the environment variables needed to be set for the container
-      cgroups: custom list of cgroups to apply to this container on creation. formated as [(subsystem, name), ...]
-                      please refer to the cgroup api for more detailes.
-      config: a map with the config file path as a key and content as a value. This only works when creating a VM from an flist. The
-              config files are written to the machine before booting.
-              Example:
-              config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
-```
-
 ### Container information
 
 ```bash
-./zos container 5 info                                                       
+
+./zos container 1 info
 {
-  "id": "5",
+  "id": "1",
   "cpu": 0.0,
-  "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-  "hostname": "dmdm",
-  "pid": 29671
+  "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
+  "hostname": "",
+  "name": "",
+  "storage": "",
+  "pid": 523
+}
 ```
 
 ### Containers information
 using `./zos container list` or `./zos container info`
 
 ```bash
+ ./zos container list
 [
   {
     "id": "1",
-    "cpu": 0.03423186237547345,
+    "cpu": 0.02948726340828401,
     "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
     "hostname": "",
-    "pid": 446
+    "name": "",
+    "storage": "zdb://hub.grid.tf:9900",
+    "pid": 523
   },
   {
     "id": "2",
-    "cpu": 0.01141061719069141,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "\"\"",
-    "pid": 2207
-  },
-  {
-    "id": "3",
     "cpu": 0.0,
     "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "nil",
-    "pid": 27567
-  },
-  {
-    "id": "4",
-    "cpu": 0.0,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "nil",
-    "pid": 28848
-  },
-  {
-    "id": "5",
-    "cpu": 0.0,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "dmdm",
-    "pid": 29671
+    "hostname": "reem2",
+    "name": "reem2",
+    "storage": "zdb://hub.grid.tf:9900",
+    "pid": 5111
   }
 ]
+
 ```
 
 ### Inspect single container
 using `inspect` command
 ```bash
-./zos container 1 inspect                                                     ✔  ahmed@ahmedheaven
+./zos container 1 inspect
 {
   "cpu": 0.01674105440884163,
   "rss": 7946240,
@@ -311,117 +254,6 @@ using `inspect` command
 `./zos container inspect`
 Shows a detailed information about the container
 
-### Listing running containers
-
-```bash
-./zos container list
-{  "1": {
-    "cpu": 0.0216872378245448,
-    "rss": 7151616,
-    "vms": 271065088,
-    "swap": 0,
-    "container": {
-      "arguments": {
-        "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
-        "mount": {
-          "/var/cache/zrobot/config": "/opt/code/local/stdorg/config",
-          "/var/cache/zrobot/data": "/opt/var/data/zrobot/zrobot_data",
-          "/var/cache/zrobot/jsconfig": "/root/jumpscale/cfg",
-          "/var/cache/zrobot/ssh": "/root/.ssh",
-          "/var/run/redis.sock": "/tmp/redis.sock"
-        },
-        "host_network": false,
-        "identity": "",
-        "nics": [
-          {
-            "type": "default",
-            "id": "",
-            "hwaddr": "",
-            "config": {
-              "dhcp": false,
-              "cidr": "",
-              "gateway": "",
-              "dns": null
-            },
-            "monitor": false,
-            "state": "configured"
-          }
-        ],
-        "port": {
-          "6600": 6600
-        },
-        "privileged": false,
-        "hostname": "",
-        "storage": "zdb://hub.grid.tf:9900",
-        "name": "zrobot",
-        "tags": [
-          "zrobot"
-        ],
-        "env": {
-          "HOME": "/root",
-          "LANG": "C.UTF-8",
-          "LC_ALL": "C.UTF-8"
-        },
-        "cgroups": [
-          [
-            "devices",
-            "corex"
-          ]
-        ]
-      },
-      "root": "/mnt/containers/1",
-      "pid": 493
-    }
-  },
-  "2": {
-    "cpu": 0,
-    "rss": 5808128,
-    "vms": 269983744,
-    "swap": 0,
-    "container": {
-      "arguments": {
-        "root": "https://hub.grid.tf/thabet/redis.flist",
-        "mount": null,
-        "host_network": false,
-        "identity": "",
-        "nics": [
-          {
-            "type": "default",
-            "id": "",
-            "hwaddr": "",
-            "config": {
-              "dhcp": false,
-              "cidr": "",
-              "gateway": "",
-              "dns": null
-            },
-            "monitor": false,
-            "state": "configured"
-          }
-        ],
-        "port": {
-          "3000": 3500
-        },
-        "privileged": false,
-        "hostname": "aredishost",
-        "storage": "zdb://hub.grid.tf:9900",
-        "name": "rediscont3",
-        "tags": null,
-        "env": null,
-        "cgroups": [
-          [
-            "devices",
-            "corex"
-          ]
-        ]
-      },
-      "root": "/mnt/containers/2",
-      "pid": 11243
-    }
-  }
-}
-```
-
 
 ### Terminating a container
 Using subcommand `delete`
@@ -431,10 +263,54 @@ Using subcommand `delete`
 
 
 ### Enabling SSH
-Enabling ssh on the container is as easy as `./zos container 3 sshenable`
+Enabling ssh on the container is as easy as `./zos container 2 sshenable`
+
+```bash
+./zos container 2 sshenable                                                                          30.79  
+ssh root@10.244.104.71
+
+```
 
 
 ### Access SSH
 Executing `./zos container 3 shell` will connect through SSH 
 
 > Calling `zos container 3 shell` will understand that you want to enablessh and will do it for you.
+
+```bash
+
+./zos container 2 shell                                                                        
+Welcome to Ubuntu 16.04 LTS (GNU/Linux 4.14.36-Zero-OS x86_64)
+
+ * Documentation:  https://help.ubuntu.com/
+Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
+root@reem2:~# 
+
+```
+
+
+### Upload/Download files 
+```bash
+~> ./zos container exec 'ls /tmp' 
+
+ztkey
+~>  echo "MYUPLOADED FILE" > /tmp/myfile
+~>  ./zos container upload /tmp/myfile /tmp 
+scp  /tmp/myfile root@10.244.104.71:/tmp 
+myfile                                                       100%   16    11.0KB/s   00:00    
+~>  ./zos container exec 'ls /tmp'
+myfile
+ztkey
+~>  ./zos container exec 'cat /tmp/myfile'
+MYUPLOADED FILE
+```
+
+```
+~> ./zos container download /tmp/myfile /tmp/downloadedmyfile
+scp -r root@10.244.104.71:/tmp/myfile /tmp/downloadedmyfile
+myfile                                                                                                                                 100%   16    10.4KB/s   00:00
+
+~> cat /tmp/downloadedmyfile
+MYUPLOADED FILE
+
+```
