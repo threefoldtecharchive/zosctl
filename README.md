@@ -279,7 +279,7 @@ Executing `./zos container 3 shell` will connect through SSH
 
 ```bash
 
-./zos container 2 shell                                                                        
+./zos container 2 shell
 Welcome to Ubuntu 16.04 LTS (GNU/Linux 4.14.36-Zero-OS x86_64)
 
  * Documentation:  https://help.ubuntu.com/
@@ -287,7 +287,6 @@ Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
 root@reem2:~# 
 
 ```
-
 
 ### Upload/Download files 
 ```bash
@@ -312,5 +311,4 @@ myfile                                                                          
 
 ~> cat /tmp/downloadedmyfile
 MYUPLOADED FILE
-
 ```
