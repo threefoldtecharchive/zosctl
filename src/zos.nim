@@ -395,6 +395,14 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
 
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
+  if args["help"] and args["<cmdname>"]:
+    getHelp($args["<cmdname>"])
+    quit 0
+  if args["help"]:
+    getHelp("")
+    quit 0
+  
+    
   if not isConfigured():
     if args["init"]:
       if findExe("vboxmanage") == "":
