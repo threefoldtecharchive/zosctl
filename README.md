@@ -100,7 +100,7 @@ You should see response
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
 ```
 
-More info info at [doc/cmd](doc/cmd.md)
+More info info at [doc/cmd](src/doc/cmd.md)
 
 
 ### User defined commands
