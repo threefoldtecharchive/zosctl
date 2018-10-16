@@ -163,7 +163,7 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   if trials == maxTrials:
     info("couldn't prepare zos machine.")
   else:
-    errorCodes("created zos machine and we are ready.")
+    error("created zos machine and we are ready.")
   
   # configure and make that machine the default
 
@@ -223,7 +223,6 @@ proc getContainerInfoList(): seq[ContainerInfo] =
 proc containersInfo(): string =
   let info = getContainerInfoList()
   result = parseJson($$(info)).pretty(2)
-  echo $result
 
 proc getLastContainerId(): string = 
   let info = getContainerInfoList()
