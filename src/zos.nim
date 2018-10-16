@@ -161,9 +161,9 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
       trials += 1
 
   if trials == maxTrials:
-    echo("couldn't prepare zos machine.")
+    info("couldn't prepare zos machine.")
   else:
-    echo("created zos machine and we are ready.")
+    errorCodes("created zos machine and we are ready.")
   
   # configure and make that machine the default
 
