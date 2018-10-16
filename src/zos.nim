@@ -39,6 +39,7 @@ proc sshBinsCheck() =
       error("ssh tools aren't installed")
       quit 7
 
+
 proc prepareConfig() = 
   try:
     createDir(configdir)
@@ -257,6 +258,11 @@ proc getContainerConfig(containerid:int): OrderedTableRef[string, string] =
   return tbl[fmt"container-{containerName}"]
     
 
+proc containerHasIP(containerid:int): bool = 
+  let containerConfig = getContainerConfig(containerid)
+  return containerConfig.hasKey("ip")
+
+
 proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30, sshkey=""):int = 
   let currentconnectionConfig = getCurrentConnectionConfig()
   var connectionConfig: ZosConnectionConfig
@@ -292,16 +298,20 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
   
   var configuredsshkey = ""
+  var k = ""
   if fileExists(sshkey):
-    keys &= readFile(sshkey & ".pub")
+    k = readFile(sshkey & ".pub")
     configuredsshkey = sshkey
   elif fileExists(sshDirRelativeKey):
     configuredsshkey = sshDirRelativeKey
-    keys &=  readFile(sshDirRelativeKey)
+    k = readFile(sshDirRelativeKey)
   elif fileExists(defaultSshKey):
     configuredsshkey = defaultSshKey
-    keys &=  readFile(defaultSshKey)
+    k =  readFile(defaultSshKey)
 
+  if k != "" and k notin keys:
+    keys &= k
+  
   if keys == "":
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
     quit 8
@@ -315,47 +325,49 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(fmt"container-{name}", "sshkey", configuredsshkey)
-
+  tbl.setSectionKey(fmt"container-{name}", "layeredssh", "false")
+  tbl.writeConfig(configfile)
   let appconfig = getAppConfig() 
   let command = "corex.create"
   info(fmt"new container: {command} {args}") 
   
   echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
 
-proc layerSSH(containerid:int, timeout=30): bool =
+proc layerSSH(containerid:int, timeout=30) =
   let currentconnectionConfig = getCurrentConnectionConfig()
   let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
   let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
 
-  var args = %*{
-    "path": fmt"/mnt/containers/{containerid}/usr/bin/ssh"
-  }
-  var command = "filesystem.exists"  
-  var exists = currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true") == "true"
-
-  if not exists:
-    args = %*{
+  var tbl = loadConfig(configfile)
+  let containerName = getContainerNameById(containerid)
+  let containerKey = fmt"container-{containerName}" 
+  if tbl[containerKey]["layeredssh"] == "false":
+    var args = %*{
       "container": containerid,
       "flist": sshflist
     }
-    command = "corex.flist-layer"
+    let command = "corex.flist-layer"
     info("layering sshflist on container")
     echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
-
-    command = "filesystem.exists"  
-    exists = currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true") == "true"
-
-  result = exists
   
+  else:
+    tbl[containerKey]["layeredssh"] = "true"
+    tbl.writeConfig(configfile)
 
 
 proc stopContainer(id:int, timeout=30) =
+  let containerName = getContainerNameById(id)
   let currentconnectionConfig = getCurrentConnectionConfig()
   let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
   let command = "corex.terminate"
   let arguments = %*{"container": id}
   discard currentconnection.zosCoreWithJsonNode(command, arguments, timeout, appconfig["debug"] == "true")
 
+  var tbl = loadConfig(configfile)
+  let containerKey = fmt"container-{containerName}"
+  if tbl.hasKey(containerKey):
+    tbl.del(containerKey)
+  tbl.writeConfig(configfile)
 
 proc execContainer*(containerid:int, command: string="hostname", timeout=5): string =
   let currentconnectionConfig = getCurrentConnectionConfig()
@@ -372,7 +384,7 @@ proc cmdContainer*(containerid:int, command: string, timeout=5): string =
 
 proc sshEnable*(containerid:int, sshconnectionstring=false): string =
 
-  discard layerSSH(containerid)
+  # layerSSH(containerid)
   let containerName = getContainerNameById(containerid)
 
   let currentconnectionConfig = getCurrentConnectionConfig()
@@ -395,9 +407,14 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
     else:
       return fmt"ssh {connectionString}"
 
+  # discard execContainer(containerid, "busybox mkdir -p /root/.ssh")
+  # discard execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
+  # discard execContainer(containerid, "/usr/sbin/sshd -D")
+
   discard execContainer(containerid, "mkdir -p /root/.ssh")
   discard execContainer(containerid, "chmod 700 -R /etc/ssh")
   discard execContainer(containerid, "service ssh start")
+
 
   tbl.setSectionKey(fmt("container-{containerName}"), "sshenabled", "true")
 
@@ -419,10 +436,10 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
 
       tbl.setSectionKey(fmt("container-{containerName}"), "ip", ip)
       tbl.writeConfig(configfile)
-
-      result = fmt"ssh root@{ip}"
-      info(result)
-
+      if configuredsshkey == "":
+        result = fmt"ssh root@{ip}"
+      else:
+        result = fmt"ssh root@{ip} -i {configuredsshkey}"
 
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
@@ -575,6 +592,9 @@ when isMainModule:
         containerid = parseInt($args["<id>"])
       except:
         discard
+      if not containerHasIP(containerid):
+        echo "Make sure to enable ssh first"
+        quit 9 
       let file = $args["<file>"]
       if not fileExists(file):
         error(fmt"file {file} doesn't exist")
@@ -598,6 +618,9 @@ when isMainModule:
         containerid = parseInt($args["<id>"])
       except:
         discard
+      if not containerHasIP(containerid):
+        echo "Make sure to enable ssh first"
+        quit 9
       let file = $args["<file>"]
       let dest = $args["<dest>"]
       let containerConfig = getContainerConfig(containerid)
