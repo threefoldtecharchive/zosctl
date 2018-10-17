@@ -385,8 +385,6 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
 
   var tbl = loadConfig(configfile)
-  info("layering sshflist on container")
-
   let containerName = this.getContainerNameById(containerid)
   let containerKey = fmt"container-{activeZos}-{containerid}" 
   if tbl[containerKey]["layeredssh"] == "false":
@@ -396,7 +394,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
     }
     let command = "corex.flist-layer"
     info("layering sshflist on container")
-    discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+    echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
   
   else:
     tbl[containerKey]["layeredssh"] = "true"
@@ -445,22 +443,25 @@ proc sshInfo*(this:App, containerid: int): string =
 
 proc sshEnable*(this: App, containerid:int): string =
   let activeZos = getActiveZosName()
-  # this.layerSSH(containerid)
 
   var tbl = loadConfig(configfile)
+
+  this.layerSSH(containerid)
+
   if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
-    # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
-    # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
+    discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
+    discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
 
-    # discard this.execContainer(containerid, "busybox mkdir -p /run/sshd")
-    # discard this.execContainer(containerid, "/usr/sbin/sshd -D")
+    discard this.execContainer(containerid, "busybox mkdir -p /run/sshd")
 
-    discard this.execContainer(containerid, "mkdir -p /root/.ssh")
-    discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
-    discard this.execContainer(containerid, "service ssh start")
+    # discard this.execContainer(containerid, "mkdir -p /root/.ssh")
+    # discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
+    # discard this.execContainer(containerid, "service ssh start")
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
+    
+  discard this.execContainer(containerid, "/usr/sbin/sshd -D")
 
   result = this.sshInfo(containerid)
 
