@@ -69,16 +69,16 @@ proc getActiveZosName*(): string =
   return appconfig["defaultzos"]
 
 
-var zerotierId: string
-if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
-  zerotierId = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
-  info(fmt"using special zerotier network {zerotierId}")
-else:
-  zerotierId = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
+proc getZerotierId*(): string =
+  if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
+    result = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
+    info(fmt"using special zerotier network {zerotierId}")
+  else:
+    result = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
 
-proc sandboxContainer(name:string,  host="localhost", port=6379, timeout=30, debug=false):int =
-  echo name, host, $port
-  result = 0
+let zerotierId = getZerotierId()
+
+
 type ZosConnectionConfig = object
       name*: string
       address*: string
@@ -104,6 +104,12 @@ proc getCurrentConnectionConfig(): ZosConnectionConfig =
   let tbl = loadConfig(configfile)
   let name = tbl.getSectionValue("app", "defaultzos")
   result = getConnectionConfigForInstance(name)
+
+type App = ref object of RootObj
+  currentconnection: Redis 
+  currentconnectionConfig: ZosConnectionConfig
+
+proc newApp(c)
 
 proc cmd*(command: string="core.ping", arguments="{}", timeout=5): string =
   let currentconnectionConfig = getCurrentConnectionConfig()

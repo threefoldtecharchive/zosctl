@@ -13,8 +13,6 @@ proc sshExec*(cmd:string): int =
 #   let cmd = fmt"""rsync -avzhe ssh --progress {sshSrc} {dest}""" 
 #   echo cmd
 
-
-
 proc getAgentPublicKeys*(): string = 
   let (output, rc) = execCmdEx("ssh-add -L")
   if rc == 0:
