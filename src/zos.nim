@@ -12,7 +12,6 @@ import zosapp/apphelp
 import zosapp/sshexec
 
 
-
 var L = newConsoleLogger()
 var fL = newFileLogger("zos.log", fmtStr = verboseFmtStr)
 addHandler(L)
@@ -64,6 +63,10 @@ let appconfig = getAppConfig()
 
 proc isConfigured*(): bool =
   return appconfig.hasKey("defaultzos") == true
+
+
+proc getActiveZosName*(): string =
+  return appconfig["defaultzos"]
 
 
 var zerotierId: string
@@ -248,14 +251,15 @@ proc getContainerNameById*(containerid:int): string =
 
 proc getContainerConfig(containerid:int): OrderedTableRef[string, string] = 
   let containerName = getContainerNameById(containerid)
+  let activeZos = getActiveZosName()
 
   var tbl = loadConfig(configfile)
-  if tbl.hasKey(fmt"container-{containerName}"):
-    return tbl[fmt"container-{containerName}"]
+  if tbl.hasKey(fmt"container-{activeZos}-{containerid}"):
+    return tbl[fmt"container-{activeZos}-{containerid}"]
   else:
-    tbl.setSectionKey(fmt("container-{containerName}"), "sshenabled", "false")
+    tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "false")
   tbl.writeConfig(configfile)
-  return tbl[fmt"container-{containerName}"]
+  return tbl[fmt"container-{activeZos}-{containerid}"]
     
 
 proc containerHasIP(containerid:int): bool = 
@@ -263,15 +267,43 @@ proc containerHasIP(containerid:int): bool =
   return containerConfig.hasKey("ip")
 
 
-proc newContainer(name:string, root:string, zosmachine="", hostname="", privileged=false, timeout=30, sshkey=""):int = 
+proc getContainerIp(containerid: int): string = 
   let currentconnectionConfig = getCurrentConnectionConfig()
-  var connectionConfig: ZosConnectionConfig
-  if zosmachine == appconfig["defaultzos"]:
-    connectionConfig = currentconnectionConfig
-  else:
-    connectionConfig = getConnectionConfigForInstance(zosmachine)
+  let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true) 
+  let activeZos = getActiveZosName()
+  
+  var done = false
+  var ip = ""
+  for trial in countup(0, 30):
+    try:
+      let ztsJson = zosCoreWithJsonNode(currentconnection, "corex.zerotier.list", %*{"container":containerid})
+      let parsedZts = parseJson(ztsJson)
+      # if len(parsedZts)>0:
+      var tbl = loadConfig(configfile)
+      let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
+      for el in assignedAddresses:
+        var ip = el.getStr()
+        if ip.count('.') == 3:
+          # potential ip4
+          if ip.contains("/"):
+            ip = ip[0..<ip.find("/")]
+          try:
+            ip = $parseIpAddress(ip)
+            tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
+            tbl.writeConfig(configfile)
+            return ip
+          except:
+            sleep(2000)
+    except:
+      sleep(2000)
+  
+  error(fmt"couldn't get zerotier information for container {containerid}")
 
-  let currentconnection = open(connectionConfig.address, connectionConfig.port.Port, true)
+  
+proc newContainer(name:string, root:string, hostname="", privileged=false, timeout=30, sshkey=""):int = 
+  let currentconnectionConfig = getCurrentConnectionConfig()
+  let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true) 
+  let activeZos = getActiveZosName()
 
   var containerHostName = hostname
   if containerHostName == "":
@@ -293,24 +325,33 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   if not extraArgs.hasKey("config"):
     extraArgs["config"] = newJObject()
   
-  var keys = getAgentPublicKeys()
-  let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
-  let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
-  
-  var configuredsshkey = ""
-  var k = ""
-  if fileExists(sshkey):
-    k = readFile(sshkey & ".pub")
-    configuredsshkey = sshkey
-  elif fileExists(sshDirRelativeKey):
-    configuredsshkey = sshDirRelativeKey
-    k = readFile(sshDirRelativeKey)
-  elif fileExists(defaultSshKey):
-    configuredsshkey = defaultSshKey
-    k =  readFile(defaultSshKey)
+  var keys = ""
+  var configuredsshkey = "false"
 
-  if k != "" and k notin keys:
+  if sshkey == "":
+    keys = getAgentPublicKeys()
+  else:
+    
+    let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
+    let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
+
+    let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa"
+    let defaultSshPubKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
+    
+    var k = ""
+    if fileExists(sshkey):
+      k = readFile(sshkey & ".pub")
+      configuredsshkey = sshkey
+    elif fileExists(sshDirRelativeKey):
+      configuredsshkey = sshDirRelativeKey
+      k = readFile(sshDirRelativePubKey)
+    elif fileExists(defaultSshKey):
+      configuredsshkey = defaultSshKey
+      k =  readFile(defaultSshPubKey)
+
+    echo "USING K: " & configuredsshkey
     keys &= k
+  
   
   if keys == "":
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
@@ -322,25 +363,32 @@ proc newContainer(name:string, root:string, zosmachine="", hostname="", privileg
   if extraArgs != nil:
     for k,v in extraArgs.pairs:
       args[k] = %*v
-  
-  var tbl = loadConfig(configfile)
-  tbl.setSectionKey(fmt"container-{name}", "sshkey", configuredsshkey)
-  tbl.setSectionKey(fmt"container-{name}", "layeredssh", "false")
-  tbl.writeConfig(configfile)
+
   let appconfig = getAppConfig() 
   let command = "corex.create"
   info(fmt"new container: {command} {args}") 
   
-  echo currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+  let contId = currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+  result = parseInt(contId)
+  
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshkey", configuredsshkey)
+  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
+  tbl.writeConfig(configfile)
+
+  echo result
+
 
 proc layerSSH(containerid:int, timeout=30) =
+  let activeZos = getActiveZosName()
+
   let currentconnectionConfig = getCurrentConnectionConfig()
   let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
   let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
 
   var tbl = loadConfig(configfile)
   let containerName = getContainerNameById(containerid)
-  let containerKey = fmt"container-{containerName}" 
+  let containerKey = fmt"container-{activeZos}-{containerid}" 
   if tbl[containerKey]["layeredssh"] == "false":
     var args = %*{
       "container": containerid,
@@ -355,16 +403,17 @@ proc layerSSH(containerid:int, timeout=30) =
     tbl.writeConfig(configfile)
 
 
-proc stopContainer(id:int, timeout=30) =
-  let containerName = getContainerNameById(id)
+proc stopContainer(containerid:int, timeout=30) =
+  let activeZos = getActiveZosName()
+  let containerName = getContainerNameById(containerid)
   let currentconnectionConfig = getCurrentConnectionConfig()
   let currentconnection = open(currentconnectionConfig.address, currentconnectionConfig.port.Port, true)
   let command = "corex.terminate"
-  let arguments = %*{"container": id}
+  let arguments = %*{"container": containerid}
   discard currentconnection.zosCoreWithJsonNode(command, arguments, timeout, appconfig["debug"] == "true")
 
   var tbl = loadConfig(configfile)
-  let containerKey = fmt"container-{containerName}"
+  let containerKey = fmt"container-{activeZos}-{containerid}"
   if tbl.hasKey(containerKey):
     tbl.del(containerKey)
   tbl.writeConfig(configfile)
@@ -382,7 +431,8 @@ proc cmdContainer*(containerid:int, command: string, timeout=5): string =
   
   echo $result  
 
-proc sshEnable*(containerid:int, sshconnectionstring=false): string =
+proc sshInfo*(containerid: int): string = 
+  let activeZos = getActiveZosName()
 
   # layerSSH(containerid)
   let containerName = getContainerNameById(containerid)
@@ -393,53 +443,35 @@ proc sshEnable*(containerid:int, sshconnectionstring=false): string =
   var currentContainerConfig = getContainerConfig(containerid)
 
   var tbl = loadConfig(configfile)
-  let configuredsshkey = tbl[fmt"container-{containerName}"].getOrDefault("sshkey", "")
+  let configuredsshkey = tbl[fmt"container-{activeZos}-{containerid}"].getOrDefault("sshkey", "false")
 
   var connectionString = ""
   if currentContainerConfig.hasKey("ip"):
-    if configuredsshkey != "":
+    if configuredsshkey != "false":
       connectionString = fmt"""root@{currentContainerConfig["ip"]} -i {configuredsshkey}"""
     else:
       connectionString = fmt"""root@{currentContainerConfig["ip"]}"""
-  
-    if sshconnectionstring:
-      return connectionString
-    else:
-      return fmt"ssh {connectionString}"
+
+  return connectionString
+
+
+
+proc sshEnable*(containerid:int): string =
+  let activeZos = getActiveZosName()
 
   # discard execContainer(containerid, "busybox mkdir -p /root/.ssh")
   # discard execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
   # discard execContainer(containerid, "/usr/sbin/sshd -D")
+  var tbl = loadConfig(configfile)
+  if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
+    discard execContainer(containerid, "mkdir -p /root/.ssh")
+    discard execContainer(containerid, "chmod 700 -R /etc/ssh")
+    discard execContainer(containerid, "service ssh start")
 
-  discard execContainer(containerid, "mkdir -p /root/.ssh")
-  discard execContainer(containerid, "chmod 700 -R /etc/ssh")
-  discard execContainer(containerid, "service ssh start")
+    tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
+    tbl.writeConfig(configfile)
 
-
-  tbl.setSectionKey(fmt("container-{containerName}"), "sshenabled", "true")
-
-  let ztsJson = zosCoreWithJsonNode(currentconnection, "corex.zerotier.list", %*{"container":containerid})  
-  let parsedZts = parseJson(ztsJson)
-  # if len(parsedZts)>0:
-  let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
-  for el in assignedAddresses:
-    var ip = el.getStr()
-    if ip.count('.') == 3:
-      # potential ip4
-      if ip.contains("/"):
-        ip = ip[0..<ip.find("/")]
-      try:
-        echo $parseIpAddress(ip)
-      except:
-        echo getCurrentExceptionMsg()
-        continue
-
-      tbl.setSectionKey(fmt("container-{containerName}"), "ip", ip)
-      tbl.writeConfig(configfile)
-      if configuredsshkey == "":
-        result = fmt"ssh root@{ip}"
-      else:
-        result = fmt"ssh root@{ip} -i {configuredsshkey}"
+  result = sshInfo(containerid)
 
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
@@ -500,6 +532,8 @@ when isMainModule:
     elif args["showconfig"]:
       # echo "asking to show config"
       showconfig()
+    elif args["ping"]:
+      discard cmd("core.ping", "")
     elif args["cmd"]:
       let command = $args["<zoscommand>"]
       let jsonargs = $args["--jsonargs"]
@@ -536,17 +570,15 @@ when isMainModule:
       var hostname = containername 
       if args["--hostname"]:
         hostname = $args["<hostname>"]
-      var zosmachine = getAppConfig()["defaultzos"]
-      if args["--on"]:
-        zosmachine = $args["<zosmachine>"]
       var privileged=false
       if args["--privileged"]:
         privileged=true
       var sshkey = ""
       if args["--sshkey"]:
         sshkey = $args["--sshkey"]
-      echo fmt"dispatch creating {containername} on machine {zosmachine} {rootflist} {privileged}"
-      discard newContainer(containername, rootflist, zosmachine, hostname, privileged, sshkey=sshkey)
+      echo fmt"dispatch creating {containername} on machine {rootflist} {privileged}"
+      let containerId = newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
+      echo getContainerIp(containerid)
       if args["--ssh"]:
         discard sshEnable(parseInt(getLastContainerId()))
     elif args["container"] and args["zosexec"]:
@@ -561,10 +593,18 @@ when isMainModule:
       let containerid = parseInt($args["<id>"])
       discard cmdContainer(containerid, "corex.zerotier.info")
     elif args["container"] and args["sshenable"]:
-      let containerid = parseInt($args["<id>"])
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
       echo sshEnable(containerid)
     elif args["container"] and args["sshinfo"]:
-      let containerid = parseInt($args["<id>"])
+      var containerid = parseInt(getLastContainerId())
+      try:
+        containerid = parseInt($args["<id>"])
+      except:
+        discard
       echo sshEnable(containerid)
     elif args["container"] and args["shell"]:
       sshBinsCheck()
@@ -573,8 +613,8 @@ when isMainModule:
         containerid = parseInt($args["<id>"])
       except:
         discard
-      let sshcmd = sshEnable(containerid, true)
-      discard sshExec(sshcmd)
+      let sshcmd = "ssh " & sshEnable(containerid)
+      discard execCmd(sshcmd)
     elif args["container"] and args["exec"]:
       sshBinsCheck()
       var containerid = parseInt(getLastContainerId())
@@ -582,7 +622,7 @@ when isMainModule:
         containerid = parseInt($args["<id>"])
       except:
         discard
-      let sshcmd = sshEnable(containerid, false) & fmt""" '{args["<command>"]}'"""
+      let sshcmd = "ssh " & sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
       discard execCmd(sshcmd)
     elif args["container"] and args["upload"]:
       sshBinsCheck()

@@ -13,11 +13,12 @@ let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
   zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--sshkey=<sshkey>] [--setdefault]
+  zos ping
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] [--on=<zosmachine>]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
   zos container inspect
   zos container info
   zos container list
@@ -31,6 +32,8 @@ Usage:
   zos container <id> sshinfo
   zos container <id> shell
   zos container <id> exec <command>
+  zos container sshenable
+  zos container sshinfo
   zos container shell
   zos container exec <command>
   zos container <id> upload <file> <dest>
@@ -45,7 +48,6 @@ Usage:
 Options:
   -h --help                       Show this screen.
   --version                       Show version.
-  --on=<zosmachine>               Zero-OS machine instance name.
   --disksize=<disksize>           disk size in GB [default: 20]
   --memory=<memorysize>           memory size in GB [default: 4]
   --address=<address>             zos ip [default: 127.0.0.1]
@@ -71,6 +73,12 @@ proc getHelp*(cmdname:string) =
             --disksize=<disksize>           disk size [default: 1000]
             --memory=<memorysize>           memory size [default: 2048]
             --port=<port>  
+
+    """
+  elif cmdname == "ping":
+    echo """
+    zos ping
+      checks connection to active zos machine.
 
     """
   elif cmdname == "configure":
@@ -105,7 +113,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--on=<zosmachine>] [--ssh]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh]
     creates a new container 
 
   zos container inspect
