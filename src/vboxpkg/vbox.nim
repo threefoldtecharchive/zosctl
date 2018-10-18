@@ -46,12 +46,13 @@ proc startVm*(this: VM|string) =
   else:
     name = this
 
-  var args = ""
-  when defined linux:
-    if not existsEnv("DISPLAY"):
-      args = "--type headless"
-  let cmd = fmt"""startvm {args} "{name}" """
-  discard executeVBoxManage(cmd)
+  if not this.isRunning():
+    var args = ""
+    when defined linux:
+      if not existsEnv("DISPLAY"):
+        args = "--type headless"
+    let cmd = fmt"""startvm {args} "{name}" """
+    discard executeVBoxManage(cmd)
 
 proc listVMs*(): seq[VM] =
   var vms = newSeq[VM]()
@@ -117,10 +118,11 @@ proc modify*(this: VM, cmd: string): string =
 proc exists*(this: VM|string): bool =
   for vm in listVMs():
       when this is VM:
-        if this.name in vm.name or this.guid in vm.guid:
-            return true
+        if vm.name == this.name or this.guid == vm.guid:
+          return true
       else:
-        return this in vm.guid or this in vm.name
+        if this == vm.guid or this == vm.name:
+          return true
 
   return false
 
@@ -211,9 +213,9 @@ proc vmInfo*(this: VM|string): TableRef[string, string] =
       return res[0]
   return newTable[string, string]()
 
-proc isRunning(this: VM): bool = 
+proc isRunning*(this: VM|string): bool = 
   let vminfo = this.vmInfo()
-  return vminfo.hasKey("state") and vminfo["state"] == "running"
+  return vminfo.hasKey("state") and vminfo["state"].contains("running")
 
 
 proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =

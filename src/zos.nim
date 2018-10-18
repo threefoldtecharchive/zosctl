@@ -144,7 +144,7 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false) 
 proc showconfig*() =
   echo readFile(configfile)
 
-proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
+proc init(name="local", datadiskSize=20, memory=4, redisPort=4444, ) = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
   if not exists(name):
@@ -156,12 +156,15 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   else:
     info(fmt"machine {name} exists already")
 
-  configure(name, "127.0.0.1", redisPort, setdefault=true)
 
   # var spinner = newSpinny("Preparing zos machine..".fgWhite, "dots")
   # spinner.setSymbolColor(colorize.fgBlue)
 
   # spinner.start()
+  if isRunning(name): 
+    info("machine already running")
+    quit 0
+
   spawn(startVm(name))
   
   info("preparing zos machine...") # should show a spinner here.
@@ -170,9 +173,10 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   var trials = 0
   while trials < maxTrials:
     try:
+      echo "preparing machine..\r"
       let con = open("127.0.0.1", redisPort.Port, true)
       echo $con.execCommand("PING", @[])
-      echo "preparing machine..\r"
+      configure(name, "127.0.0.1", redisPort, setdefault=true)
       break
     except:
       sleep(5)
@@ -183,6 +187,9 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   else:
     error("created zos machine and we are ready.")
   
+
+
+
   # configure and make that machine the default
 
 proc containersInspect(this:App): string=
@@ -485,6 +492,7 @@ when isMainModule:
       let memory = parseInt($args["--memory"])
       let redisport = parseInt($args["--redisport"])
       # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
+
       init(name, disksize, memory, redisport)
     elif args["configure"]:
       let name = $args["--name"]
