@@ -104,14 +104,14 @@ port=5555
 
 - `ping`
 ```
-./zos cmd "core.ping" 
+./zos ping 
 ```
 You should see response
 ```
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
 ```
 
-More info info at [doc/cmd](src/doc/cmd.md)
+More info info at [doc/cmd](/doc/cmds/ping.md)
 
 
 ### User defined commands
