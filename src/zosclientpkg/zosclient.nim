@@ -26,10 +26,18 @@ proc outputFromResponse*(resp: string): string =
 
   let response_state = $parsed["state"].getStr()
   if response_state != "SUCCESS":
-    echo fmt"[-]{parsed}"
+    if parsed.hasKey("streams"):
+      echo parsed["streams"][1].getStr()
+    else:
+      echo parsed.pretty(2)
   else: 
     let dataStr = parsed["data"].getStr()
-    result = dataStr
+    try:
+      result = dataStr.parseJson().pretty(2)
+      return 
+    except:
+      result = dataStr
+
     let code = parsed["code"].getInt()
     let streamout = parsed["streams"][0].getStr()
     let streamerr = parsed["streams"][1].getStr()
@@ -65,7 +73,6 @@ proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, d
 
 proc containerSend*(con:Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, debug=false): string =
   var first = con.zosSend(payload, bash, timeout, debug)
-  echo(first)
   if first.startsWith("\""):
     first = first[1..^2]
   result = outputFromResponse(con.getResponseString(first))

@@ -2,7 +2,19 @@
 zos-container manager can be used on local or remote zos machine
 
 ## Building
-Project is built using `nimble zosbuild` or `nimble build -d:ssl`
+Project is built using `nimble zos` 
+
+### Building on OSX
+
+```bash
+#example script to install
+brew install nim 
+mkdir -p  ~/code/github;cd ~/code/github
+git clone https://github.com/threefoldtech/zos 
+cd zos
+nimble zos
+```
+> You can use isntall_osx.sh the repository
 
 ### examples on OSX
 
@@ -26,22 +38,62 @@ To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
 ```
 
-## Preparing local zos machine
+## Preparing local Zero-OS machine
 ```bash
 zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 ```
+
 This will create a local virtual machine `mymachine` with ZOS installed and forwards the `localhost 4444` to zos redis port `6379`
-- memorysize is defaulted to 2 GB
-- disk size is defaulted to 1 GB disk
+- memorysize is defaulted to 4 GB
+- disk size is defaulted to 20 GB disk
 
+### Example
+```bash
+./zos init --name=firstmachine --disksize=1 --memory=2 --redisport=5555
+** executing command vboxmanage modifyvm firstmachine   --memory=2048
+** executing command vboxmanage modifyvm firstmachine   --ioapic on
+** executing command vboxmanage modifyvm firstmachine   --boot1 dvd --boot2 disk
+** executing command vboxmanage modifyvm firstmachine   --nic1 nat
+** executing command vboxmanage modifyvm firstmachine   --vrde on 
+** executing command vboxmanage modifyvm firstmachine   --natpf1 "redis,tcp,,5555,,6379" 
+INFO created machine firstmachine
+INFO preparing zos machine...
+```
+At this moment zos is preparing your machine on virtualbox and it may take sometime depending on your internet 
+> There's a work on progress to make speed that up for the next init calls.
 
-## Using an existing Zos machine
+## Using an existing Zero-OS machine
 Lots of time you will have a local development of zero-os using qemu, and to configure zos against that you can use `configure` subcommand to do so
 
 ```bash
-./zos configure --name local --address 192.168.122.147 --port 6379  
+./zos configure --name=local --address=192.168.122.147 --port=6379  
 ```
 To configure an existing zos machine named `local` to use address `192.168.122.147` and port `6379`
+
+## Zos configurations
+- Configurations `zos.toml` is saved in your configurations directory (e.g `~/.config` in linux)
+
+- You should you `zos showconfig` to see the current configurations 
+
+```bash
+[app]
+debug=false
+defaultzos=firstmachine
+[local]
+address=127.0.0.1
+port=7777
+[container-mycont]
+sshenabled=false
+[container-cont1]
+sshenabled=true
+ip=10.244.106.212
+[firstmachine]
+address=127.0.0.1
+port=5555
+
+```
+
+- defaultzos means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`
 
 ## Interacting with ZOS
 
@@ -59,181 +111,12 @@ You should see response
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
 ```
 
+More info info at [doc/cmd](src/doc/cmd.md)
 
-- `disk.list`
-```
-~> ./zos cmd "disk.list" 
-```
-Output:
-```
-[
-  {
-    "name": "sda",
-    "kname": "sda",
-    "maj:min": "8:0",
-    "fstype": null,
-    "mountpoint": null,
-    "label": null,
-    "uuid": null,
-    "parttype": null,
-    "partlabel": null,
-    "partuuid": null,
-    "partflags": null,
-    "ra": "128",
-    "ro": "0",
-    "rm": "0",
-    "hotplug": "0",
-    "model": "VBOX HARDDISK   ",
-    "serial": "VBf3f81d08-69a57200",
-    "state": "running",
-    "owner": "root",
-    "group": "disk",
-    "mode": "brw-rw----",
-    "alignment": "0",
-    "min-io": "512",
-    "opt-io": "0",
-    "phy-sec": "512",
-    "log-sec": "512",
-    "rota": "1",
-    "sched": "cfq",
-    "rq-size": "128",
-    "type": "disk",
-    "disc-aln": "0",
-    "disc-gran": "0",
-    "disc-max": "0",
-    "disc-zero": "0",
-    "wsame": "0",
-    "wwn": null,
-    "rand": "1",
-    "pkname": null,
-    "hctl": "2:0:0:0",
-    "tran": "sata",
-    "subsystems": "block:scsi:pci",
-    "rev": "1.0 ",
-    "vendor": "ATA     ",
-    "children": [
-      {
-        "name": "sda1",
-        "kname": "sda1",
-        "maj:min": "8:1",
-        "fstype": "btrfs",
-        "mountpoint": "/mnt/storagepools/sp_zos-cache",
-        "label": "sp_zos-cache",
-        "uuid": "884020ea-54dc-4e63-9d27-d37f28fe1b0f",
-        "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partlabel": "primary",
-        "partuuid": "79b8def9-aec2-4f86-bece-afba45c482a5",
-        "partflags": null,
-        "ra": "128",
-        "ro": "0",
-        "rm": "0",
-        "hotplug": "0",
-        "model": "",
-        "serial": "",
-        "size": "1046478848",
-        "state": null,
-        "owner": "root",
-        "group": "disk",
-        "mode": "brw-rw----",
-        "alignment": "0",
-        "min-io": "512",
-        "opt-io": "0",
-        "phy-sec": "512",
-        "log-sec": "512",
-        "rota": "1",
-        "sched": "cfq",
-        "rq-size": "128",
-        "type": "part",
-        "disc-aln": "0",
-        "disc-gran": "0",
-        "disc-max": "0",
-        "disc-zero": "0",
-        "wsame": "0",
-        "wwn": null,
-        "rand": "1",
-        "pkname": "sda",
-        "hctl": null,
-        "tran": "",
-        "subsystems": "block:scsi:pci",
-        "rev": null,
-        "vendor": null
-      }
-    ],
-    "start": 0,
-    "end": 1048575999,
-    "size": 1048576000,
-    "blocksize": 512,
-    "table": "gpt",
-    "free": [
-      {
-        "start": 17408,
-        "end": 1048575,
-        "size": 1031168
-      },
-      {
-        "start": 1047527424,
-        "end": 1048559103,
-        "size": 1031680
-      }
-    ]
-  },
-  {
-    "name": "sr0",
-    "kname": "sr0",
-    "maj:min": "11:0",
-    "fstype": "iso9660",
-    "mountpoint": null,
-    "label": "iPXE",
-    "uuid": "2018-09-11-11-46-27-00",
-    "parttype": null,
-    "partlabel": null,
-    "partuuid": null,
-    "partflags": null,
-    "ra": "128",
-    "ro": "0",
-    "rm": "1",
-    "hotplug": "1",
-    "model": "CD-ROM          ",
-    "serial": "VB0-01f003f6",
-    "state": "running",
-    "owner": "root",
-    "group": "cdrom",
-    "mode": "brw-rw----",
-    "alignment": "0",
-    "min-io": "2048",
-    "opt-io": "0",
-    "phy-sec": "2048",
-    "log-sec": "2048",
-    "rota": "1",
-    "sched": "cfq",
-    "rq-size": "128",
-    "type": "rom",
-    "disc-aln": "0",
-    "disc-gran": "0",
-    "disc-max": "0",
-    "disc-zero": "0",
-    "wsame": "0",
-    "wwn": null,
-    "rand": "1",
-    "pkname": null,
-    "hctl": "0:0:0:0",
-    "tran": "ata",
-    "subsystems": "block:scsi:pci",
-    "rev": "1.0 ",
-    "vendor": "VBOX    ",
-    "start": 0,
-    "end": 0,
-    "size": 0,
-    "blocksize": 2048,
-    "table": "",
-    "free": null
-  }
-]
-```
 
 ### User defined commands
 
-you can use zosBash subcommand to execute bash commands on the zos directly
+you can use exec subcommand to execute bash commands on the zos directly
 ```
 ~> ./zos exec "ls /var"
 cache
@@ -263,118 +146,61 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
 
 ```
- ./zos container new --name=mycont --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist" --privileged  --extraconfig='{"config":{}}'
+./zos container new --name=reem2 --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
 ```
 Output (new container id)
 ```
 2
 ```
 
-#### extraconfig
-Please consult the documentation for more updated info on the allowed configurations
-```
-    extraconfig is json encoded string contains
-      mount: a dict with {host_source: container_target} mount points.
-                    where host_source directory must exists.
-                    host_source can be a url to a flist to mount.
-      host_network: Specify if the container should share the same network stack as the host.
-                          if True, container creation ignores both zerotier, bridge and ports arguments below. Not
-                          giving errors if provided.
-      nics: Configure the attached nics to the container
-                  each nic object is a dict of the format
-                  {
-                      'type': nic_type # one of default, bridge, zerotier, macvlan, passthrough, vlan, or vxlan (note, vlan and vxlan only supported by ovs)
-                      'id': id # depends on the type
-                          bridge: bridge name,
-                          zerotier: network id,
-                          macvlan: the parent link name,
-                          passthrough: the link name,
-                          vlan: the vlan tag,
-                          vxlan: the vxlan id
-                      'name': name of the nic inside the container (ignored in zerotier type)
-                      'hwaddr': Mac address of nic.
-                      'config': { # config is only honored for bridge, vlan, and vxlan types
-                          'dhcp': bool,
-                          'cidr': static_ip # ip/mask
-                          'gateway': gateway
-                          'dns': [dns]
-                      }
-                  }
-      port: A dict of host_port: container_port pairs (only if default networking is enabled)
-                    Example:
-                      `port={8080: 80, 7000:7000}`
-                    Source Format: NUMBER, IP:NUMBER, IP/MAST:NUMBER, or DEV:NUMBER
-      storage: A Url to the ardb storage to use to mount the root flist (or any other mount that requires g8fs)
-                      if not provided, the default one from core0 configuration will be used.
-      identity: Container Zerotier identity, Only used if at least one of the nics is of type zerotier
-      env: a dict with the environment variables needed to be set for the container
-      cgroups: custom list of cgroups to apply to this container on creation. formated as [(subsystem, name), ...]
-                      please refer to the cgroup api for more detailes.
-      config: a map with the config file path as a key and content as a value. This only works when creating a VM from an flist. The
-              config files are written to the machine before booting.
-              Example:
-              config = {'/root/.ssh/authorized_keys': '<PUBLIC KEYS>'}
-```
-
 ### Container information
 
 ```bash
-./zos container 5 info                                                       
+
+./zos container 1 info
 {
-  "id": "5",
+  "id": "1",
   "cpu": 0.0,
-  "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-  "hostname": "dmdm",
-  "pid": 29671
+  "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
+  "hostname": "",
+  "name": "",
+  "storage": "",
+  "pid": 523
+}
 ```
 
 ### Containers information
 using `./zos container list` or `./zos container info`
 
 ```bash
+ ./zos container list
 [
   {
     "id": "1",
-    "cpu": 0.03423186237547345,
+    "cpu": 0.02948726340828401,
     "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
     "hostname": "",
-    "pid": 446
+    "name": "",
+    "storage": "zdb://hub.grid.tf:9900",
+    "pid": 523
   },
   {
     "id": "2",
-    "cpu": 0.01141061719069141,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "\"\"",
-    "pid": 2207
-  },
-  {
-    "id": "3",
     "cpu": 0.0,
     "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "nil",
-    "pid": 27567
-  },
-  {
-    "id": "4",
-    "cpu": 0.0,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "nil",
-    "pid": 28848
-  },
-  {
-    "id": "5",
-    "cpu": 0.0,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "dmdm",
-    "pid": 29671
+    "hostname": "reem2",
+    "name": "reem2",
+    "storage": "zdb://hub.grid.tf:9900",
+    "pid": 5111
   }
 ]
+
 ```
 
 ### Inspect single container
 using `inspect` command
 ```bash
-./zos container 1 inspect                                                     ✔  ahmed@ahmedheaven
+./zos container 1 inspect
 {
   "cpu": 0.01674105440884163,
   "rss": 7946240,
@@ -439,129 +265,61 @@ using `inspect` command
 `./zos container inspect`
 Shows a detailed information about the container
 
-### Listing running containers
-
-```bash
-./zos container list
-{  "1": {
-    "cpu": 0.0216872378245448,
-    "rss": 7151616,
-    "vms": 271065088,
-    "swap": 0,
-    "container": {
-      "arguments": {
-        "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
-        "mount": {
-          "/var/cache/zrobot/config": "/opt/code/local/stdorg/config",
-          "/var/cache/zrobot/data": "/opt/var/data/zrobot/zrobot_data",
-          "/var/cache/zrobot/jsconfig": "/root/jumpscale/cfg",
-          "/var/cache/zrobot/ssh": "/root/.ssh",
-          "/var/run/redis.sock": "/tmp/redis.sock"
-        },
-        "host_network": false,
-        "identity": "",
-        "nics": [
-          {
-            "type": "default",
-            "id": "",
-            "hwaddr": "",
-            "config": {
-              "dhcp": false,
-              "cidr": "",
-              "gateway": "",
-              "dns": null
-            },
-            "monitor": false,
-            "state": "configured"
-          }
-        ],
-        "port": {
-          "6600": 6600
-        },
-        "privileged": false,
-        "hostname": "",
-        "storage": "zdb://hub.grid.tf:9900",
-        "name": "zrobot",
-        "tags": [
-          "zrobot"
-        ],
-        "env": {
-          "HOME": "/root",
-          "LANG": "C.UTF-8",
-          "LC_ALL": "C.UTF-8"
-        },
-        "cgroups": [
-          [
-            "devices",
-            "corex"
-          ]
-        ]
-      },
-      "root": "/mnt/containers/1",
-      "pid": 493
-    }
-  },
-  "2": {
-    "cpu": 0,
-    "rss": 5808128,
-    "vms": 269983744,
-    "swap": 0,
-    "container": {
-      "arguments": {
-        "root": "https://hub.grid.tf/thabet/redis.flist",
-        "mount": null,
-        "host_network": false,
-        "identity": "",
-        "nics": [
-          {
-            "type": "default",
-            "id": "",
-            "hwaddr": "",
-            "config": {
-              "dhcp": false,
-              "cidr": "",
-              "gateway": "",
-              "dns": null
-            },
-            "monitor": false,
-            "state": "configured"
-          }
-        ],
-        "port": {
-          "3000": 3500
-        },
-        "privileged": false,
-        "hostname": "aredishost",
-        "storage": "zdb://hub.grid.tf:9900",
-        "name": "rediscont3",
-        "tags": null,
-        "env": null,
-        "cgroups": [
-          [
-            "devices",
-            "corex"
-          ]
-        ]
-      },
-      "root": "/mnt/containers/2",
-      "pid": 11243
-    }
-  }
-}
-```
-
 
 ### Terminating a container
-using subcommand `delete`
+Using subcommand `delete`
 ```bash
 ./zos container 5 delete  
 ```
 
 
 ### Enabling SSH
-enabling ssh on the container is as easy as `./zos container 3 sshenable`
+Enabling ssh on the container is as easy as `./zos container 2 sshenable`
+
+```bash
+./zos container 2 sshenable                                                                          30.79  
+ssh root@10.244.104.71
+
+```
 
 
 ### Access SSH
-executing `./zos container 3 shell` will connect through ssh
+Executing `./zos container 3 shell` will connect through SSH 
 
+> Calling `zos container 3 shell` will understand that you want to enablessh and will do it for you.
+
+```bash
+
+./zos container 2 shell
+Welcome to Ubuntu 16.04 LTS (GNU/Linux 4.14.36-Zero-OS x86_64)
+
+ * Documentation:  https://help.ubuntu.com/
+Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
+root@reem2:~# 
+
+```
+
+### Upload/Download files 
+```bash
+~> ./zos container exec 'ls /tmp' 
+
+ztkey
+~>  echo "MYUPLOADED FILE" > /tmp/myfile
+~>  ./zos container upload /tmp/myfile /tmp 
+scp  /tmp/myfile root@10.244.104.71:/tmp 
+myfile                                                       100%   16    11.0KB/s   00:00    
+~>  ./zos container exec 'ls /tmp'
+myfile
+ztkey
+~>  ./zos container exec 'cat /tmp/myfile'
+MYUPLOADED FILE
+```
+
+```
+~> ./zos container download /tmp/myfile /tmp/downloadedmyfile
+scp -r root@10.244.104.71:/tmp/myfile /tmp/downloadedmyfile
+myfile                                                                                                                                 100%   16    10.4KB/s   00:00
+
+~> cat /tmp/downloadedmyfile
+MYUPLOADED FILE
+```
