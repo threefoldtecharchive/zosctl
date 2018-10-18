@@ -106,10 +106,9 @@ proc getCurrentConnectionConfig(): ZosConnectionConfig =
   result = getConnectionConfigForInstance(name)
 
 type App = object of RootObj
-  currentconnection*: Redis 
   currentconnectionConfig*:  ZosConnectionConfig
 
-proc currentconnection(this: App): Redis =
+proc currentconnection*(this: App): Redis =
   result = open(this.currentconnectionConfig.address, this.currentconnectionConfig.port.Port, true)
 
 proc initApp(): App = 
@@ -501,8 +500,6 @@ proc handleConfigured(args:Table[string, Value]) =
   var app = initApp()
 
   proc handleInit() = 
-    var app = initApp()
-
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
     let memory = parseInt($args["--memory"])
@@ -512,18 +509,17 @@ proc handleConfigured(args:Table[string, Value]) =
       reset = true
     # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
     if reset == true:
-      vmDelete(name)
+      try:
+        vmDelete(name)
+      except:
+        discard # clear error here..
     init(name, disksize, memory, redisport)
   
-  proc handleRemove() = 
-    var app = initApp()
-
-    let name = $args["--name"]
-    vmDelete(name)
+  # proc handleRemove() = 
+  #   let name = $args["--name"]
+  #   vmDelete(name)
   
   proc handleConfigure() =
-    var app = initApp()
-
     let name = $args["--name"]
     let address = $args["--address"]
     let port = parseInt($args["--port"])
@@ -540,17 +536,12 @@ proc handleConfigured(args:Table[string, Value]) =
     setdefault(name)
 
   proc handleShowConfig() = 
-    var app = initApp()
-
     showconfig()
 
   proc handlePing() =
-    var app = initApp()
     discard app.cmd("core.ping", "")
 
   proc handleCmd() =
-    var app = initApp()
-
     let command = $args["<zoscommand>"]
     let jsonargs = $args["--jsonargs"]
     # echo fmt"Dispatching {command} {jsonargs}"
@@ -643,7 +634,6 @@ proc handleConfigured(args:Table[string, Value]) =
 
 
   proc handleContainerUpload() =
-
     var containerid = app.getLastContainerId()
     try:
       containerid = parseInt($args["<id>"])
@@ -668,7 +658,6 @@ proc handleConfigured(args:Table[string, Value]) =
     discard execCmd(rsyncUpload(file, sshDest, isDir))
   
   proc handleContainerDownload() = 
-
     var containerid = app.getLastContainerId()
     try:
       containerid = parseInt($args["<id>"])
@@ -689,8 +678,8 @@ proc handleConfigured(args:Table[string, Value]) =
 
   if args["init"]:
     handleInit()
-  elif args["remove"]:
-    handleRemove()
+  # elif args["remove"]:
+  #   handleRemove()
   elif args["configure"]:
     handleConfigure()
   elif args["setdefault"]:
