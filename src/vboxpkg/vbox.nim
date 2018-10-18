@@ -71,13 +71,14 @@ proc getVMByName*(vmName: string) : VM =
   for vm in listVMs():
     if vmName == vm.name:
       return vm
-  # should raise here..
+  raise newException(ValueError, fmt"{vmName} not found")
+
 
 proc getVMByGuid*(vmGuid: string) : VM =
   for vm in listVMs():
     if vmGuid == vm.guid:
       return vm
-  # should raise here..
+  raise newException(ValueError, fmt"{vmGuid} not found")
 
 
 proc parseSectionsStartsWith(output: string, sectionStart:string): seq[TableRef[string, string]] =
@@ -89,6 +90,13 @@ proc parseSectionsStartsWith(output: string, sectionStart:string): seq[TableRef[
       if line.startsWith(sectionStart):
           # push new section
           currentTable = newTable[string, string]()
+          let parts = line.split(":", maxSplit=1)
+          if len(parts) == 2:
+              currentTable[parts[0].strip().toLower()] = parts[1].strip().toLower()
+          else:
+              currentTable[parts[0].strip().toLower()]  = ""
+
+
           sections.add(currentTable)
       else:
           if sections.len > 0:
@@ -163,10 +171,19 @@ proc vmGuid*(this: Disk): string =
       let vmguid = vmsline[vmsline.find("UUID:")+5..^2]
       return vmguid
 
+proc vmDisks*(this: VM): seq[string] =
+  let vdisks = listVDisks()
+  for disk in vdisks:
+    if disk.hasKey("in use by vms"):
+      if disk["in use by vms"].contains(this.guid):
+        result.add(disk["uuid"])
+  
 
-proc delete*(this: Disk): string =
-  discard executeVBoxManage(fmt"closemedium disk {this.diskUUID()} --delete")
-
+proc delete*(this: Disk|string): string =
+  when this is string:
+    discard executeVBoxManage(fmt"closemedium disk {this} --delete")
+  else:
+    discard executeVBoxManage(fmt"closemedium disk {this.diskUUID()} --delete")
 
 proc createDisk*(this: VM, name:string, size:int=10000): Disk =
   var d = initDisk(fmt"{this.getPath()}/{name}.vdi")
@@ -174,7 +191,6 @@ proc createDisk*(this: VM, name:string, size:int=10000): Disk =
 
 
 proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000, memory:int=2000, redisPort=4444) = 
-
 
   let cmd = fmt"""createvm --name "{vmName}" --ostype "Linux_64" --register """
   discard executeVBoxManage(cmd)
@@ -190,8 +206,14 @@ proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=100
     if l == "" or l.startsWith("#"):
       continue
     discard executeVBoxManageModify(fmt"""{vmName} {l}""")
-
-  let vm = getVMByName(vmName)
+    
+  var vm: VM
+  try:
+    vm = getVMByName(vmName)
+  except:
+    echo fmt"[-]the created vm {vmName} doesn't exist"
+    quit 117
+  
 
   if datadisksize > 0:
       let disk = vm.createDisk(fmt"main{vmName}", datadiskSize)
@@ -216,6 +238,48 @@ proc vmInfo*(this: VM|string): TableRef[string, string] =
 proc isRunning*(this: VM|string): bool = 
   let vminfo = this.vmInfo()
   return vminfo.hasKey("state") and vminfo["state"].contains("running")
+
+
+proc vmDelete*(this: VM|string) =
+  var vm: VM
+  var vmguid = ""
+  var vmname = ""
+
+  when this is string:
+    vmguid = this
+    vmname = this
+  else:
+    vmguid = this.guid 
+    vmname = this.name 
+
+  var found = false
+  try:
+    vm = getVMByName(vmname)
+    found = true
+  except:
+    try:
+      vm = getVMByGuid(vmguid)
+      found = true
+    except:
+      discard
+  
+  if found:
+    let maxtrials = 15
+    if this.isRunning():
+      try:
+        discard executeVBoxManage(fmt"controlvm {vm.guid} poweroff")
+      except:
+        discard
+    # for d in vm.vmDisks():
+    #   try:
+    #   discard delete(d) 
+
+    discard executeVBoxManage(fmt"unregistervm {vm.guid} --delete")
+    try:
+      removeDir(vm.getPath())
+      echo "REMOVED DIR..."
+    except:
+      discard
 
 
 proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =

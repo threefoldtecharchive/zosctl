@@ -106,13 +106,14 @@ proc getCurrentConnectionConfig(): ZosConnectionConfig =
   result = getConnectionConfigForInstance(name)
 
 type App = object of RootObj
-  currentconnection*: Redis 
   currentconnectionConfig*:  ZosConnectionConfig
+
+proc currentconnection*(this: App): Redis =
+  result = open(this.currentconnectionConfig.address, this.currentconnectionConfig.port.Port, true)
 
 proc initApp(): App = 
   let currentconnectionConfig =  getCurrentConnectionConfig()
-  result = App(currentconnectionConfig:currentconnectionConfig, currentconnection: open(result.currentconnectionConfig.address, result.currentconnectionConfig.port.Port, true))
-
+  result = App(currentconnectionConfig:currentconnectionConfig)
 
 proc cmd*(this:App, command: string="core.ping", arguments="{}", timeout=5): string =
   result = this.currentconnection.zosCore(command, arguments, timeout, appconfig["debug"] == "true")
@@ -156,36 +157,29 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444, ) =
   else:
     info(fmt"machine {name} exists already")
 
-
-  # var spinner = newSpinny("Preparing zos machine..".fgWhite, "dots")
-  # spinner.setSymbolColor(colorize.fgBlue)
-
-  # spinner.start()
   if isRunning(name): 
     info("machine already running")
     quit 0
 
   spawn(startVm(name))
   
-  info("preparing zos machine...") # should show a spinner here.
+  info("preparing zos machine...may take a while..") # should show a spinner here.
   # give it 10 mins
-  let maxTrials = 300
-  var trials = 0
-  while trials < maxTrials:
+  var ponged = false
+  for i in countup(0, 500):
     try:
-      echo "preparing machine..\r"
       let con = open("127.0.0.1", redisPort.Port, true)
       echo $con.execCommand("PING", @[])
-      configure(name, "127.0.0.1", redisPort, setdefault=true)
+      ponged = true
       break
     except:
-      sleep(5)
-      trials += 1
+      sleep(5000)
 
-  if trials == maxTrials:
-    info("couldn't prepare zos machine.")
+  if ponged:
+    configure(name, "127.0.0.1", redisPort, setdefault=true)
+    info("created zos machine and we are ready.")
   else:
-    error("created zos machine and we are ready.")
+    error("couldn't prepare zos machine.")
   
 
 
@@ -471,6 +465,284 @@ proc sshEnable*(this: App, containerid:int): string =
 
   result = this.sshInfo(containerid)
 
+
+proc handleUnconfigured(args:Table[string, Value]) =
+  if args["init"]:
+    if findExe("vboxmanage") == "":
+      error("Please make sure to have VirtualBox installed")
+      quit 4 
+
+    let name = $args["--name"]
+    let disksize = parseInt($args["--disksize"])
+    let memory = parseInt($args["--memory"])
+    let redisport = parseInt($args["--redisport"])
+    # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
+
+    init(name, disksize, memory, redisport)
+  elif args["configure"]:
+    let name = $args["--name"]
+    let address = $args["--address"]
+    let port = parseInt($args["--port"])
+    if args["--setdefault"]:
+      configure(name, address, port, true) 
+    else:
+      configure(name, address, port) 
+  elif args["setdefault"]:
+    let name = $args["<zosmachine>"]
+    setdefault(name)
+
+
+
+
+
+proc handleConfigured(args:Table[string, Value]) = 
+
+  var app = initApp()
+
+  proc handleInit() = 
+    let name = $args["--name"]
+    let disksize = parseInt($args["--disksize"])
+    let memory = parseInt($args["--memory"])
+    let redisport = parseInt($args["--redisport"])
+    var reset = false
+    if args["--reset"]:
+      reset = true
+    # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
+    if reset == true:
+      try:
+        vmDelete(name)
+      except:
+        discard # clear error here..
+    init(name, disksize, memory, redisport)
+  
+  # proc handleRemove() = 
+  #   let name = $args["--name"]
+  #   vmDelete(name)
+  
+  proc handleConfigure() =
+    let name = $args["--name"]
+    let address = $args["--address"]
+    let port = parseInt($args["--port"])
+    let sshkeyname = $args["--sshkey"]
+    if args["--setdefault"]:
+      configure(name, address, port, true) 
+    else:
+      configure(name, address, port) 
+
+  proc handleSetDefault() =
+    var app = initApp()
+
+    let name = $args["<zosmachine>"]
+    setdefault(name)
+
+  proc handleShowConfig() = 
+    showconfig()
+
+  proc handlePing() =
+    discard app.cmd("core.ping", "")
+
+  proc handleCmd() =
+    let command = $args["<zoscommand>"]
+    let jsonargs = $args["--jsonargs"]
+    # echo fmt"Dispatching {command} {jsonargs}"
+    discard app.cmd(command, jsonargs)
+  
+  proc handleExec() = 
+    let command = $args["<command>"]
+    # echo fmt"Dispatching {command}"
+    discard app.exec(command)
+
+  proc handleContainersInspect() =
+    echo app.containersInspect()
+  
+  proc handleContainerInspect() =
+    let containerid = parseInt($args["<id>"])
+    echo app.containerInspect(containerid)
+
+  proc handleContainersInfo() =
+    echo app.containersInfo()
+  
+  proc handleContainerInfo() =
+    let containerid = parseInt($args["<id>"])
+    echo app.containerInfo(containerid)
+   
+
+  proc handleContainerDelete() =
+    let containerid = parseInt($args["<id>"])
+    # echo fmt"dispatching to delete {containerid}"
+    app.stopContainer(containerid)
+
+  proc handleContainerNew() =
+    let containername = $args["--name"]
+    let rootflist = $args["--root"]
+    var hostname = containername 
+    if args["--hostname"]:
+      hostname = $args["<hostname>"]
+    var privileged=false
+    if args["--privileged"]:
+      privileged=true
+    var sshkey = ""
+    if args["--sshkey"]:
+      sshkey = $args["--sshkey"]
+    echo fmt"dispatch creating {containername} on machine {rootflist} {privileged}"
+    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
+    echo app.getContainerIp(containerid)
+    if args["--ssh"]:
+      discard app.sshEnable(app.getLastContainerId())
+
+
+  proc handleContainerZosExec() =
+    let containerid = parseInt($args["<id>"])
+    let command = $args["<command>"]
+    discard app.execContainer(containerid, command)
+
+  
+  proc handleSshEnable() =
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    echo app.sshEnable(containerid)
+
+  proc handleSshInfo() =
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    echo app.sshEnable(containerid)
+
+  proc handleContainerShell() = 
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    let sshcmd = "ssh " & app.sshEnable(containerid)
+    discard execCmd(sshcmd)
+
+
+  proc handleContainerExec() =
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
+    discard execCmd(sshcmd)
+
+
+  proc handleContainerUpload() =
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    if not app.containerHasIP(containerid):
+      echo "Make sure to enable ssh first"
+      quit 9 
+    let file = $args["<file>"]
+    if not fileExists(file):
+      error(fmt"file {file} doesn't exist")
+      quit 7
+    let dest = $args["<dest>"]
+    let containerConfig = app.getContainerConfig(containerid)
+    discard app.sshEnable(containerid) 
+
+    let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
+
+    var isDir = false
+    if getFileInfo(file).kind == pcDir:
+      isDir=true
+    discard execCmd(rsyncUpload(file, sshDest, isDir))
+  
+  proc handleContainerDownload() = 
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    if not app.containerHasIP(containerid):
+      echo "Make sure to enable ssh first"
+      quit 9
+    let file = $args["<file>"]
+    let dest = $args["<dest>"]
+    let containerConfig = app.getContainerConfig(containerid)
+    discard app.sshEnable(containerid) 
+
+    let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
+    var isDir = true # always true.
+    discard execCmd(rsyncDownload(sshSrc, dest, isDir))
+
+
+  if args["init"]:
+    handleInit()
+  # elif args["remove"]:
+  #   handleRemove()
+  elif args["configure"]:
+    handleConfigure()
+  elif args["setdefault"]:
+    handleSetDefault()
+  elif args["showconfig"]:
+    handleShowConfig()
+  elif args["ping"]:
+    handlePing()
+  elif args["cmd"]:
+    handleCmd()
+    ### more... 
+  elif args["exec"] and not args["container"]:
+    handleExec()
+  
+  # elif args["--ssh"] and not args["container"]:
+  #   let command = $args["<command>"]
+  #   let sshstring = fmt"ssh root@{currentconnectionConfig.address} '{command}'"
+  #   discard execCmd(sshstring)
+  elif args["inspect"] and args["<id>"]:
+    handleContainerInspect()
+  elif args["inspect"] and not args["<id>"]:
+    handleContainersInspect()
+
+  elif args["info"] and args["<id>"]:
+    handleContainerInfo()
+  elif args["info"] or args["list"] and not args["<id>"]:
+    # echo fmt"dispatch to list containers"
+    handleContainersInfo()
+  elif args["delete"]:
+    handleContainerDelete()
+  elif args["container"] and args["new"]:
+    handleContainerNew()
+
+  elif args["container"] and args["zosexec"]:
+    handleContainerZosExec()
+    # echo fmt"dispatch container exec {containerid} {command}"
+  elif args["container"] and args["zerotierlist"]:
+    let containerid = parseInt($args["<id>"])
+    discard app.cmdContainer(containerid, "corex.zerotier.list")
+  elif args["container"] and args["zerotierinfo"]:
+    let containerid = parseInt($args["<id>"])
+    discard app.cmdContainer(containerid, "corex.zerotier.info")
+  elif args["container"] and args["sshenable"]:
+    handleSshEnable()
+  elif args["container"] and args["sshinfo"]:
+    handleSshInfo()
+  elif args["container"] and args["shell"]:
+    handleContainerShell()
+
+  elif args["container"] and args["exec"]:
+    handleContainerExec()
+  elif args["container"] and args["upload"]:
+    handleContainerUpload()
+  elif args["container"] and args["download"]:
+    handleContainerDownload()
+  else:
+    getHelp("")
+    quit 6
+
+
+
+
+
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
   if args["help"] and args["<cmdname>"]:
@@ -482,188 +754,7 @@ when isMainModule:
   
     
   if not isConfigured():
-    if args["init"]:
-      if findExe("vboxmanage") == "":
-        error("Please make sure to have VirtualBox installed")
-        quit 4 
-
-      let name = $args["--name"]
-      let disksize = parseInt($args["--disksize"])
-      let memory = parseInt($args["--memory"])
-      let redisport = parseInt($args["--redisport"])
-      # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
-
-      init(name, disksize, memory, redisport)
-    elif args["configure"]:
-      let name = $args["--name"]
-      let address = $args["--address"]
-      let port = parseInt($args["--port"])
-      if args["--setdefault"]:
-        configure(name, address, port, true) 
-      else:
-        configure(name, address, port) 
-    elif args["setdefault"]:
-      let name = $args["<zosmachine>"]
-      setdefault(name)
-
+    handleUnconfigured(args)
   else:
-    var app = initApp()
-    let currentconnectionConfig = getCurrentConnectionConfig()
+    handleConfigured(args)
  
-    if args["init"]:
-      let name = $args["--name"]
-      let disksize = parseInt($args["--disksize"])
-      let memory = parseInt($args["--memory"])
-      let redisport = parseInt($args["--redisport"])
-      # echo fmt"dispatching {name} {disksize} {memory} {redisport}"
-      init(name, disksize, memory, redisport)
-    elif args["configure"]:
-      let name = $args["--name"]
-      let address = $args["--address"]
-      let port = parseInt($args["--port"])
-      let sshkeyname = $args["--sshkey"]
-      if args["--setdefault"]:
-        configure(name, address, port, true) 
-      else:
-        configure(name, address, port) 
-    elif args["setdefault"]:
-      let name = $args["<zosmachine>"]
-      setdefault(name)
-    elif args["showconfig"]:
-      # echo "asking to show config"
-      showconfig()
-    elif args["ping"]:
-      discard app.cmd("core.ping", "")
-    elif args["cmd"]:
-      let command = $args["<zoscommand>"]
-      let jsonargs = $args["--jsonargs"]
-      # echo fmt"Dispatching {command} {jsonargs}"
-      discard app.cmd(command, jsonargs)
-      ### more... 
-    elif args["exec"] and not args["container"]:
-      let command = $args["<command>"]
-      # echo fmt"Dispatching {command}"
-      discard app.exec(command)
-    elif args["--ssh"] and not args["container"]:
-      let command = $args["<command>"]
-      let sshstring = fmt"ssh root@{currentconnectionConfig.address} '{command}'"
-      discard execCmd(sshstring)
-    elif args["inspect"] and args["<id>"]:
-      let containerid = parseInt($args["<id>"])
-      echo app.containerInspect(containerid)
-    elif args["inspect"] and not args["<id>"]:
-      # echo fmt"dispatch to list containers"
-      echo app.containersInspect()
-    elif args["info"] and args["<id>"]:
-      let containerid = parseInt($args["<id>"])
-      echo app.containerInfo(containerid)
-    elif args["info"] or args["list"] and not args["<id>"]:
-      # echo fmt"dispatch to list containers"
-      echo app.containersInfo()
-    elif args["delete"]:
-      let containerid = parseInt($args["<id>"])
-      # echo fmt"dispatching to delete {containerid}"
-      app.stopContainer(containerid)
-    elif args["container"] and args["new"]:
-      let containername = $args["--name"]
-      let rootflist = $args["--root"]
-      var hostname = containername 
-      if args["--hostname"]:
-        hostname = $args["<hostname>"]
-      var privileged=false
-      if args["--privileged"]:
-        privileged=true
-      var sshkey = ""
-      if args["--sshkey"]:
-        sshkey = $args["--sshkey"]
-      echo fmt"dispatch creating {containername} on machine {rootflist} {privileged}"
-      let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
-      echo app.getContainerIp(containerid)
-      if args["--ssh"]:
-        discard app.sshEnable(app.getLastContainerId())
-    elif args["container"] and args["zosexec"]:
-      let containerid = parseInt($args["<id>"])
-      let command = $args["<command>"]
-      discard app.execContainer(containerid, command)
-      # echo fmt"dispatch container exec {containerid} {command}"
-    elif args["container"] and args["zerotierlist"]:
-      let containerid = parseInt($args["<id>"])
-      discard app.cmdContainer(containerid, "corex.zerotier.list")
-    elif args["container"] and args["zerotierinfo"]:
-      let containerid = parseInt($args["<id>"])
-      discard app.cmdContainer(containerid, "corex.zerotier.info")
-    elif args["container"] and args["sshenable"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      echo app.sshEnable(containerid)
-    elif args["container"] and args["sshinfo"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      echo app.sshEnable(containerid)
-    elif args["container"] and args["shell"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      let sshcmd = "ssh " & app.sshEnable(containerid)
-      discard execCmd(sshcmd)
-    elif args["container"] and args["exec"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
-      discard execCmd(sshcmd)
-    elif args["container"] and args["upload"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      if not app.containerHasIP(containerid):
-        echo "Make sure to enable ssh first"
-        quit 9 
-      let file = $args["<file>"]
-      if not fileExists(file):
-        error(fmt"file {file} doesn't exist")
-        quit 7
-      let dest = $args["<dest>"]
-      let containerConfig = app.getContainerConfig(containerid)
-      discard app.sshEnable(containerid) 
-
-      let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
-
-      var isDir = false
-      if getFileInfo(file).kind == pcDir:
-        isDir=true
-      discard execCmd(rsyncUpload(file, sshDest, isDir))
-      # discard sshExec(sshcmd)
-    elif args["container"] and args["download"]:
-      var containerid = app.getLastContainerId()
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        discard
-      if not app.containerHasIP(containerid):
-        echo "Make sure to enable ssh first"
-        quit 9
-      let file = $args["<file>"]
-      let dest = $args["<dest>"]
-      let containerConfig = app.getContainerConfig(containerid)
-      discard app.sshEnable(containerid) 
-
-      let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
-      var isDir = true # always true.
-      discard execCmd(rsyncDownload(sshSrc, dest, isDir))
-    else:
-      getHelp("")
-      quit 6
-  
