@@ -1,0 +1,5 @@
+# container <id> zerotierinfo
+
+```bash
+
+```
