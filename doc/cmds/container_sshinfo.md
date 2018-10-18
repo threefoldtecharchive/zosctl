@@ -3,14 +3,15 @@
 
 shows ssh connection string to the container `./zos container 2 sshinfo`
 ```bash
-./zos container 2 sshinfo                                                                          30.79  
-ssh root@10.244.104.71
+./zos container 189 sshinfo 
+root@10.244.163.53 -i /home/ahmed/.ssh/id_rsa
+
 
 ```
 
 > also it works against the latest container created by zos 
 ```bash
 ./zos container sshinfo
-
+root@10.244.163.53 -i /home/ahmed/.ssh/id_rsa
 ````
 
