@@ -28,11 +28,13 @@ zos init --name=kds --disksize=20000 --memory=6000
 ** executing command vboxmanage modifyvm kds   --nic1 nat
 ** executing command vboxmanage modifyvm kds   --vrde on
 ** executing command vboxmanage modifyvm kds   --natpf1 "redis,tcp,,4444,,6379"
+
 INFO created machine kds
 INFO preparing zos machine...
 PONG
 INFO preparing machine..
 INFO created zos machine and we are ready.
+
 ```
 
 ![](images/zos_vb.png)

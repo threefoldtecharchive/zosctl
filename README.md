@@ -16,6 +16,17 @@ nimble zos
 ```
 > You can use isntall_osx.sh the repository
 
+### examples on OSX
+
+```bash
+#example script to install
+brew install nim 
+mkdir -p  ~/code/github;cd ~/code/github
+git clone https://github.com/threefoldtech/zos 
+cd zos
+nimble build -d:ssl
+```
+
 ## Using zos for the first time
 In the first time of using zos you will see a friendly message indicating what you should do
 
