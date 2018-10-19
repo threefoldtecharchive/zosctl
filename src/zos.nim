@@ -240,11 +240,12 @@ proc containersInfo(this:App): string =
   result = parseJson($$(info)).pretty(2)
 
 proc getLastContainerId(this:App): int = 
+  let activeZos = getActiveZosName()
   let conf = loadConfig(configfile)
 
   var containersIds:seq[int] = @[]
   for sectionKey, tbl in conf:
-    if sectionKey.startsWith("container"):
+    if sectionKey.startsWith(fmt"container-{activeZos}"):
       containersIds.add(parseInt(sectionKey.split("-")[2]))
   
   result = containersIds.sorted(system.cmp[int], Descending)[0]
@@ -300,9 +301,10 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.writeConfig(configfile)
             return ip
           except:
-            sleep(2000)
+            sleep(5000)
     except:
-      sleep(2000)
+      discard
+    sleep(5000)
   
   error(fmt"couldn't get zerotier information for container {containerid}")
 
@@ -448,6 +450,7 @@ proc sshEnable*(this: App, containerid:int): string =
   let activeZos = getActiveZosName()
   # this.layerSSH(containerid)
 
+  discard this.getContainerIp(containerid)
   var tbl = loadConfig(configfile)
   if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
     # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
@@ -458,10 +461,11 @@ proc sshEnable*(this: App, containerid:int): string =
 
     discard this.execContainer(containerid, "mkdir -p /root/.ssh")
     discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
-    discard this.execContainer(containerid, "service ssh start")
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
+  discard this.execContainer(containerid, "service ssh start")
+
 
   result = this.sshInfo(containerid)
 
@@ -586,9 +590,10 @@ proc handleConfigured(args:Table[string, Value]) =
       sshkey = $args["--sshkey"]
     echo fmt"dispatch creating {containername} on machine {rootflist} {privileged}"
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
+    
     echo app.getContainerIp(containerid)
     if args["--ssh"]:
-      discard app.sshEnable(app.getLastContainerId())
+      discard app.sshEnable(containerid)
 
 
   proc handleContainerZosExec() =
