@@ -505,7 +505,7 @@ proc authorizeContainer(this:App, containerid:int, sshkey=""): int =
 
   var args = %*{
    "file": fmt"/mnt/containers/{containerid}/root/.ssh/authorized_keys",
-   "mode":"w"
+   "mode":"a"
   }
 
   var fd = this.currentconnection().zosCoreWithJsonNode("filesystem.open", args)
@@ -597,6 +597,20 @@ proc handleConfigured(args:Table[string, Value]) =
         vmDelete(name)
       except:
         discard # clear error here..
+    if exists(name):
+      let vmzosconfig = getConnectionConfigForInstance(name)
+      if redisport != vmzosconfig.port:
+        warn(fmt"{name} is already configured against {vmzosconfig.port}")
+        echo "continue? [Y/n]: "
+        let shouldContinue = stdin.readLine()
+        if shouldContinue == "y":
+          try:
+            vmDelete(name)
+          except:
+            discard # clear error here..
+        else:
+          quit 0
+
     init(name, disksize, memory, redisport)
   
   proc handleRemove() = 
