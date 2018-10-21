@@ -371,7 +371,13 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   info(fmt"new container: {command} {args}") 
   
   let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-  result = parseInt(contId)
+  try:
+    result = parseInt(contId)
+  except:
+    if debug:
+      error(getCurrentExceptionMsg())
+    echo "couldn't create container"
+    quit cantCreateContainer
   
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshkey", configuredsshkey)
@@ -387,21 +393,21 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
 
   var tbl = loadConfig(configfile)
-  info("layering sshflist on container")
 
   let containerName = this.getContainerNameById(containerid)
-  let containerKey = fmt"container-{activeZos}-{containerid}" 
-  if tbl[containerKey]["layeredssh"] == "false":
-    var args = %*{
-      "container": containerid,
-      "flist": sshflist
-    }
-    let command = "corex.flist-layer"
-    discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-    info("layered sshflist on container")
-  else:
-    tbl[containerKey]["layeredssh"] = "true"
-    tbl.writeConfig(configfile)
+  let containerKey = fmt"container-{activeZos}-{containerid}"
+  if tbl.hasKey(containerKey): 
+    if tbl[containerKey]["layeredssh"] == "false":
+      var args = %*{
+        "container": containerid,
+        "flist": sshflist
+      }
+      let command = "corex.flist-layer"
+      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
+      info("layered sshflist on container")
+      tbl[containerKey]["layeredssh"] = "true"
+  
+  tbl.writeConfig(configfile)
 
 
 proc stopContainer*(this:App, containerid:int, timeout=30) =
