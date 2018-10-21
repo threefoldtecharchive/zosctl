@@ -2,7 +2,7 @@ import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, ma
 
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
 To configure it to use a specific zosmachine 
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--secret=<secret>]
@@ -61,6 +61,7 @@ Options:
   --ssh                           enable ssh on container [default: false]
   --hostname=<hostname>           container hostname [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
+  --reset                         resets the zos virtualbox machine                 
 """
 
 
@@ -69,12 +70,13 @@ proc getHelp*(cmdname:string) =
     echo doc 
   elif cmdname == "init":
     echo """
-          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
           creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
             --disksize=<disksize>           disk size [default: 1000]
             --memory=<memorysize>           memory size [default: 2048]
             --port=<port>  
+            --reset                         resets the zos virtualbox machine                 
 
     """
   elif cmdname == "ping":
