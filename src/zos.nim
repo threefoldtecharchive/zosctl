@@ -570,32 +570,32 @@ proc handleUnconfigured(args:Table[string, Value]) =
 proc handleConfigured(args:Table[string, Value]) = 
   let app = initApp()
 
-  # FIXME::: don't hang 
-  # var cancelChan: Channel[bool]
-  # cancelChan.open()
+
+  var cancelChan: Channel[bool]
+  cancelChan.open()
   
-  # proc timeoutable(p:proc, timeout=10): bool= 
-  #     var t = (spawn p())
-  #     for i in countup(0, timeout):
-  #         if t.isReady():
-  #             return ^t
-  #         sleep(1000)
-  #     cancelChan.send(true)
+  proc timeoutable(p:proc, timeout=10): bool= 
+      var t = (spawn p())
+      for i in countup(0, timeout):
+          if t.isReady():
+              return ^t
+          sleep(1000)
+      cancelChan.send(true)
   
 
-  # proc zosReachable(host:string, port:int): (proc():bool)=
-  #   return proc(): bool =
-  #     for i in countup(0, pingTimeout):
-  #       try:
-  #         let (hasData, msg) = cancelChan.tryRecv()
-  #         if msg == true:
-  #             return
-  #         let con = open(host, port.Port, true)
-  #         discard con.execCommand("PING", @[])
-  #         result = true
-  #         break
-  #       except:
-  #         sleep(1000)
+  proc zosReachable(host:string, port:int): (proc():bool)=
+    return proc(): bool =
+      for i in countup(0, pingTimeout):
+        try:
+          let (hasData, msg) = cancelChan.tryRecv()
+          if msg == true:
+              return
+          let con = open(host, port.Port, true)
+          discard con.execCommand("PING", @[])
+          result = true
+          break
+        except:
+          sleep(1000)
 
   proc handleInit() = 
     let name = $args["--name"]
@@ -647,6 +647,8 @@ proc handleConfigured(args:Table[string, Value]) =
       configure(name, address, port) 
 
   proc handleSetDefault() =
+    var app = initApp()
+
     let name = $args["<zosmachine>"]
     setdefault(name)
 
@@ -806,11 +808,9 @@ proc handleConfigured(args:Table[string, Value]) =
     handleShowConfig()
   else: 
     # commands requiaes active zos connection.
-
-    ## FIXME: fix timeoutable check on zos .. 
-    # if timeoutable(zosReachable(app.currentconnectionConfig.address, app.currentconnectionConfig.port)) == false:
-    #   error("[-]can't reach zos")
-    #   quit unreachableZos
+    if timeoutable(zosReachable(app.currentconnectionConfig.address, app.currentconnectionConfig.port)) == false:
+      error("[-]can't reach zos")
+      quit unreachableZos
     if args["ping"]:
       handlePing()
     elif args["cmd"]:

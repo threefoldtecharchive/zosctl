@@ -14,7 +14,7 @@ bin           = @["zos"]
 requires "nim >= 0.19", "docopt#head", "redisclient", "uuids"
 
 task zos, "Creating zos binary":
-    exec "nimble build -d:ssl --threads:on"
+    exec "nimble build -d:ssl --threads:on --threadAnalysis:off"
 
 
 
