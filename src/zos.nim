@@ -10,21 +10,11 @@ import zosclientpkg/zosclient
 import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
+import zosapp/errorcodes
 
 
 
 
-
-# """
-# errorCodes
-# 1: can't create configdir
-# 2: sshkey not found
-# 3: container not found
-# 4: vbox not found
-# 5: unconfigured zos
-# 6: unknown command
-# 7: ssh tools not installed
-# """
 
 let appTimeout = 30 
 let pingTimeout = 5
@@ -40,7 +30,7 @@ proc sshBinsCheck() =
   for b in sshtools:
     if findExe(b) == "":
       error("ssh tools aren't installed")
-      quit 7
+      quit sshToolsNotInstalled
 
 
 proc prepareConfig() = 
@@ -48,7 +38,7 @@ proc prepareConfig() =
     createDir(configdir)
   except:
     error(fmt"couldn't create {configdir}")
-    quit 1
+    quit cantCreateConfigDir
 
   if not fileExists(configfile):
     open(configfile, fmWrite).close()
@@ -145,9 +135,13 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false) 
 proc showconfig*() =
   echo readFile(configfile)
 
-proc init(name="local", datadiskSize=20, memory=4, redisPort=4444, ) = 
+proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
+  let (taken, byVm) = portAlreadyForwarded(redisPort)
+  if taken == true and byVm != name:
+    error(fmt"port {redisPort} already taken by {byVm}")
+    quit portForwardExists
   if not exists(name):
     try:
       newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
@@ -194,7 +188,7 @@ proc containerInspect(this:App, containerid:int): string =
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
   if not resp.hasKey($containerid):
     error(fmt"container {containerid} not found.")
-    quit 3
+    quit containerNotFound
   else:
     result = resp[$containerid].pretty(2) 
 
@@ -359,7 +353,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   
   if keys == "":
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
-    quit 8
+    quit cantFindSshKeys
 
   # if not extraArgs["config"].hasKey("/root/.ssh/authorized_keys"):
   extraArgs["config"]["/root/.ssh/authorized_keys"] = %*(keys)
@@ -500,8 +494,8 @@ proc zosReachable*(this:App): bool =
 proc handleUnconfigured(args:Table[string, Value]) =
   if args["init"]:
     if findExe("vboxmanage") == "":
-      error("Please make sure to have VirtualBox installed")
-      quit 4 
+      error("please make sure to have VirtualBox installed")
+      quit vboxNotInstalled
 
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
@@ -664,11 +658,11 @@ proc handleConfigured(args:Table[string, Value]) =
       discard
     if not app.containerHasIP(containerid):
       echo "Make sure to enable ssh first"
-      quit 9 
+      quit sshIsntEnabled
     let file = $args["<file>"]
     if not fileExists(file):
       error(fmt"file {file} doesn't exist")
-      quit 7
+      quit fileDoesntExist
     let dest = $args["<dest>"]
     let containerConfig = app.getContainerConfig(containerid)
     discard app.sshEnable(containerid) 
@@ -688,7 +682,7 @@ proc handleConfigured(args:Table[string, Value]) =
       discard
     if not app.containerHasIP(containerid):
       echo "Make sure to enable ssh first"
-      quit 9
+      quit sshIsntEnabled
     let file = $args["<file>"]
     let dest = $args["<dest>"]
     let containerConfig = app.getContainerConfig(containerid)
@@ -712,7 +706,7 @@ proc handleConfigured(args:Table[string, Value]) =
     # commands requires active zos connection.
     if not app.zosReachable():
       error("[-]can't reach zos")
-      quit 10
+      quit unreachableZos
     if args["ping"]:
       handlePing()
     elif args["cmd"]:
@@ -756,7 +750,7 @@ proc handleConfigured(args:Table[string, Value]) =
       handleContainerDownload()
     else:
       getHelp("")
-      quit 6
+      quit unknownCommand
 
 
 when isMainModule:
