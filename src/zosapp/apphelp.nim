@@ -20,6 +20,7 @@ Usage:
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
   zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
+  zos container <id> authorize [--sshkey=<sshkey>] 
   zos container inspect
   zos container info
   zos container list

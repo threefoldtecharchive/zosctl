@@ -20,7 +20,6 @@ proc getResponseString*(con: Redis|AsyncRedis, id: string, timeout=10): Future[s
     let reskey = resultifyId(id)
     result = $(await con.execCommand("BRPOPLPUSH", @[reskey, reskey, $timeout]))
 
-
 proc outputFromResponse*(resp: string): string =
   let parsed = parseJson(resp)
 
@@ -66,7 +65,7 @@ proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, d
   cmdres = con.execCommand("BRPOPLPUSH", @[flag, flag, $timeout])
   if debug:
     echo $cmdres
-
+  
   result = outputFromResponse(con.getResponseString(cmdid))
 
 
