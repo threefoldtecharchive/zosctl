@@ -2,6 +2,7 @@
 
 Goal is to configure a virtualbox hypervisor and start it with a zero-os OS.
 
+
 ## what will it do
 
 - will look for ~/.ssh/id_rsa 
@@ -37,6 +38,25 @@ INFO created zos machine and we are ready.
 
 ```
 
+
+### reset
+```bash
+~>  ./zos init --name=local3 --disksize=1 --memory=1                                  
+WARN local3 is already configured against 1234 and you want it to use 4444
+continue? [Y/n]: 
+n
+
+~> ./zos init --name=local2 --redisport=1234                                                             ✔  ahmed@ahmedheaven  3.22  
+WARN local2 is already configured against 2345 and you want it to use 1234
+continue? [Y/n]: 
+n
+```
+
+- init machine with the existing name using the old port will start it again
+- init machine with the existing name and different port will show confirmation message and will remove the old one if you press `y`
+- init machine and passing `--reset` to it will remove the machine and start over
+
+
 ![](images/zos_vb.png)
 
 ## to test
@@ -53,5 +73,4 @@ bash-3.2$ ./zos container list
   }
 ]
 ```
-
 
