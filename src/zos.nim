@@ -805,8 +805,8 @@ proc handleConfigured(args:Table[string, Value]) =
       handleExec()
     elif args["inspect"] and args["<id>"]:
       handleContainerInspect()
-    elif args["authorize"] and args["<id>"]:
-      handleContainerAuthorize()
+    # elif args["authorize"] and args["<id>"]:
+    #   handleContainerAuthorize()
     elif args["inspect"] and not args["<id>"]:
       handleContainersInspect()
     elif args["info"] and args["<id>"]:
