@@ -69,7 +69,6 @@ proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, d
   result = outputFromResponse(con.getResponseString(cmdid))
 
 
-
 proc containerSend*(con:Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, debug=false): string =
   var first = con.zosSend(payload, bash, timeout, debug)
   if first.startsWith("\""):

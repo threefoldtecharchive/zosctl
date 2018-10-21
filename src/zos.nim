@@ -63,6 +63,11 @@ proc isConfigured*(): bool =
 proc getActiveZosName*(): string =
   return appconfig["defaultzos"]
 
+proc isDebug*(): bool =
+  return appconfig["debug"] == "true"
+
+let debug = isDebug()
+
 proc getZerotierId*(): string =
   if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
     result = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
@@ -109,11 +114,11 @@ proc initApp(): App =
   result = App(currentconnectionConfig:currentconnectionConfig)
 
 proc cmd*(this:App, command: string="core.ping", arguments="{}", timeout=5): string =
-  result = this.currentconnection.zosCore(command, arguments, timeout, appconfig["debug"] == "true")
+  result = this.currentconnection.zosCore(command, arguments, timeout, debug)
   echo $result
 
 proc exec*(this:App, command: string="hostname", timeout:int=5, debug=false): string =
-  result = this.currentconnection.zosBash(command,timeout, appconfig["debug"] == "true")
+  result = this.currentconnection.zosBash(command,timeout, debug)
   echo $result
 
 
@@ -365,7 +370,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   let command = "corex.create"
   info(fmt"new container: {command} {args}") 
   
-  let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+  let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
   result = parseInt(contId)
   
   var tbl = loadConfig(configfile)
@@ -392,7 +397,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       "flist": sshflist
     }
     let command = "corex.flist-layer"
-    discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+    discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
     info("layered sshflist on container")
   else:
     tbl[containerKey]["layeredssh"] = "true"
@@ -404,7 +409,7 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
   let containerName = this.getContainerNameById(containerid)
   let command = "corex.terminate"
   let arguments = %*{"container": containerid}
-  discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, appconfig["debug"] == "true")
+  discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, debug)
 
   var tbl = loadConfig(configfile)
   let containerKey = fmt"container-{activeZos}-{containerid}"
@@ -413,11 +418,11 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
   tbl.writeConfig(configfile)
 
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
-  result = this.currentconnection.containersCore(containerid, command, "", timeout, appconfig["debug"] == "true")
+  result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
   echo $result
 
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
-  result = this.currentconnection.zosContainerCmd(containerid, command, timeout, appconfig["debug"] == "true")
+  result = this.currentconnection.zosContainerCmd(containerid, command, timeout, debug)
   echo $result  
 
 
@@ -686,7 +691,7 @@ proc handleConfigured(args:Table[string, Value]) =
     var sshkey = ""
     if args["--sshkey"]:
       sshkey = $args["--sshkey"]
-    echo fmt"dispatch creating {containername} on machine {rootflist} {privileged}"
+    info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
     
     echo app.getContainerIp(containerid)
