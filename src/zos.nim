@@ -2,6 +2,7 @@ import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, ma
 import net, asyncdispatch, asyncnet, streams, threadpool
 import logging
 import algorithm
+import base64
 import redisclient, redisparser, docopt
 #import spinny, colorize
 
@@ -175,9 +176,6 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   else:
     error("couldn't prepare zos machine.")
   
-
-
-
   # configure and make that machine the default
 
 proc containersInspect(this:App): string=
@@ -302,7 +300,8 @@ proc getContainerIp(this:App, containerid: int): string =
   
   error(fmt"couldn't get zerotier information for container {containerid}")
 
-  
+
+
 proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey=""):int = 
   let activeZos = getActiveZosName()
   var containerHostName = hostname
@@ -421,6 +420,8 @@ proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): strin
   result = this.currentconnection.zosContainerCmd(containerid, command, timeout, appconfig["debug"] == "true")
   echo $result  
 
+
+
 proc sshInfo*(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
 
@@ -464,6 +465,68 @@ proc sshEnable*(this: App, containerid:int): string =
   result = this.sshInfo(containerid)
 
 
+
+
+proc authorizeContainer(this:App, containerid:int, sshkey=""): int = 
+  result = containerid
+  let activeZos = getActiveZosName()
+
+  var keys = ""
+  var configuredsshkey = ""
+  if sshkey == "":
+    keys = getAgentPublicKeys()
+  else:
+    
+    let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
+    let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
+
+    let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa"
+    let defaultSshPubKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
+    
+    var k = ""
+    if fileExists(sshkey):
+      k = readFile(sshkey & ".pub")
+      configuredsshkey = sshkey
+    elif fileExists(sshDirRelativeKey):
+      configuredsshkey = sshDirRelativeKey
+      k = readFile(sshDirRelativePubKey)
+    elif fileExists(defaultSshKey):
+      configuredsshkey = defaultSshKey
+      k =  readFile(defaultSshPubKey)
+
+    keys &= k
+
+  if keys == "":
+    error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
+    quit cantFindSshKeys
+
+  discard this.exec("mkdir -p /mnt/containers/{containerid}/root/.ssh")
+  discard this.exec("touch /mnt/containers/{containerid}/root/.ssh/authorized_keys")
+
+  var args = %*{
+   "file": fmt"/mnt/containers/{containerid}/root/.ssh/authorized_keys",
+   "mode":"w"
+  }
+
+  var fd = this.currentconnection().zosCoreWithJsonNode("filesystem.open", args)
+  if fd.startsWith("\""):
+    fd = fd[1..^2]  # double quotes encoded
+  let content = base64.encode(keys)
+
+  args = %*{
+   "fd": fd,
+   "block": content
+  }
+
+  discard this.currentconnection().zosCoreWithJsonNode("filesystem.write", args)
+
+  var tbl = loadConfig(configfile)
+  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshkey", configuredsshkey)
+  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
+  tbl.writeConfig(configfile)
+  discard this.getContainerIp(containerid)
+
+  echo $this.sshEnable(containerid)
 
 var cancelChan: Channel[bool]
 cancelChan.open()
@@ -536,9 +599,9 @@ proc handleConfigured(args:Table[string, Value]) =
         discard # clear error here..
     init(name, disksize, memory, redisport)
   
-  # proc handleRemove() = 
-  #   let name = $args["--name"]
-  #   vmDelete(name)
+  proc handleRemove() = 
+    let name = $args["--name"]
+    vmDelete(name)
   
   proc handleConfigure() =
     let name = $args["--name"]
@@ -610,6 +673,14 @@ proc handleConfigured(args:Table[string, Value]) =
     echo app.getContainerIp(containerid)
     if args["--ssh"]:
       discard app.sshEnable(containerid)
+  
+  proc handleContainerAuthorize() = 
+    let containerid = parseInt($args["<id>"])
+    var sshkey = ""
+    if args["--sshkey"]:
+      sshkey = $args["--sshkey"]
+    echo $app.authorizeContainer(containerid, sshkey=sshkey)
+    
 
   proc handleContainerZosExec() =
     let containerid = parseInt($args["<id>"])
@@ -694,8 +765,8 @@ proc handleConfigured(args:Table[string, Value]) =
 
   if args["init"]:
     handleInit()
-  # elif args["remove"]:
-  #   handleRemove()
+  elif args["remove"]:
+    handleRemove()
   elif args["configure"]:
     handleConfigure()
   elif args["setdefault"]:
@@ -715,9 +786,10 @@ proc handleConfigured(args:Table[string, Value]) =
       handleExec()
     elif args["inspect"] and args["<id>"]:
       handleContainerInspect()
+    elif args["authorize"] and args["<id>"]:
+      handleContainerAuthorize()
     elif args["inspect"] and not args["<id>"]:
       handleContainersInspect()
-
     elif args["info"] and args["<id>"]:
       handleContainerInfo()
     elif args["info"] or args["list"] and not args["<id>"]:
