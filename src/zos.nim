@@ -137,8 +137,6 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false) 
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
-  let defaultsshfile = getHomeDir() / ".ssh" / "id_rsa" 
-  var keypath= ""
 
   tbl.writeConfig(configfile)
   if setdefault or not isConfigured():
