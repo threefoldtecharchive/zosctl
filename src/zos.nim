@@ -26,6 +26,8 @@ import zosapp/sshexec
 # 7: ssh tools not installed
 # """
 
+let appTimeout = 30 
+let pingTimeout = 5
 
 var L* = newConsoleLogger()
 var fL* = newFileLogger("zos.log", fmtStr = verboseFmtStr)
@@ -373,6 +375,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   info(fmt"new container: {command} {args}") 
   
   let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
+  echo "CONT ID: " & $contId
   result = parseInt(contId)
   
   var tbl = loadConfig(configfile)
@@ -470,6 +473,46 @@ proc sshEnable*(this: App, containerid:int): string =
   result = this.sshInfo(containerid)
 
 
+
+var cancelChan: Channel[bool]
+cancelChan.open()
+
+proc ping():bool=
+    result = true
+    for i in countup(0,50):
+        echo "p1 Doing action"
+        sleep(1000)
+        let (hasData, msg) = cancelChan.tryRecv()
+        if msg == true:
+            echo "Cancelling p1"
+            return 
+    echo "Done p1..."
+
+  
+  
+proc timeoutable(p:proc, timeout=10): bool= 
+    var t = (spawn p())
+    for i in countup(0, timeout):
+        if t.isReady():
+            return ^t
+        sleep(1000)
+    cancelChan.send(true)
+
+
+proc zosReachable*(this:App): bool =
+  for i in countup(0, pingTimeout):
+    try:
+      let (hasData, msg) = cancelChan.tryRecv()
+      if msg == true:
+          return
+      let con = this.currentconnection()
+      discard con.execCommand("PING", @[])
+      result = true
+      break
+    except:
+      sleep(1000)
+    
+
 proc handleUnconfigured(args:Table[string, Value]) =
   if args["init"]:
     if findExe("vboxmanage") == "":
@@ -496,11 +539,7 @@ proc handleUnconfigured(args:Table[string, Value]) =
     setdefault(name)
 
 
-
-
-
 proc handleConfigured(args:Table[string, Value]) = 
-
   var app = initApp()
 
   proc handleInit() = 
@@ -691,60 +730,54 @@ proc handleConfigured(args:Table[string, Value]) =
     handleSetDefault()
   elif args["showconfig"]:
     handleShowConfig()
-  elif args["ping"]:
-    handlePing()
-  elif args["cmd"]:
-    handleCmd()
-    ### more... 
-  elif args["exec"] and not args["container"]:
-    handleExec()
-  
-  # elif args["--ssh"] and not args["container"]:
-  #   let command = $args["<command>"]
-  #   let sshstring = fmt"ssh root@{currentconnectionConfig.address} '{command}'"
-  #   discard execCmd(sshstring)
-  elif args["inspect"] and args["<id>"]:
-    handleContainerInspect()
-  elif args["inspect"] and not args["<id>"]:
-    handleContainersInspect()
+  else: # commands requires active zos connection.
+    if not app.zosReachable():
+      error("[-]can't reach zos")
+      quit 10
+    if args["ping"]:
+      handlePing()
+    elif args["cmd"]:
+      handleCmd()
+    elif args["exec"] and not args["container"]:
+      handleExec()
+    elif args["inspect"] and args["<id>"]:
+      handleContainerInspect()
+    elif args["inspect"] and not args["<id>"]:
+      handleContainersInspect()
 
-  elif args["info"] and args["<id>"]:
-    handleContainerInfo()
-  elif args["info"] or args["list"] and not args["<id>"]:
-    # echo fmt"dispatch to list containers"
-    handleContainersInfo()
-  elif args["delete"]:
-    handleContainerDelete()
-  elif args["container"] and args["new"]:
-    handleContainerNew()
-
-  elif args["container"] and args["zosexec"]:
-    handleContainerZosExec()
-    # echo fmt"dispatch container exec {containerid} {command}"
-  elif args["container"] and args["zerotierlist"]:
-    let containerid = parseInt($args["<id>"])
-    discard app.cmdContainer(containerid, "corex.zerotier.list")
-  elif args["container"] and args["zerotierinfo"]:
-    let containerid = parseInt($args["<id>"])
-    discard app.cmdContainer(containerid, "corex.zerotier.info")
-  elif args["container"] and args["sshenable"]:
-    handleSshEnable()
-  elif args["container"] and args["sshinfo"]:
-    handleSshInfo()
-  elif args["container"] and args["shell"]:
-    handleContainerShell()
-
-  elif args["container"] and args["exec"]:
-    handleContainerExec()
-  elif args["container"] and args["upload"]:
-    handleContainerUpload()
-  elif args["container"] and args["download"]:
-    handleContainerDownload()
-  else:
-    getHelp("")
-    quit 6
-
-
+    elif args["info"] and args["<id>"]:
+      handleContainerInfo()
+    elif args["info"] or args["list"] and not args["<id>"]:
+      # echo fmt"dispatch to list containers"
+      handleContainersInfo()
+    elif args["delete"]:
+      handleContainerDelete()
+    elif args["container"] and args["new"]:
+      handleContainerNew()
+    elif args["container"] and args["zosexec"]:
+      handleContainerZosExec()
+      # echo fmt"dispatch container exec {containerid} {command}"
+    elif args["container"] and args["zerotierlist"]:
+      let containerid = parseInt($args["<id>"])
+      discard app.cmdContainer(containerid, "corex.zerotier.list")
+    elif args["container"] and args["zerotierinfo"]:
+      let containerid = parseInt($args["<id>"])
+      discard app.cmdContainer(containerid, "corex.zerotier.info")
+    elif args["container"] and args["sshenable"]:
+      handleSshEnable()
+    elif args["container"] and args["sshinfo"]:
+      handleSshInfo()
+    elif args["container"] and args["shell"]:
+      handleContainerShell()
+    elif args["container"] and args["exec"]:
+      handleContainerExec()
+    elif args["container"] and args["upload"]:
+      handleContainerUpload()
+    elif args["container"] and args["download"]:
+      handleContainerDownload()
+    else:
+      getHelp("")
+      quit 6
 
 
 
