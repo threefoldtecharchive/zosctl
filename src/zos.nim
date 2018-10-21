@@ -373,7 +373,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   info(fmt"new container: {command} {args}") 
   
   let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
-  echo "CONT ID: " & $contId
   result = parseInt(contId)
   
   var tbl = loadConfig(configfile)
@@ -386,7 +385,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
 proc layerSSH(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
-  let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
+  #let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
+  let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
 
   var tbl = loadConfig(configfile)
   info("layering sshflist on container")
@@ -399,9 +399,8 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       "flist": sshflist
     }
     let command = "corex.flist-layer"
-    info("layering sshflist on container")
     discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, appconfig["debug"] == "true")
-  
+    info("layered sshflist on container")
   else:
     tbl[containerKey]["layeredssh"] = "true"
     tbl.writeConfig(configfile)
@@ -426,7 +425,6 @@ proc execContainer*(this:App, containerid:int, command: string="hostname", timeo
 
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
   result = this.currentconnection.zosContainerCmd(containerid, command, timeout, appconfig["debug"] == "true")
-  
   echo $result  
 
 proc sshInfo*(this:App, containerid: int): string = 
@@ -449,7 +447,7 @@ proc sshInfo*(this:App, containerid: int): string =
 
 proc sshEnable*(this: App, containerid:int): string =
   let activeZos = getActiveZosName()
-  # this.layerSSH(containerid)
+  this.layerSSH(containerid)
 
   discard this.getContainerIp(containerid)
   var tbl = loadConfig(configfile)
@@ -459,6 +457,8 @@ proc sshEnable*(this: App, containerid:int): string =
 
     # discard this.execContainer(containerid, "busybox mkdir -p /run/sshd")
     # discard this.execContainer(containerid, "/usr/sbin/sshd -D")
+    # discard this.execContainer(containerid, "busybox --install")
+    # discard this.execContainer(containerid, "mkdir -p /sbin")
 
     discard this.execContainer(containerid, "mkdir -p /root/.ssh")
     discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
@@ -467,7 +467,6 @@ proc sshEnable*(this: App, containerid:int): string =
     tbl.writeConfig(configfile)
   discard this.execContainer(containerid, "service ssh start")
 
-
   result = this.sshInfo(containerid)
 
 
@@ -475,19 +474,6 @@ proc sshEnable*(this: App, containerid:int): string =
 var cancelChan: Channel[bool]
 cancelChan.open()
 
-proc ping():bool=
-    result = true
-    for i in countup(0,50):
-        echo "p1 Doing action"
-        sleep(1000)
-        let (hasData, msg) = cancelChan.tryRecv()
-        if msg == true:
-            echo "Cancelling p1"
-            return 
-    echo "Done p1..."
-
-  
-  
 proc timeoutable(p:proc, timeout=10): bool= 
     var t = (spawn p())
     for i in countup(0, timeout):
@@ -607,7 +593,6 @@ proc handleConfigured(args:Table[string, Value]) =
     let containerid = parseInt($args["<id>"])
     echo app.containerInfo(containerid)
    
-
   proc handleContainerDelete() =
     let containerid = parseInt($args["<id>"])
     # echo fmt"dispatching to delete {containerid}"
@@ -632,13 +617,11 @@ proc handleConfigured(args:Table[string, Value]) =
     if args["--ssh"]:
       discard app.sshEnable(containerid)
 
-
   proc handleContainerZosExec() =
     let containerid = parseInt($args["<id>"])
     let command = $args["<command>"]
     discard app.execContainer(containerid, command)
 
-  
   proc handleSshEnable() =
     var containerid = app.getLastContainerId()
     try:
@@ -664,7 +647,6 @@ proc handleConfigured(args:Table[string, Value]) =
     let sshcmd = "ssh " & app.sshEnable(containerid)
     discard execCmd(sshcmd)
 
-
   proc handleContainerExec() =
     var containerid = app.getLastContainerId()
     try:
@@ -673,7 +655,6 @@ proc handleConfigured(args:Table[string, Value]) =
       discard
     let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
     discard execCmd(sshcmd)
-
 
   proc handleContainerUpload() =
     var containerid = app.getLastContainerId()
@@ -717,7 +698,6 @@ proc handleConfigured(args:Table[string, Value]) =
     var isDir = true # always true.
     discard execCmd(rsyncDownload(sshSrc, dest, isDir))
 
-
   if args["init"]:
     handleInit()
   # elif args["remove"]:
@@ -728,7 +708,8 @@ proc handleConfigured(args:Table[string, Value]) =
     handleSetDefault()
   elif args["showconfig"]:
     handleShowConfig()
-  else: # commands requires active zos connection.
+  else: 
+    # commands requires active zos connection.
     if not app.zosReachable():
       error("[-]can't reach zos")
       quit 10
@@ -778,7 +759,6 @@ proc handleConfigured(args:Table[string, Value]) =
       quit 6
 
 
-
 when isMainModule:
   let args = docopt(doc, version="zos 0.1.0")
   if args["help"] and args["<cmdname>"]:
@@ -788,7 +768,6 @@ when isMainModule:
     getHelp("")
     quit 0
   
-    
   if not isConfigured():
     handleUnconfigured(args)
   else:
