@@ -4,18 +4,18 @@ import json, tables, net, strformat, asyncdispatch, asyncnet, strutils, ospaths
 type 
   VirtualBoxClient* = ref object of RootObj
 
-proc executeVBoxManage*(cmd: string): TaintedString =
+proc executeVBoxManage*(cmd: string, die=true): TaintedString =
   let command = "vboxmanage " & cmd
   let (output, rc) = execCmdEx(command)
-  if rc != 0:
+  if rc != 0 and die==true:
       raise newException(Exception, fmt"Failed to execute {command}  \n{output}") 
   return output
 
-proc executeVBoxManageModify*(cmd: string): TaintedString= 
+proc executeVBoxManageModify*(cmd: string, die=true): TaintedString= 
   let command = "vboxmanage modifyvm " & cmd
   echo fmt"** executing command {command}"
   let (output, rc) = execCmdEx(command)
-  if rc != 0:
+  if rc != 0 and die==true:
       raise newException(Exception, fmt"Failed to execute {command} \n{output}") 
   return output
   
@@ -277,9 +277,24 @@ proc vmDelete*(this: VM|string) =
     discard executeVBoxManage(fmt"unregistervm {vm.guid} --delete")
     try:
       removeDir(vm.getPath())
-      echo "REMOVED DIR..."
     except:
       discard
+
+
+proc portAlreadyForwarded*(p:int): (bool, string) =
+  var taken = false
+  var vmName = ""
+  for vm in listVMs(): 
+    try:
+      let vminfo = executeVBoxManage(fmt"""showvminfo {vm.name}""")
+      if vminfo.contains(fmt"host port = {p}"):
+        vmName = vm.name
+        taken = true
+        break
+    except:
+      # can't find registered machine error.
+      discard 
+  return (taken ,vmName)
 
 
 proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =
