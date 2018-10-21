@@ -595,12 +595,13 @@ proc handleConfigured(args:Table[string, Value]) =
     if reset == true:
       try:
         vmDelete(name)
+        info(fmt"deleted vm {name}")
       except:
         discard # clear error here..
     if exists(name):
       let vmzosconfig = getConnectionConfigForInstance(name)
       if redisport != vmzosconfig.port:
-        warn(fmt"{name} is already configured against {vmzosconfig.port}")
+        warn(fmt"{name} is already configured against {vmzosconfig.port} and you want it to use {redisport}")
         echo "continue? [Y/n]: "
         let shouldContinue = stdin.readLine()
         if shouldContinue == "y":
@@ -615,7 +616,11 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleRemove() = 
     let name = $args["--name"]
-    vmDelete(name)
+    try:
+      vmDelete(name)
+      info(fmt"deleted vm {name}")
+    except:
+      discard # clear error here..
   
   proc handleConfigure() =
     let name = $args["--name"]
