@@ -2,23 +2,24 @@ import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, ma
 
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
 To configure it to use a specific zosmachine 
-  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkey>] [--secret=<secret>]
+  zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--secret=<secret>]
 """
 
 
 let doc* = """
 Usage:
-  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
-  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--sshkey=<sshkey>] [--setdefault]
+  zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
+  zos configure --name=<zosmachine> [--address=<address>] [--ports=<ports>] [--setdefault]
+  zos remove --name=<zosmachine>
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
   zos container inspect
   zos container info
   zos container list
@@ -58,7 +59,9 @@ Options:
   --privileged                    privileged container [default: false]
   --ssh                           enable ssh on container [default: false]
   --hostname=<hostname>           container hostname [default:]
+  --ports=<ports>                 portforwards [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
+  --reset                         resets the zos virtualbox machine                 
 """
 
 
@@ -67,12 +70,13 @@ proc getHelp*(cmdname:string) =
     echo doc 
   elif cmdname == "init":
     echo """
-          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
+          zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
-          creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
-            --disksize=<disksize>           disk size [default: 1000]
-            --memory=<memorysize>           memory size [default: 2048]
-            --port=<port>  
+          creates a new virtualbox machine named zosmachine with optional disksize 20 GB and memory 4GB  
+            --disksize=<disksize>           disk size in GB [default: 20]
+            --memory=<memorysize>           memory size in GB [default: 4]
+            --port=<port>                   redis port [default:4444]
+            --reset                         resets the zos virtualbox machine                 
 
     """
   elif cmdname == "ping":
@@ -83,13 +87,18 @@ proc getHelp*(cmdname:string) =
     """
   elif cmdname == "configure":
     echo """
-          zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--setdefault]
+          zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--setdefault]
             configures instance with name zosmachine on address <address>
             --port=<port>                   zero-os port [default: 6379]
-            --sshkey=<sshkeyname>           sshkey name [default: id_rsa]
             --setdefault                    sets the configured machine to be default one
             
             """
+  elif cmdname == "remove":
+    echo """
+           zos remove --name=<zosmachine>
+            removes zero-os virtualbox machine 
+
+    """
   elif cmdname == "showconfig":
     echo """
         zos showconfig
@@ -102,8 +111,13 @@ proc getHelp*(cmdname:string) =
     """
   elif cmdname == "cmd":
     echo """
-        zos cmd <zoscommand>
+        zos cmd <zoscommand> [--jsonargs='{}']
           executes zero-os command e.g "core.ping" (can be very dangerous)
+        
+        example:
+          zos cmd "filesystem.open" --jsonargs='{"file":"/root/.ssh/authorized_keys", "mode":"r"}'
+          "0ed49546-1ead-49da-a852-345a2e298891"
+
     """
   elif cmdname == "exec":
     echo """
@@ -113,7 +127,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh]
     creates a new container 
 
   zos container inspect
@@ -150,6 +164,19 @@ proc getHelp*(cmdname:string) =
 
   zos container <id> shell
     ssh into a container
+
+  zos container <id> upload <file> <dest>
+    upload <file> to <dest> on container <id>
+
+  zos container <id> download <file> <dest>
+    download <file> to <dest> from container <id>
+
+  zos container upload <file> <dest>
+    uploads the <file> to <dest> on the last created container by zos
+
+  zos container download <file> <dest>
+    downloads <file> to <dest> from the last created container by zos    
+
     """
 
   else:

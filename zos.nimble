@@ -11,10 +11,15 @@ bin           = @["zos"]
 
 # Dependencies
 
-requires "nim >= 0.19", "docopt#head", "redisclient", "uuids"
+requires "nim >= 0.19", "docopt#head", "redisclient#head", "uuids"
 
 task zos, "Creating zos binary":
     exec "nimble build -d:ssl --threads:on"
+
+task zosStatic, "Creating static binary":
+    exec "nim musl --threads:on -d:release -d:pcre -d:openssl src/zos.nim"
+    exec "cp zos zosStatic"
+
 
 
 

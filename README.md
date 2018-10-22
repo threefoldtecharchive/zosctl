@@ -16,7 +16,7 @@ nimble zos
 ```
 > You can use isntall_osx.sh the repository
 
-### examples on OSX
+### Examples on OSX
 
 ```bash
 #example script to install
@@ -26,6 +26,9 @@ git clone https://github.com/threefoldtech/zos
 cd zos
 nimble build -d:ssl
 ```
+
+## Commands documentation
+zos commands documentation is available at (doc/cmds/README.md)
 
 ## Using zos for the first time
 In the first time of using zos you will see a friendly message indicating what you should do
@@ -46,6 +49,8 @@ zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--red
 This will create a local virtual machine `mymachine` with ZOS installed and forwards the `localhost 4444` to zos redis port `6379`
 - memorysize is defaulted to 4 GB
 - disk size is defaulted to 20 GB disk
+
+more on [init command](doc/cmds/init.md)
 
 ### Example
 ```bash
@@ -70,10 +75,13 @@ Lots of time you will have a local development of zero-os using qemu, and to con
 ```
 To configure an existing zos machine named `local` to use address `192.168.122.147` and port `6379`
 
+more on [configure command](doc/cmds/configure.md)
+
 ## Zos configurations
 - Configurations `zos.toml` is saved in your configurations directory (e.g `~/.config` in linux)
 
-- You should you `zos showconfig` to see the current configurations 
+
+- You should you [`zos showconfig`](doc/cmds/showconfig.md) to see the current configurations 
 
 ```bash
 [app]
@@ -95,7 +103,21 @@ port=5555
 
 - defaultzos means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`
 
+
 ## Interacting with ZOS
+
+### Checking connectivity
+ping command is a wrapper around `cmd "core.ping"` and can be used to check connectivity
+
+```
+./zos ping 
+```
+You should see response
+```
+"PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
+```
+
+More info info at [ping cmd](/doc/cmds/ping.md)
 
 
 ### ZOS Builtin commands
@@ -104,19 +126,19 @@ port=5555
 
 - `ping`
 ```
-./zos cmd "core.ping" 
+./zos ping 
 ```
 You should see response
 ```
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
 ```
 
-More info info at [doc/cmd](src/doc/cmd.md)
+More info info at [doc/cmd](doc/cmds/ping.md)
 
 
 ### User defined commands
 
-you can use exec subcommand to execute bash commands on the zos directly
+you can use [exec](doc/cmds/exec.md) subcommand to execute bash commands on the zos directly
 ```
 ~> ./zos exec "ls /var"
 cache
@@ -143,34 +165,36 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 
 
 ### Spawning container
-Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
+Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics
 
-```
+```bash
 ./zos container new --name=reem2 --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
 ```
 Output (new container id)
 ```
 2
 ```
+For more info check [container new command page](doc/cmds/container_new.md)
 
 ### Container information
 
-```bash
+[container info](doc/cmds/container_info) subcommand is used to get information about single or all containers
 
-./zos container 1 info
+```bash
+./zos container 350 info
 {
-  "id": "1",
+  "id": "350",
   "cpu": 0.0,
-  "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
-  "hostname": "",
+  "root": "https://hub.grid.tf/thabet/redis.flist",
+  "hostname": "anderwxyz",
   "name": "",
   "storage": "",
-  "pid": 523
-}
+  "pid": 12273,
+  "ports": "90
+
 ```
 
-### Containers information
-using `./zos container list` or `./zos container info`
+using `./zos container list` or `./zos container info` will give us information about all the containers
 
 ```bash
  ./zos container list
@@ -198,7 +222,7 @@ using `./zos container list` or `./zos container info`
 ```
 
 ### Inspect single container
-using `inspect` command
+using [`inspect` command](doc/cmds/container_inspect.md) will give us full information about the container
 ```bash
 ./zos container 1 inspect
 {
@@ -260,14 +284,16 @@ using `inspect` command
     "pid": 446
   }
 }
+
+and calling the command without specific container will get us fully detailed information about all the containers
+
 ```
-### Inspect all containers
 `./zos container inspect`
 Shows a detailed information about the container
 
 
 ### Terminating a container
-Using subcommand `delete`
+Using subcommand [`delete`](doc/cmds/container_delete.md)
 ```bash
 ./zos container 5 delete  
 ```
@@ -282,6 +308,9 @@ ssh root@10.244.104.71
 
 ```
 
+more info on [container sshenable](doc/cmds/container_sshenable)
+
+> Can be called without argument and will enable ssh on the last container created.
 
 ### Access SSH
 Executing `./zos container 3 shell` will connect through SSH 
@@ -298,6 +327,7 @@ Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
 root@reem2:~# 
 
 ```
+more info on [container shell](doc/cmds/container_shell)
 
 ### Upload/Download files 
 ```bash
