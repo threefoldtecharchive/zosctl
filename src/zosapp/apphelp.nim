@@ -110,8 +110,13 @@ proc getHelp*(cmdname:string) =
     """
   elif cmdname == "cmd":
     echo """
-        zos cmd <zoscommand>
+        zos cmd <zoscommand> [--jsonargs='{}']
           executes zero-os command e.g "core.ping" (can be very dangerous)
+        
+        example:
+          zos cmd "filesystem.open" --jsonargs='{"file":"/root/.ssh/authorized_keys", "mode":"r"}'
+          "0ed49546-1ead-49da-a852-345a2e298891"
+
     """
   elif cmdname == "exec":
     echo """

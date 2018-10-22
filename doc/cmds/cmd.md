@@ -182,3 +182,12 @@ Output:
   }
 ]
 ```
+
+
+## passing arguments to zero-os commands
+
+```bash
+~> zos cmd "filesystem.open" --jsonargs='{"file":"/root/.ssh/authorized_keys", "mode":"r"}'
+
+"0ed49546-1ead-49da-a852-345a2e298891"
+``
