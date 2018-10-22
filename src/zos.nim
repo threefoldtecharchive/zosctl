@@ -16,7 +16,6 @@ import zosapp/errorcodes
 
 
 
-
 let appTimeout = 30 
 let pingTimeout = 5
 
@@ -217,7 +216,6 @@ proc containerInfo(this:App, containerid:int): string =
   let hostname = parsedJson["container"]["arguments"]["hostname"].getStr()
   let pid = parsedJson["container"]["pid"].getInt()
 
-
   var ports = "" 
   if parsedJson["container"]["arguments"]["port"].len > 0:
     for k, v in parsedJson["container"]["arguments"]["port"].pairs:
@@ -233,6 +231,7 @@ proc containerInfo(this:App, containerid:int): string =
 proc getContainerInfoList(this:App): seq[ContainerInfo] =
   result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(this.containersInspect())
+  
   for k,v in parsedJson.pairs:
     let id = k
     let cpu = parsedJson[k]["cpu"].getFloat()
@@ -249,6 +248,7 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
         ports &= fmt"{k}:{vnum},"
     if ports != "":
       ports = ports[0..^2] # strip last comma
+    
     let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
     result.add(cont)
 
@@ -256,7 +256,16 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
   
 proc containersInfo(this:App): string =
   let info = this.getContainerInfoList()
-  result = parseJson($$(info)).pretty(2)
+  
+  echo fmt"  ID  |  Name              | Ports              | Root"
+  echo fmt"------+--------------------+--------------------+-----------------------"
+
+  for k, v in info:
+    let nroot = replace(v.root, "https://hub.grid.tf/", "")
+    echo fmt"{v.id:>5} | {v.name:>18} | {v.ports:<18} | {nroot}"
+
+  # result = parseJson($$(info)).pretty(2)
+  result = ""
 
 proc getLastContainerId(this:App): int = 
   let activeZos = getActiveZosName()
@@ -305,7 +314,10 @@ proc getContainerIp(this:App, containerid: int): string =
   
   var done = false
   var ip = ""
-  for trial in countup(0, 30):
+
+  echo fmt"[3/4] Waiting for private network connectivity"
+
+  for trial in countup(0, 120):
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
@@ -323,11 +335,13 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
             tbl.writeConfig(configfile)
             return ip
+
           except:
             sleep(1000)
     except:
-      info("still trying to get ip..")
-    sleep(5000)
+      discard
+
+    sleep(1000)
   
   error(fmt"couldn't get zerotier information for container {containerid}")
 
@@ -338,6 +352,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   var containerHostName = hostname
   if containerHostName == "":
     containerHostName = name
+
+  echo fmt"[...] Preparing container"
   
   var portsMap = initTable[string,int]()
   if ports != "":
@@ -421,7 +437,9 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
   let appconfig = getAppConfig() 
   let command = "corex.create"
-  info(fmt"new container: {command} {args}") 
+  
+  # info(fmt"new container: {command} {args}")
+  echo fmt"[1/4] Sending instructions to host"
   
   let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
   try:
@@ -437,7 +455,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
   tbl.writeConfig(configfile)
 
-  echo result
+  echo fmt"[2/4] Container created. Identifier: {result}"
 
 
 proc layerSSH(this:App, containerid:int, timeout=30) =
@@ -456,14 +474,17 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       let cpu = parsedJson["cpu"].getFloat()
       let root = parsedJson["container"]["arguments"]["root"].getStr()
       if root != sshflist:
-        info("layering ssh supported flist")
+        echo "[...] Adding SSH support to your container"
+
         var args = %*{
           "container": containerid,
           "flist": sshflist
         }
+
         let command = "corex.flist-layer"
         discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-      info("layered sshflist on container")
+      
+      echo "[...] SSH support enabled"
       tbl[containerKey]["layeredssh"] = "true"
   
   tbl.writeConfig(configfile)
@@ -733,9 +754,13 @@ proc handleConfigured(args:Table[string, Value]) =
       sshkey = $args["--sshkey"]
     if args["--ports"]:
       ports = $args["--ports"]
-    info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
+    
+    # info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
+    # info(fmt"Creating '{containername}' using root: {rootflist}")
+    
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports)
-    echo app.getContainerIp(containerId)
+    echo fmt"[4/4] Container private address: ", app.getContainerIp(containerId)
+
     if args["--ssh"]:
       discard app.sshEnable(containerId)
   
