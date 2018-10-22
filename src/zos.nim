@@ -403,6 +403,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       let cpu = parsedJson["cpu"].getFloat()
       let root = parsedJson["container"]["arguments"]["root"].getStr()
       if root != sshflist:
+        info("layering ssh supported flist")
         var args = %*{
           "container": containerid,
           "flist": sshflist
