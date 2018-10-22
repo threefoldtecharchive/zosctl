@@ -597,7 +597,7 @@ proc handleConfigured(args:Table[string, Value]) =
         warn(fmt"{name} is already configured against {vmzosconfig.port} and you want it to use {redisport}")
         echo "continue? [Y/n]: "
         let shouldContinue = stdin.readLine()
-        if shouldContinue == "y":
+        if shouldContinue.toLowerAscii() == "y":
           try:
             vmDelete(name)
           except:
@@ -679,10 +679,9 @@ proc handleConfigured(args:Table[string, Value]) =
       sshkey = $args["--sshkey"]
     info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
-    
-    echo app.getContainerIp(containerid)
+    echo app.getContainerIp(containerId)
     if args["--ssh"]:
-      discard app.sshEnable(containerid)
+      discard app.sshEnable(containerId)
   
   proc handleContainerAuthorize() = 
     let containerid = parseInt($args["<id>"])
