@@ -205,6 +205,7 @@ type ContainerInfo = object of RootObj
   name*: string
   storage*: string
   pid*: int
+  ports*: string
 
 
 proc containerInfo(this:App, containerid:int): string =
@@ -216,8 +217,16 @@ proc containerInfo(this:App, containerid:int): string =
   let hostname = parsedJson["container"]["arguments"]["hostname"].getStr()
   let pid = parsedJson["container"]["pid"].getInt()
 
-  let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid)
 
+  var ports = "" 
+  if parsedJson["container"]["arguments"]["port"].len > 0:
+    for k, v in parsedJson["container"]["arguments"]["port"].pairs:
+      let vnum = v.getInt()
+      ports &= fmt"{k}:{vnum},"
+  
+  if ports != "":
+    ports = ports[0..^2] # strip last comma
+  let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
   result = parseJson($$(cont)).pretty(2)
 
 
@@ -233,7 +242,14 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
     let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
 
-    let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid)
+    var ports = "" 
+    if parsedJson[k]["container"]["arguments"]["port"].len > 0:
+      for k, v in parsedJson[k]["container"]["arguments"]["port"].pairs:
+        let vnum = v.getInt()
+        ports &= fmt"{k}:{vnum},"
+    if ports != "":
+      ports = ports[0..^2] # strip last comma
+    let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
     result.add(cont)
 
   result = result.sortedByIt(parseInt(it.id))
