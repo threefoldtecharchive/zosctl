@@ -164,6 +164,19 @@ proc getHelp*(cmdname:string) =
 
   zos container <id> shell
     ssh into a container
+
+  zos container <id> upload <file> <dest>
+    upload <file> to <dest> on container <id>
+
+  zos container <id> download <file> <dest>
+    download <file> to <dest> from container <id>
+
+  zos container upload <file> <dest>
+    uploads the <file> to <dest> on the last created container by zos
+
+  zos container download <file> <dest>
+    downloads <file> to <dest> from the last created container by zos    
+
     """
 
   else:
