@@ -12,6 +12,7 @@ let sshIsntEnabled* = 10
 let fileDoesntExist* = 11
 let unreachableZos* = 12
 let cantCreateContainer* = 13
+let generalError* = 14
 
 # """
 # errorCodes
