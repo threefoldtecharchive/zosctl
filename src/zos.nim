@@ -398,12 +398,17 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   let containerKey = fmt"container-{activeZos}-{containerid}"
   if tbl.hasKey(containerKey): 
     if tbl[containerKey]["layeredssh"] == "false":
-      var args = %*{
-        "container": containerid,
-        "flist": sshflist
-      }
-      let command = "corex.flist-layer"
-      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
+      let parsedJson = parseJson(this.containerInspect(containerid))
+      let id = $containerid
+      let cpu = parsedJson["cpu"].getFloat()
+      let root = parsedJson["container"]["arguments"]["root"].getStr()
+      if root != sshflist:
+        var args = %*{
+          "container": containerid,
+          "flist": sshflist
+        }
+        let command = "corex.flist-layer"
+        discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
       info("layered sshflist on container")
       tbl[containerKey]["layeredssh"] = "true"
   
