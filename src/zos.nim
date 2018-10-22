@@ -342,19 +342,19 @@ proc getContainerIp(this:App, containerid: int): string =
       discard
 
     sleep(1000)
-  
+
   error(fmt"couldn't get zerotier information for container {containerid}")
 
 
 
-proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports=""):int = 
+proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports="", env=""):int =
   let activeZos = getActiveZosName()
   var containerHostName = hostname
   if containerHostName == "":
     containerHostName = name
 
   echo fmt"[...] Preparing container"
-  
+
   var portsMap = initTable[string,int]()
   if ports != "":
     for pair in ports.split(","):
@@ -377,6 +377,21 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
         quit malformedArgs
       portsMap[hostport] = parseInt(containerport)
 
+  var envMap = initTable[string,string]()
+  if env != "":
+    for pair in env.split(","):
+      let mypair = pair.strip()
+      if not pair.contains(":"):
+        error(fmt"""malformed environent variable: should be "key:value" """)
+        quit malformedArgs
+      let parts = mypair.split(":")
+      if len(parts) != 2:
+        error(fmt"""malformed environent variable: should be "key:value" """)
+        quit malformedArgs
+
+      let key = parts[0]
+      let value = parts[1]
+      envMap[key] = value
 
   var args = %*{
     "name": name,
@@ -742,8 +757,9 @@ proc handleConfigured(args:Table[string, Value]) =
   proc handleContainerNew() =
     let containername = $args["--name"]
     let rootflist = $args["--root"]
-    var hostname = containername 
+    var hostname = containername
     var ports = ""
+    var env = ""
     if args["--hostname"]:
       hostname = $args["<hostname>"]
     var privileged=false
@@ -754,23 +770,25 @@ proc handleConfigured(args:Table[string, Value]) =
       sshkey = $args["--sshkey"]
     if args["--ports"]:
       ports = $args["--ports"]
-    
+    if args["--env"]:
+      env = $args["--env"]
+
     # info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
     # info(fmt"Creating '{containername}' using root: {rootflist}")
-    
-    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports)
+
+    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports, env=env)
     echo fmt"[4/4] Container private address: ", app.getContainerIp(containerId)
 
     if args["--ssh"]:
       discard app.sshEnable(containerId)
-  
-  proc handleContainerAuthorize() = 
+
+  proc handleContainerAuthorize() =
     let containerid = parseInt($args["<id>"])
     var sshkey = ""
     if args["--sshkey"]:
       sshkey = $args["--sshkey"]
     echo $app.authorizeContainer(containerid, sshkey=sshkey)
-    
+
 
   proc handleContainerZosExec() =
     let containerid = parseInt($args["<id>"])

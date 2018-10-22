@@ -19,7 +19,7 @@ Usage:
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--env=key:value] [--sshkey=<sshkey>] [--privileged] [--ssh]
   zos container inspect
   zos container info
   zos container list
