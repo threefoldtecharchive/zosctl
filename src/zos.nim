@@ -264,9 +264,13 @@ proc getLastContainerId(this:App): int =
 
   var containersIds:seq[int] = @[]
   for sectionKey, tbl in conf:
-    if sectionKey.startsWith(fmt"container-{activeZos}"):
+    if sectionKey.startsWith(fmt"container-{activeZos}") == true:
       containersIds.add(parseInt(sectionKey.split("-")[2]))
   
+  if containersIds.len == 0:
+    error("you need to create containers using zos to use them implicitly")
+    quit containerDoesntExist
+    
   result = containersIds.sorted(system.cmp[int], Descending)[0]
   
 
