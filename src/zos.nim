@@ -720,6 +720,9 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
+    
+    let zosMachine = getActiveZosName()
+    info(fmt"sshing to container {containerid} on {zosMachine}")
     let sshcmd = "ssh " & app.sshEnable(containerid)
     discard execCmd(sshcmd)
 
