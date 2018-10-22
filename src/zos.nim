@@ -168,7 +168,8 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   var ponged = false
   for i in countup(0, 500):
     try:
-      let con = open("127.0.0.1", redisPort.Port, true)
+      var con = open("127.0.0.1", redisPort.Port, true)
+      con.timeout = 1000
       echo $con.execCommand("PING", @[])
       ponged = true
       break
@@ -298,7 +299,7 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.writeConfig(configfile)
             return ip
           except:
-            sleep(5000)
+            sleep(1000)
     except:
       discard
     sleep(5000)
@@ -852,5 +853,8 @@ when isMainModule:
   if not isConfigured():
     handleUnconfigured(args)
   else:
-    handleConfigured(args)
- 
+    try:
+      handleConfigured(args)
+    except:
+      echo getCurrentExceptionMsg()
+      quit generalError

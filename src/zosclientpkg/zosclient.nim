@@ -22,32 +22,39 @@ proc getResponseString*(con: Redis|AsyncRedis, id: string, timeout=10): Future[s
 
 proc outputFromResponse*(resp: string): string =
   let parsed = parseJson(resp)
-
   let response_state = $parsed["state"].getStr()
-  if response_state != "SUCCESS":
-    if parsed.hasKey("streams"):
-      echo parsed["streams"][1].getStr()
-    else:
-      echo parsed.pretty(2)
-  else: 
-    let dataStr = parsed["data"].getStr()
-    try:
-      result = dataStr.parseJson().pretty(2)
-      return 
-    except:
-      result = dataStr
+  let repsonse_level = parsed["level"].getInt()
 
+
+  var data =""
+  var streamerr = ""
+  var streamout = ""
+  if parsed.hasKey("streams"):
+    streamout = parsed["streams"][0].getStr()
+    streamerr = parsed["streams"][1].getStr() 
+    data = parsed["data"].getStr() 
+
+  if response_state != "SUCCESS":
+    let errorMsg = fmt"""
+STDOUT: 
+{streamout}
+STDERR:
+{streamerr}
+DATA:
+{data}
+    """
+    raise newException(OSError, fmt"zero-os failed with \n{errorMsg}")
+  else: 
     let code = parsed["code"].getInt()
-    let streamout = parsed["streams"][0].getStr()
-    let streamerr = parsed["streams"][1].getStr()
     
-    if dataStr != "":
-      result = dataStr
+    if repsonse_level == 20:
+      result = parsed["data"].getStr().parseJson().pretty(2)
     else:
       if streamout != "":
         result = streamout
       else:
         result = streamerr
+
 
 proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, debug=false): string =
   let cmdid = payload["id"].getStr()
