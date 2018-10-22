@@ -12,14 +12,14 @@ To configure it to use a specific zosmachine
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
-  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault]
+  zos configure --name=<zosmachine> [--address=<address>] [--ports=<ports>] [--setdefault]
   zos remove --name=<zosmachine>
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
   zos container inspect
   zos container info
   zos container list
@@ -59,6 +59,7 @@ Options:
   --privileged                    privileged container [default: false]
   --ssh                           enable ssh on container [default: false]
   --hostname=<hostname>           container hostname [default:]
+  --ports=<ports>                 portforwards [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
   --reset                         resets the zos virtualbox machine                 
 """
@@ -126,7 +127,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh]
     creates a new container 
 
   zos container inspect

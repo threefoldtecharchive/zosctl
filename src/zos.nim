@@ -215,7 +215,9 @@ proc containerInfo(this:App, containerid:int): string =
   let name = parsedJson["container"]["arguments"]["hostname"].getStr()
   let hostname = parsedJson["container"]["arguments"]["hostname"].getStr()
   let pid = parsedJson["container"]["pid"].getInt()
+
   let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid)
+
   result = parseJson($$(cont)).pretty(2)
 
 
@@ -230,7 +232,9 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
     let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
     let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
-    result.add(ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, storage:storage, pid:pid))
+
+    let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, pid:pid)
+    result.add(cont)
 
   result = result.sortedByIt(parseInt(it.id))
   
@@ -309,12 +313,35 @@ proc getContainerIp(this:App, containerid: int): string =
 
 
 
-proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey=""):int = 
+proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports=""):int = 
   let activeZos = getActiveZosName()
   var containerHostName = hostname
   if containerHostName == "":
     containerHostName = name
   
+  var portsMap = initTable[string,int]()
+  if ports != "":
+    for pair in ports.split(","):
+      let mypair = pair.strip() #
+      if not pair.contains(":"):
+        error(fmt"""malformed ports {ports}: should be "hostport1:containerport1,hostport2:containerport2" """)
+        quit malformedArgs
+      let parts = mypair.split(":")
+      if len(parts) != 2:
+        error(fmt"""malformed ports {ports}: should be "hostport1:containerport1,hostport2:containerport2" """)
+        quit malformedArgs
+  
+      let hostport = parts[0]
+      let containerport = parts[1]
+      if not hostport.isDigit():
+        error(fmt"""malformed ports {ports}: {hostport} isn't a digit""")
+        quit malformedArgs
+      if not hostport.isDigit():
+        error(fmt"""malformed ports {ports}: {hostport} isn't a digit""")
+        quit malformedArgs
+      portsMap[hostport] = parseInt(containerport)
+
+
   var args = %*{
     "name": name,
     "hostname": containerHostName,
@@ -325,6 +352,10 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   var extraArgs: JsonNode
   extraArgs = newJObject()
 
+  extraArgs["port"] = newJObject()
+  for k, v in portsMap.pairs:
+    extraArgs["port"][k] = %*v
+  
   if not extraArgs.hasKey("nics"):
     extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
 
@@ -671,6 +702,7 @@ proc handleConfigured(args:Table[string, Value]) =
     let containername = $args["--name"]
     let rootflist = $args["--root"]
     var hostname = containername 
+    var ports = ""
     if args["--hostname"]:
       hostname = $args["<hostname>"]
     var privileged=false
@@ -679,8 +711,10 @@ proc handleConfigured(args:Table[string, Value]) =
     var sshkey = ""
     if args["--sshkey"]:
       sshkey = $args["--sshkey"]
+    if args["--ports"]:
+      ports = $args["--ports"]
     info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
-    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey)
+    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports)
     echo app.getContainerIp(containerId)
     if args["--ssh"]:
       discard app.sshEnable(containerId)
