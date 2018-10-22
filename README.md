@@ -1,20 +1,34 @@
 # zos
-zos-container manager can be used on local or remote zos machine
+zos is container manager can be used on local or remote zos machine (development mode)
 
-## Building
+## Nim installation
+https://nim-lang.org/install.html
+
+## Nimble installation
+https://github.com/nim-lang/nimble#installation
+
+
+## Building the project
+
 Project is built using `nimble zos` 
 
-### Building on OSX
+
+### Building on OSX 
 
 ```bash
 #example script to install
 brew install nim 
 mkdir -p  ~/code/github;cd ~/code/github
-git clone https://github.com/threefoldtech/zos 
-cd zos
-nimble zos
+git clone https://github.com/nim-lang/nimble.git
+git clone https://github.com/threefoldtech/zos
+
+cd nimble
+nim c src/nimble
+src/nimble install
+
+cd ~/code/github/zos && nimble zos && cp zos /usr/local/bin
 ```
-> You can use isntall_osx.sh the repository
+> You can use install_osx.sh the repositor
 
 ### Examples on OSX
 
