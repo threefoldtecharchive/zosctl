@@ -374,8 +374,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   try:
     result = parseInt(contId)
   except:
-    if debug:
-      error(getCurrentExceptionMsg())
+    # if debug:
+    error(getCurrentExceptionMsg())
     echo "couldn't create container"
     quit cantCreateContainer
   
@@ -569,34 +569,7 @@ proc handleUnconfigured(args:Table[string, Value]) =
 
 proc handleConfigured(args:Table[string, Value]) = 
   let app = initApp()
-
-  # FIXME::: don't hang 
-  # var cancelChan: Channel[bool]
-  # cancelChan.open()
   
-  # proc timeoutable(p:proc, timeout=10): bool= 
-  #     var t = (spawn p())
-  #     for i in countup(0, timeout):
-  #         if t.isReady():
-  #             return ^t
-  #         sleep(1000)
-  #     cancelChan.send(true)
-  
-
-  # proc zosReachable(host:string, port:int): (proc():bool)=
-  #   return proc(): bool =
-  #     for i in countup(0, pingTimeout):
-  #       try:
-  #         let (hasData, msg) = cancelChan.tryRecv()
-  #         if msg == true:
-  #             return
-  #         let con = open(host, port.Port, true)
-  #         discard con.execCommand("PING", @[])
-  #         result = true
-  #         break
-  #       except:
-  #         sleep(1000)
-
   proc handleInit() = 
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
@@ -805,12 +778,16 @@ proc handleConfigured(args:Table[string, Value]) =
   elif args["showconfig"]:
     handleShowConfig()
   else: 
-    # commands requiaes active zos connection.
-
-    ## FIXME: fix timeoutable check on zos .. 
-    # if timeoutable(zosReachable(app.currentconnectionConfig.address, app.currentconnectionConfig.port)) == false:
-    #   error("[-]can't reach zos")
-    #   quit unreachableZos
+    # commands requires active zos connection.
+    try:
+      var con = app.currentconnection()
+      con.timeout = 5000
+      discard con.execCommand("PING", @[])
+    except:
+      echo(getCurrentExceptionMsg())
+      error("[-]can't reach zos")
+      quit unreachableZos
+    
     if args["ping"]:
       handlePing()
     elif args["cmd"]:
