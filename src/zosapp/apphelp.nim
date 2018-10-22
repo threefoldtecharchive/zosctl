@@ -92,6 +92,12 @@ proc getHelp*(cmdname:string) =
             --setdefault                    sets the configured machine to be default one
             
             """
+  elif cmdname == "remove":
+    echo """
+           zos remove --name=<zosmachine>
+            removes zero-os virtualbox machine 
+
+    """
   elif cmdname == "showconfig":
     echo """
         zos showconfig
