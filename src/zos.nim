@@ -799,7 +799,7 @@ proc handleConfigured(args:Table[string, Value]) =
       echo "Make sure to enable ssh first"
       quit sshIsntEnabled
     let file = $args["<file>"]
-    if not fileExists(file):
+    if not (fileExists(file) or dirExists(file)):
       error(fmt"file {file} doesn't exist")
       quit fileDoesntExist
     let dest = $args["<dest>"]
@@ -809,7 +809,7 @@ proc handleConfigured(args:Table[string, Value]) =
     let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
 
     var isDir = false
-    if getFileInfo(file).kind == pcDir:
+    if dirExists(file):
       isDir=true
     discard execCmd(rsyncUpload(file, sshDest, isDir))
   
