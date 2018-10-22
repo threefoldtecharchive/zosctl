@@ -165,7 +165,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCj0pqf2qalrmOTZma/Pl/U6rNZaP3373o/3w71xaG7
 
 
 ### Spawning container
-Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics, mounts..
+Typically you want to spawn a container using flist and specifying hostname, name, and maybe extra configurations like portforwards, nics
 
 ```bash
 ./zos container new --name=reem2 --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
@@ -179,18 +179,19 @@ For more info check [container new command page](doc/cmds/container_new.md)
 ### Container information
 
 [container info](doc/cmds/container_info) subcommand is used to get information about single or all containers
-```bash
 
-./zos container 1 info
+```bash
+./zos container 350 info
 {
-  "id": "1",
+  "id": "350",
   "cpu": 0.0,
-  "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
-  "hostname": "",
+  "root": "https://hub.grid.tf/thabet/redis.flist",
+  "hostname": "anderwxyz",
   "name": "",
   "storage": "",
-  "pid": 523
-}
+  "pid": 12273,
+  "ports": "90
+
 ```
 
 using `./zos container list` or `./zos container info` will give us information about all the containers

@@ -3,6 +3,8 @@
 gives you a small information about the container (i.e hostname, flist, storage..)
 
 
+## info on all containers
+
 ```bash
  ./zos container list
 [
@@ -27,4 +29,21 @@ gives you a small information about the container (i.e hostname, flist, storage.
 ]
 
 ```
+
+## info on specific container 
+
+```bash
+./zos container 350 info
+{
+  "id": "350",
+  "cpu": 0.0,
+  "root": "https://hub.grid.tf/thabet/redis.flist",
+  "hostname": "anderwxyz",
+  "name": "",
+  "storage": "",
+  "pid": 12273,
+  "ports": "90
+
+```
+
 
