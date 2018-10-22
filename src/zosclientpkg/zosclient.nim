@@ -38,16 +38,12 @@ proc outputFromResponse*(resp: string): string =
     let errorMsg = fmt"""
 STDOUT: 
 {streamout}
-
 STDERR:
 {streamerr}
-
 DATA:
 {data}
     """
-
     raise newException(OSError, fmt"zero-os failed with \n{errorMsg}")
-
   else: 
     let code = parsed["code"].getInt()
     
