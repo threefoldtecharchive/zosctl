@@ -71,10 +71,10 @@ proc getHelp*(cmdname:string) =
     echo """
           zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
-          creates a new virtualbox machine named zosmachine with optional disksize 1GB and memory 2GB  
-            --disksize=<disksize>           disk size [default: 1000]
-            --memory=<memorysize>           memory size [default: 2048]
-            --port=<port>  
+          creates a new virtualbox machine named zosmachine with optional disksize 20 GB and memory 4GB  
+            --disksize=<disksize>           disk size in GB [default: 20]
+            --memory=<memorysize>           memory size in GB [default: 4]
+            --port=<port>                   redis port [default:4444]
             --reset                         resets the zos virtualbox machine                 
 
     """
