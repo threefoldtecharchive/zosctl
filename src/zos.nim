@@ -285,9 +285,8 @@ proc getContainerIp(this:App, containerid: int): string =
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
+      # if len(parsedZts)>0:
       var tbl = loadConfig(configfile)
-      if len(parsedZts) == 0:
-        continue
       let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
       for el in assignedAddresses:
         var ip = el.getStr()
@@ -449,10 +448,6 @@ proc sshInfo*(this:App, containerid: int): string =
   var currentContainerConfig = this.getContainerConfig(containerid)
 
   var tbl = loadConfig(configfile)
-
-  if not tbl.hasKey(fmt"container-{activeZos}-{containerid}"):
-    error(fmt"container-{activeZos}-{containerid} not found.")
-    quit containerSectionDoesntExist
   let configuredsshkey = tbl[fmt"container-{activeZos}-{containerid}"].getOrDefault("sshkey", "false")
 
   var connectionString = ""
@@ -470,21 +465,20 @@ proc sshEnable*(this: App, containerid:int): string =
 
   discard this.getContainerIp(containerid)
   var tbl = loadConfig(configfile)
-  if tbl.hasKey("container-{activeZos}-{containerid}"):
-    if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
-      # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
-      # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
+  if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
+    # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
+    # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
 
-      # discard this.execContainer(containerid, "busybox mkdir -p /run/sshd")
-      # discard this.execContainer(containerid, "/usr/sbin/sshd -D")
-      # discard this.execContainer(containerid, "busybox --install")
-      # discard this.execContainer(containerid, "mkdir -p /sbin")
+    # discard this.execContainer(containerid, "busybox mkdir -p /run/sshd")
+    # discard this.execContainer(containerid, "/usr/sbin/sshd -D")
+    # discard this.execContainer(containerid, "busybox --install")
+    # discard this.execContainer(containerid, "mkdir -p /sbin")
 
-      discard this.execContainer(containerid, "mkdir -p /root/.ssh")
-      discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
+    discard this.execContainer(containerid, "mkdir -p /root/.ssh")
+    discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
 
-      tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
-      tbl.writeConfig(configfile)
+    tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
+    tbl.writeConfig(configfile)
   discard this.execContainer(containerid, "service ssh start")
 
   result = this.sshInfo(containerid)

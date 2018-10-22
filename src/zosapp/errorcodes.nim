@@ -13,7 +13,6 @@ let fileDoesntExist* = 11
 let unreachableZos* = 12
 let cantCreateContainer* = 13
 let generalError* = 14
-let containerSectionDoesntExist* = 15
 
 # """
 # errorCodes
