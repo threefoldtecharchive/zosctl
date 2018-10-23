@@ -30,7 +30,7 @@ sudo cp zos /usr/local/bin
 ```
 > You can use install_osx.sh the repositor
 
-# Note
+#### Note
 - if you face this error on MacOS while installing nimble
 ```
 Could not download: Please upgrade your OpenSSL library, it does not support the necessary protocols. OpenSSL error is: error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
