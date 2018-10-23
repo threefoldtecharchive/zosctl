@@ -12,7 +12,7 @@ To configure it to use a specific zosmachine
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
-  zos configure --name=<zosmachine> [--address=<address>] [--ports=<ports>] [--setdefault]
+  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault]
   zos remove --name=<zosmachine>
   zos ping
   zos showconfig
