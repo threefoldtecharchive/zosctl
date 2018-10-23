@@ -8,15 +8,14 @@ https://nim-lang.org/install.html (0.19 is required)
 https://github.com/nim-lang/nimble#installation (0.9 is required)
 
 
+### Binaries
+- [Linux](https://github.com/threefoldtech/zos/releases) (dynamically linked requires pcre, and openssl)
+
 ## Building the project
 
 - clone `git clone https://github.com/threefoldtech/zos`
 - switch to directory `cd zos` 
 - build using `nimble zos`
-
-### Binaries
-- [Linux](https://github.com/threefoldtech/zos/releases) (dynamically linked requires pcre, and openssl)
-
 
 ### Building on OSX 
 ```bash
@@ -112,7 +111,7 @@ port=5555
 
 ```
 
-- defaultzos means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`
+- `defaultzos` means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`
 
 
 ## Interacting with ZOS
