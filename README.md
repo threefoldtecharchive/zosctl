@@ -1,5 +1,5 @@
 # zos
-zos is container manager can be used on local or remote zos machine (development mode)
+zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode)
 
 ## Nim installation
 https://nim-lang.org/install.html (0.19 is required)
@@ -48,7 +48,7 @@ bash install_osx.sh
 ```
 
 ## Commands documentation
-zos commands documentation is available at (doc/cmds/README.md)
+zos commands documentation is available at [Commands reference](doc/cmds/README.md)
 
 ## Using zos for the first time
 In the first time of using zos you will see a friendly message indicating what you should do
@@ -141,6 +141,8 @@ More info info at [ping cmd](/doc/cmds/ping.md)
 
 
 ### ZOS Builtin commands
+
+Zero-OS supports [many commands](https://github.com/threefoldtech/0-core/blob/development/docs/interacting/commands/README.md) and you can use them using `zos cmd COMMAND_NAME [--jsonargs=]`
 
 ### Examples
 

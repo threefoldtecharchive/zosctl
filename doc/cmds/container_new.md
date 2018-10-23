@@ -10,6 +10,7 @@
 - `--sshkey` sshkey to authenticate with (will use agent if not specified and fallback to default id_rsa if there weren't any keys in agent)
 - `--ssh` directly enable ssh
 - `--ports` list of portforwards hostport:containerport separated by comma (e.g `80:80,600:6000`)
+- `--env` list of environment variables separated by comma (e.g `HOME:/root,TOKEN:aaaaa` )
 
 ```bash
 ./zos container new --name=reem2 --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist" 

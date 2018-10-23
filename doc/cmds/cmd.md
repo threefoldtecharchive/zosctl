@@ -1,6 +1,7 @@
 # cmd
 
-`./zos cmd <cmdname>` is used to execute zero-os buitlin commands like ping, disk.list ..etc
+`./zos cmd <cmdname> [--jsonargs=...]` is used to execute zero-os [buitlin commands](https://github.com/threefoldtech/0-core/blob/development/docs/interacting/commands/README.md) like ping, disk.list ..etc
+
 
 ##  `ping`
 ```
