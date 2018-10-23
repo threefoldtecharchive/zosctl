@@ -17,16 +17,13 @@ Project is built using `nimble zos`
 
 ```bash
 #example script to install
+
 brew install nim 
 mkdir -p  ~/code/github;cd ~/code/github
-git clone https://github.com/nim-lang/nimble.git
-git clone https://github.com/threefoldtech/zos
-
-cd nimble
-nim c src/nimble
-src/nimble install
-
-cd ~/code/github/zos && nimble zos && cp zos /usr/local/bin
+git clone https://github.com/threefoldtech/zos 
+cd zos
+sudo nimble build -d:ssl --threads:on
+sudo cp zos /usr/local/bin
 ```
 > You can use install_osx.sh the repositor
 
