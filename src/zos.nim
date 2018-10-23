@@ -254,30 +254,31 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
 
   result = result.sortedByIt(parseInt(it.id))
   
-proc containersInfo(this:App): string =
+proc containersInfo(this:App, showjson=false): string =
   let info = this.getContainerInfoList()
   
-  var widths = @[0,0,0,0]  #id, name, ports, root
-  for k, v in info:
-    if len($v.id) > widths[0]:
-      widths[0] = len($v.id)
-    if len($v.name) > widths[1]:
-      widths[1] = len($v.name)
-    if len($v.ports) > widths[2]:
-      widths[2] = len($v.ports)
-    if len($v.root) > widths[3]:
-      widths[3] = len($v.root)
+  if showjson == true:
+    result = parseJson($$(info)).pretty(2)
+  else:
+    var widths = @[0,0,0,0]  #id, name, ports, root
+    for k, v in info:
+      if len($v.id) > widths[0]:
+        widths[0] = len($v.id)
+      if len($v.name) > widths[1]:
+        widths[1] = len($v.name)
+      if len($v.ports) > widths[2]:
+        widths[2] = len($v.ports)
+      if len($v.root) > widths[3]:
+        widths[3] = len($v.root)
+    
+    let extraPadding = 5
+    echo "ID" & " ".repeat(widths[0]) & "Name" & " ".repeat(widths[1]) & "Ports" & " ".repeat(widths[2]+extraPadding ) & "Root" & " ".repeat(widths[3])
 
-  
-  let extraPadding = 5
-  echo "ID" & " ".repeat(widths[0]) & "Name" & " ".repeat(widths[1]) & "Ports" & " ".repeat(widths[2]+extraPadding ) & "Root" & " ".repeat(widths[3])
+    for k, v in info:
+      let nroot = replace(v.root, "https://hub.grid.tf/", "")
+      echo $v.id & " ".repeat(widths[0]) & v.name & " ".repeat(widths[1]-len(v.name) + extraPadding) & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & nroot & " ".repeat(widths[3])
 
-  for k, v in info:
-    let nroot = replace(v.root, "https://hub.grid.tf/", "")
-    echo $v.id & " ".repeat(widths[0]) & v.name & " ".repeat(widths[1]-len(v.name) + extraPadding) & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & nroot & " ".repeat(widths[3])
-
-  # result = parseJson($$(info)).pretty(2)
-  result = ""
+    result = ""
 
 proc getLastContainerId(this:App): int = 
   let activeZos = getActiveZosName()
@@ -759,7 +760,10 @@ proc handleConfigured(args:Table[string, Value]) =
     echo app.containerInspect(containerid)
 
   proc handleContainersInfo() =
-    echo app.containersInfo()
+    var showjson = false
+    if args["--json"]:
+      showjson = true
+    echo app.containersInfo(showjson)
   
   proc handleContainerInfo() =
     let containerid = parseInt($args["<id>"])

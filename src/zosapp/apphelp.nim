@@ -21,8 +21,8 @@ Usage:
   zos exec <command>
   zos container new --name=<name> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
   zos container inspect
-  zos container info
-  zos container list
+  zos container info [--json]
+  zos container list [--json]
   zos container <id> inspect
   zos container <id> info
   zos container <id> delete
@@ -61,7 +61,8 @@ Options:
   --hostname=<hostname>           container hostname [default:]
   --ports=<ports>                 portforwards [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
-  --reset                         resets the zos virtualbox machine                 
+  --reset                         resets the zos virtualbox machine  
+  --json                          shows json output               
 """
 
 
@@ -133,9 +134,9 @@ proc getHelp*(cmdname:string) =
   zos container inspect
     inspect the current running container (showing full info)
 
-  zos container info
+  zos container info [--json]
     shows summarized info on running containers
-  zos container list
+  zos container list [--json]
     alias to `zos container info`
 
   zos container <id> inspect
