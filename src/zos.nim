@@ -212,7 +212,7 @@ proc containerInfo(this:App, containerid:int): string =
   let id = $containerid
   let cpu = parsedJson["cpu"].getFloat()
   let root = parsedJson["container"]["arguments"]["root"].getStr()
-  let name = parsedJson["container"]["arguments"]["hostname"].getStr()
+  let name = parsedJson["container"]["arguments"]["name"].getStr()
   let hostname = parsedJson["container"]["arguments"]["hostname"].getStr()
   let pid = parsedJson["container"]["pid"].getInt()
 
@@ -224,7 +224,7 @@ proc containerInfo(this:App, containerid:int): string =
   
   if ports != "":
     ports = ports[0..^2] # strip last comma
-  let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
+  let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
   result = parseJson($$(cont)).pretty(2)
 
 
@@ -236,7 +236,7 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
     let id = k
     let cpu = parsedJson[k]["cpu"].getFloat()
     let root = parsedJson[k]["container"]["arguments"]["root"].getStr()
-    let name = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
+    let name = parsedJson[k]["container"]["arguments"]["name"].getStr()
     let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
     let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
@@ -249,7 +249,7 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
     if ports != "":
       ports = ports[0..^2] # strip last comma
     
-    let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
+    let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
     result.add(cont)
 
   result = result.sortedByIt(parseInt(it.id))
@@ -399,7 +399,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     "root": root,
     "privileged": privileged,
   }
-  
   var extraArgs: JsonNode
   extraArgs = newJObject()
 
@@ -407,6 +406,11 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   for k, v in portsMap.pairs:
     extraArgs["port"][k] = %*v
   
+
+  extraArgs["env"] = newJObject()
+  for k, v in envMap.pairs:
+    extraArgs["env"][k] = %*v
+ 
   if not extraArgs.hasKey("nics"):
     extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
 
@@ -761,7 +765,7 @@ proc handleConfigured(args:Table[string, Value]) =
     var ports = ""
     var env = ""
     if args["--hostname"]:
-      hostname = $args["<hostname>"]
+      hostname = $args["--hostname"]
     var privileged=false
     if args["--privileged"]:
       privileged=true
