@@ -257,12 +257,25 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
 proc containersInfo(this:App): string =
   let info = this.getContainerInfoList()
   
-  echo fmt"  ID  |  Name              | Ports              | Root"
-  echo fmt"------+--------------------+--------------------+-----------------------"
+  var widths = @[5,18,18,10]
+  for k, v in info:
+    if len($v.id) > widths[0]:
+      widths[0] = len($v.id)
+    if len($v.name) > widths[1]:
+      widths[1] = len($v.name)
+    if len($v.ports) > widths[2]:
+      widths[2] = len($v.ports)
+    if len($v.root) > widths[3]:
+      widths[3] = len($v.root)
+
+  
+  let extraPadding = 5
+  echo "ID" & " ".repeat(widths[0]) & "Name" & " ".repeat(widths[1]) & "Ports" & " ".repeat(widths[2]+extraPadding ) & "Root" & " ".repeat(widths[3])
+  echo "\n"
 
   for k, v in info:
     let nroot = replace(v.root, "https://hub.grid.tf/", "")
-    echo fmt"{v.id:>5} | {v.name:>18} | {v.ports:<18} | {nroot}"
+    echo $v.id & " ".repeat(widths[0]) & v.name & " ".repeat(widths[1]-len(v.name) + extraPadding) & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & nroot & " ".repeat(widths[3])
 
   # result = parseJson($$(info)).pretty(2)
   result = ""
