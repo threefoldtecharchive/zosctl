@@ -408,7 +408,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
       if not pair.contains(":"):
         error(fmt"""malformed environent variable: should be "key:value" """)
         quit malformedArgs
-      let parts = mypair.split(":")
+      let parts = mypair.split(":", maxSplit=1)
       if len(parts) != 2:
         error(fmt"""malformed environent variable: should be "key:value" """)
         quit malformedArgs
