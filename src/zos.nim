@@ -271,13 +271,24 @@ proc containersInfo(this:App, showjson=false): string =
       if len($v.root) > widths[3]:
         widths[3] = len($v.root)
     
+
+    
+    var sumWidths = 0
+    for w in widths:
+      sumWidths += w
+
+    
+    echo "-".repeat(sumWidths)
+
     let extraPadding = 5
-    echo "ID" & " ".repeat(widths[0]) & "Name" & " ".repeat(widths[1]) & "Ports" & " ".repeat(widths[2]+extraPadding ) & "Root" & " ".repeat(widths[3])
+    echo "| ID"  & " ".repeat(widths[0]+ extraPadding-4) & "| Name" & " ".repeat(widths[1]+extraPadding-6) & "| Ports" & " ".repeat(widths[2]+extraPadding-6 ) & "| Root" &  " ".repeat(widths[3]-6)
+    echo "-".repeat(sumWidths)
+ 
 
     for k, v in info:
-      let nroot = replace(v.root, "https://hub.grid.tf/", "")
-      echo $v.id & " ".repeat(widths[0]) & v.name & " ".repeat(widths[1]-len(v.name) + extraPadding) & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & nroot & " ".repeat(widths[3])
-
+      let nroot = replace(v.root, "https://hub.grid.tf/", "").strip()
+      echo "|" & $v.id & " ".repeat(widths[0]-len($v.id)-1 + extraPadding) & "|" & v.name & " ".repeat(widths[1]-len(v.name)-1 + extraPadding) & "|" & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & "|" & nroot & " ".repeat(widths[3]-len(v.root)+ extraPadding-2) & "|"
+      echo "-".repeat(sumWidths)
     result = ""
 
 proc getLastContainerId(this:App): int = 
