@@ -2,19 +2,23 @@
 zos is container manager can be used on local or remote zos machine (development mode)
 
 ## Nim installation
-https://nim-lang.org/install.html
+https://nim-lang.org/install.html (0.19 is required)
 
 ## Nimble installation
-https://github.com/nim-lang/nimble#installation
+https://github.com/nim-lang/nimble#installation (0.9 is required)
 
 
 ## Building the project
 
-Project is built using `nimble zos` 
+- clone `git clone https://github.com/threefoldtech/zos`
+- switch to directory `cd zos` 
+- build using `nimble zos`
+
+### Binaries
+- [Linux](https://github.com/threefoldtech/zos/releases) (dynamically linked requires pcre, and openssl)
 
 
 ### Building on OSX 
-
 ```bash
 #example script to install
 
