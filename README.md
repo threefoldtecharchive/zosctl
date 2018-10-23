@@ -34,11 +34,7 @@ cd ~/code/github/zos && nimble zos && cp zos /usr/local/bin
 
 ```bash
 #example script to install
-brew install nim 
-mkdir -p  ~/code/github;cd ~/code/github
-git clone https://github.com/threefoldtech/zos 
-cd zos
-nimble build -d:ssl
+bash install_osx.sh
 ```
 
 ## Commands documentation
