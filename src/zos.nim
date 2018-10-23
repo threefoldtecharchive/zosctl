@@ -257,7 +257,7 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
 proc containersInfo(this:App): string =
   let info = this.getContainerInfoList()
   
-  var widths = @[5,18,18,10]
+  var widths = @[0,0,0,0]  #id, name, ports, root
   for k, v in info:
     if len($v.id) > widths[0]:
       widths[0] = len($v.id)
@@ -271,7 +271,6 @@ proc containersInfo(this:App): string =
   
   let extraPadding = 5
   echo "ID" & " ".repeat(widths[0]) & "Name" & " ".repeat(widths[1]) & "Ports" & " ".repeat(widths[2]+extraPadding ) & "Root" & " ".repeat(widths[3])
-  echo "\n"
 
   for k, v in info:
     let nroot = replace(v.root, "https://hub.grid.tf/", "")
