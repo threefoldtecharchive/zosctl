@@ -16,7 +16,6 @@ import zosapp/errorcodes
 
 
 
-
 let appTimeout = 30 
 let pingTimeout = 5
 
@@ -213,10 +212,9 @@ proc containerInfo(this:App, containerid:int): string =
   let id = $containerid
   let cpu = parsedJson["cpu"].getFloat()
   let root = parsedJson["container"]["arguments"]["root"].getStr()
-  let name = parsedJson["container"]["arguments"]["hostname"].getStr()
+  let name = parsedJson["container"]["arguments"]["name"].getStr()
   let hostname = parsedJson["container"]["arguments"]["hostname"].getStr()
   let pid = parsedJson["container"]["pid"].getInt()
-
 
   var ports = "" 
   if parsedJson["container"]["arguments"]["port"].len > 0:
@@ -226,18 +224,19 @@ proc containerInfo(this:App, containerid:int): string =
   
   if ports != "":
     ports = ports[0..^2] # strip last comma
-  let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
+  let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
   result = parseJson($$(cont)).pretty(2)
 
 
 proc getContainerInfoList(this:App): seq[ContainerInfo] =
   result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(this.containersInspect())
+  
   for k,v in parsedJson.pairs:
     let id = k
     let cpu = parsedJson[k]["cpu"].getFloat()
     let root = parsedJson[k]["container"]["arguments"]["root"].getStr()
-    let name = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
+    let name = parsedJson[k]["container"]["arguments"]["name"].getStr()
     let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
     let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
     let pid = parsedJson[k]["container"]["pid"].getInt()
@@ -249,14 +248,24 @@ proc getContainerInfoList(this:App): seq[ContainerInfo] =
         ports &= fmt"{k}:{vnum},"
     if ports != "":
       ports = ports[0..^2] # strip last comma
-    let cont = ContainerInfo(id:id, cpu:cpu, root:root, hostname:hostname, ports:ports, pid:pid)
+    
+    let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
     result.add(cont)
 
   result = result.sortedByIt(parseInt(it.id))
   
 proc containersInfo(this:App): string =
   let info = this.getContainerInfoList()
-  result = parseJson($$(info)).pretty(2)
+  
+  echo fmt"  ID  |  Name              | Ports              | Root"
+  echo fmt"------+--------------------+--------------------+-----------------------"
+
+  for k, v in info:
+    let nroot = replace(v.root, "https://hub.grid.tf/", "")
+    echo fmt"{v.id:>5} | {v.name:>18} | {v.ports:<18} | {nroot}"
+
+  # result = parseJson($$(info)).pretty(2)
+  result = ""
 
 proc getLastContainerId(this:App): int = 
   let activeZos = getActiveZosName()
@@ -305,7 +314,10 @@ proc getContainerIp(this:App, containerid: int): string =
   
   var done = false
   var ip = ""
-  for trial in countup(0, 30):
+
+  echo fmt"[3/4] Waiting for private network connectivity"
+
+  for trial in countup(0, 120):
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
@@ -323,22 +335,26 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
             tbl.writeConfig(configfile)
             return ip
+
           except:
             sleep(1000)
     except:
-      info("still trying to get ip..")
-    sleep(5000)
-  
+      discard
+
+    sleep(1000)
+
   error(fmt"couldn't get zerotier information for container {containerid}")
 
 
 
-proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports=""):int = 
+proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports="", env=""):int =
   let activeZos = getActiveZosName()
   var containerHostName = hostname
   if containerHostName == "":
     containerHostName = name
-  
+
+  echo fmt"[...] Preparing container"
+
   var portsMap = initTable[string,int]()
   if ports != "":
     for pair in ports.split(","):
@@ -361,6 +377,21 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
         quit malformedArgs
       portsMap[hostport] = parseInt(containerport)
 
+  var envMap = initTable[string,string]()
+  if env != "":
+    for pair in env.split(","):
+      let mypair = pair.strip()
+      if not pair.contains(":"):
+        error(fmt"""malformed environent variable: should be "key:value" """)
+        quit malformedArgs
+      let parts = mypair.split(":")
+      if len(parts) != 2:
+        error(fmt"""malformed environent variable: should be "key:value" """)
+        quit malformedArgs
+
+      let key = parts[0]
+      let value = parts[1]
+      envMap[key] = value
 
   var args = %*{
     "name": name,
@@ -368,7 +399,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     "root": root,
     "privileged": privileged,
   }
-  
   var extraArgs: JsonNode
   extraArgs = newJObject()
 
@@ -376,6 +406,11 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   for k, v in portsMap.pairs:
     extraArgs["port"][k] = %*v
   
+
+  extraArgs["env"] = newJObject()
+  for k, v in envMap.pairs:
+    extraArgs["env"][k] = %*v
+ 
   if not extraArgs.hasKey("nics"):
     extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
 
@@ -421,7 +456,9 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
   let appconfig = getAppConfig() 
   let command = "corex.create"
-  info(fmt"new container: {command} {args}") 
+  
+  # info(fmt"new container: {command} {args}")
+  echo fmt"[1/4] Sending instructions to host"
   
   let contId = this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
   try:
@@ -437,7 +474,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
   tbl.writeConfig(configfile)
 
-  echo result
+  echo fmt"[2/4] Container created. Identifier: {result}"
 
 
 proc layerSSH(this:App, containerid:int, timeout=30) =
@@ -456,14 +493,17 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       let cpu = parsedJson["cpu"].getFloat()
       let root = parsedJson["container"]["arguments"]["root"].getStr()
       if root != sshflist:
-        info("layering ssh supported flist")
+        echo "[...] Adding SSH support to your container"
+
         var args = %*{
           "container": containerid,
           "flist": sshflist
         }
+
         let command = "corex.flist-layer"
         discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-      info("layered sshflist on container")
+      
+      echo "[...] SSH support enabled"
       tbl[containerKey]["layeredssh"] = "true"
   
   tbl.writeConfig(configfile)
@@ -721,10 +761,11 @@ proc handleConfigured(args:Table[string, Value]) =
   proc handleContainerNew() =
     let containername = $args["--name"]
     let rootflist = $args["--root"]
-    var hostname = containername 
+    var hostname = containername
     var ports = ""
+    var env = ""
     if args["--hostname"]:
-      hostname = $args["<hostname>"]
+      hostname = $args["--hostname"]
     var privileged=false
     if args["--privileged"]:
       privileged=true
@@ -733,19 +774,25 @@ proc handleConfigured(args:Table[string, Value]) =
       sshkey = $args["--sshkey"]
     if args["--ports"]:
       ports = $args["--ports"]
-    info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
-    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports)
-    echo app.getContainerIp(containerId)
+    if args["--env"]:
+      env = $args["--env"]
+
+    # info(fmt"dispatch creating {containername} on machine {rootflist} {privileged}")
+    # info(fmt"Creating '{containername}' using root: {rootflist}")
+
+    let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports, env=env)
+    echo fmt"[4/4] Container private address: ", app.getContainerIp(containerId)
+
     if args["--ssh"]:
       discard app.sshEnable(containerId)
-  
-  proc handleContainerAuthorize() = 
+
+  proc handleContainerAuthorize() =
     let containerid = parseInt($args["<id>"])
     var sshkey = ""
     if args["--sshkey"]:
       sshkey = $args["--sshkey"]
     echo $app.authorizeContainer(containerid, sshkey=sshkey)
-    
+
 
   proc handleContainerZosExec() =
     let containerid = parseInt($args["<id>"])
