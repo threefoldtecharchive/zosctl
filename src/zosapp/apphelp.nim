@@ -33,6 +33,8 @@ Usage:
   zos container <id> sshinfo
   zos container <id> shell
   zos container <id> exec <command>
+  zos container <id> js9 <command>
+  zos container js9 <command>
   zos container sshenable
   zos container sshinfo
   zos container shell

@@ -624,7 +624,7 @@ proc sshEnable*(this: App, containerid:int): string =
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
-  discard this.execContainer(containerid, "/usr/sbin/sshd")
+  discard this.execContainer(containerid, "service ssh start")
 
   result = this.sshInfo(containerid)
 
@@ -692,7 +692,6 @@ proc authorizeContainer(this:App, containerid:int, sshkey=""): int =
   discard this.getContainerIp(containerid)
 
   echo $this.sshEnable(containerid)
-
 
 
 proc handleUnconfigured(args:Table[string, Value]) =
@@ -885,6 +884,19 @@ proc handleConfigured(args:Table[string, Value]) =
     let sshcmd = "ssh " & app.sshEnable(containerid)
     discard execCmd(sshcmd)
 
+  proc handleContainerJumpscaleCommand() = 
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    var jscommand = args["<command>"]
+
+    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" 'js_shell "{args["<command>"]}" ' """
+    info(fmt"executing command: {sshcmd}")
+    discard execCmd(sshcmd)
+
+  
   proc handleContainerExec() =
     var containerid = app.getLastContainerId()
     try:
@@ -999,6 +1011,8 @@ proc handleConfigured(args:Table[string, Value]) =
       handleContainerUpload()
     elif args["container"] and args["download"]:
       handleContainerDownload()
+    elif args["container"] and args["js9"]:
+      handleContainerJumpscaleCommand()
     else:
       getHelp("")
       quit unknownCommand
