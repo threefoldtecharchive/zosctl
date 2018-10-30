@@ -18,7 +18,7 @@ export IPADDR=10.244.90.194
 ssh -A root@$IPADDR "apt update;apt upgrade -y;apt install python3-pip -y"
 
 #install jumpscale 
-export BRANCH=development_simple
+export BRANCH=development_960
 export BRANCH=development_simple_
 ssh -A root@$IPADDR "curl https://raw.githubusercontent.com/threefoldtech/jumpscale_core/$BRANCH/install.sh?$RANDOM > /tmp/install_jumpscale.sh;bash /tmp/install_jumpscale.sh"
 
