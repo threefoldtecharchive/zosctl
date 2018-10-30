@@ -537,7 +537,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 proc layerSSH(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
   #let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
-  let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
+  let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist"
 
   var tbl = loadConfig(configfile)
 
