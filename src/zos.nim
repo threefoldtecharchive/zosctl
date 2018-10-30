@@ -374,13 +374,17 @@ proc getContainerIp(this:App, containerid: int): string =
   var ip = ""
 
   echo fmt"[3/4] Waiting for private network connectivity"
+  var tbl = loadConfig(configfile)
+
+  let containerKey = fmt("container-{activeZos}-{containerid}")
+  if containerKey in tbl and tbl[containerKey].hasKey("ip"):
+     return tbl[containerKey]["ip"]
 
   for trial in countup(0, 120):
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
       # if len(parsedZts)>0:
-      var tbl = loadConfig(configfile)
       let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
       for el in assignedAddresses:
         var ip = el.getStr()
@@ -393,13 +397,10 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
             tbl.writeConfig(configfile)
             return ip
-
           except:
-            sleep(1000)
+            discard
     except:
-      discard
-
-    sleep(1000)
+      sleep(1000)
 
   error(fmt"couldn't get zerotier information for container {containerid}")
 
