@@ -19,7 +19,7 @@ Usage:
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<name> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
   zos container inspect
   zos container info [--json]
   zos container list [--json]
@@ -51,6 +51,8 @@ Usage:
 Options:
   -h --help                       Show this screen.
   --version                       Show version.
+  --name=<name>                   container name [default:]
+  --root=<rootflist>              root flist [default: https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist]
   --disksize=<disksize>           disk size in GB [default: 20]
   --memory=<memorysize>           memory size in GB [default: 4]
   --address=<address>             zos ip [default: 127.0.0.1]

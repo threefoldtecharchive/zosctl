@@ -816,8 +816,14 @@ proc handleConfigured(args:Table[string, Value]) =
     app.stopContainer(containerid)
 
   proc handleContainerNew() =
-    let containername = $args["--name"]
+    var containername = ""
+    if not args["--name"]:
+      containername = newUUID()
+    else:
+      containername = $args["--name"]
     let rootflist = $args["--root"]
+
+
     var hostname = containername
     var ports = ""
     var env = ""
