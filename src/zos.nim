@@ -185,7 +185,13 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   else:
     error("couldn't prepare zos machine.")
   
-  # configure and make that machine the default
+proc removeContainerFromConfig*(this:App, containerid:int) =
+  let activeZos = getActiveZosName()
+  var tbl = loadConfig(configfile)
+  let containerKey = fmt"container-{activeZos}-{containerid}"
+  if tbl.hasKey(containerKey):
+    tbl.del(containerKey)
+  tbl.writeConfig(configfile)
 
 proc containersInspect(this:App): string=
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
@@ -274,8 +280,6 @@ proc containersInfo(this:App, showjson=false): string =
       if len($v.root) > widths[3]:
         widths[3] = len($v.root)
     
-
-    
     var sumWidths = 0
     for w in widths:
       sumWidths += w
@@ -294,7 +298,34 @@ proc containersInfo(this:App, showjson=false): string =
       echo "-".repeat(sumWidths)
     result = ""
 
+proc syncContainersIds(this: App) =
+  let activeZos = getActiveZosName()
+  let conf = loadConfig(configfile)
+
+  var containersIds:seq[int] = @[]
+  for sectionKey, tbl in conf:
+    if sectionKey.startsWith(fmt"container-{activeZos}") == true:
+      containersIds.add(parseInt(sectionKey.split("-")[2]))
+  
+  if containersIds.len == 0:
+    error("you need to create containers using zos to use them implicitly")
+    quit containerDoesntExist
+
+  let actualContainersInfo = this.getContainerInfoList()
+  var actualContainersIds: seq[int] = @[]
+  for c in actualContainersInfo:
+    let cid = parseInt(c.id)
+    actualContainersIds.add(cid)
+
+  for cid in containersIds:
+    if not actualContainersIds.contains(cid):
+      this.removeContainerFromConfig(cid)
+
+
 proc getLastContainerId(this:App): int = 
+  # make sure to sync containers information from zero-os first
+  # just in case of deletion from other application.
+  this.syncContainersIds()
   let activeZos = getActiveZosName()
   let conf = loadConfig(configfile)
 
@@ -536,6 +567,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   tbl.writeConfig(configfile)
 
 
+
 proc stopContainer*(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
   let containerName = this.getContainerNameById(containerid)
@@ -543,11 +575,7 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
   let arguments = %*{"container": containerid}
   discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, debug)
 
-  var tbl = loadConfig(configfile)
-  let containerKey = fmt"container-{activeZos}-{containerid}"
-  if tbl.hasKey(containerKey):
-    tbl.del(containerKey)
-  tbl.writeConfig(configfile)
+  this.removeContainerFromConfig(containerid)
 
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
   result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
@@ -597,7 +625,7 @@ proc sshEnable*(this: App, containerid:int): string =
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
-  discard this.execContainer(containerid, "service ssh start")
+  discard this.execContainer(containerid, "/usr/sbin/sshd")
 
   result = this.sshInfo(containerid)
 
@@ -638,6 +666,7 @@ proc authorizeContainer(this:App, containerid:int, sshkey=""): int =
     quit cantFindSshKeys
 
   discard this.exec("mkdir -p /mnt/containers/{containerid}/root/.ssh")
+  discard this.exec("mkdir -p /mnt/containers/{containerid}/var/run/sshd")
   discard this.exec("touch /mnt/containers/{containerid}/root/.ssh/authorized_keys")
 
   var args = %*{
