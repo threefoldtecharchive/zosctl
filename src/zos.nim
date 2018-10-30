@@ -13,9 +13,6 @@ import zosapp/apphelp
 import zosapp/sshexec
 import zosapp/errorcodes
 
-
-
-
 let appTimeout = 30 
 let pingTimeout = 5
 
@@ -31,7 +28,6 @@ proc sshBinsCheck() =
     if findExe(b) == "":
       error("ssh tools aren't installed")
       quit sshToolsNotInstalled
-
 
 proc prepareConfig() = 
   try:
@@ -1007,9 +1003,11 @@ proc handleConfigured(args:Table[string, Value]) =
       getHelp("")
       quit unknownCommand
 
-
+const buildBranchName = staticExec("git rev-parse --abbrev-ref HEAD")
+const buildCommit = staticExec("git rev-parse HEAD")
+      
 when isMainModule:
-  let args = docopt(doc, version="zos 0.1.0")
+  let args = docopt(doc, version=fmt"zos 0.1.0 ({buildBranchName}#{buildCommit})")
   if args["help"] and args["<cmdname>"]:
     getHelp($args["<cmdname>"])
     quit 0
