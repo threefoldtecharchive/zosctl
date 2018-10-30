@@ -1,5 +1,7 @@
-# container <id> 'CMD'
+# container <id> exec 'CMD'
 
+Executes command on container using ssh
+ 
 ```bash
 
 ~> ./zos container exec 'ls /root -alh'

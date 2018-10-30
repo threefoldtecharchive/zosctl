@@ -1,6 +1,8 @@
 
 # Download file
 
+downloads a file from container
+
 ```
 ~> ./zos container download /tmp/myfile /tmp/downloadedmyfile
 scp -r root@10.244.104.71:/tmp/myfile /tmp/downloadedmyfile

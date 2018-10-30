@@ -1,22 +1,6 @@
 # zos init
 
-Goal is to configure a virtualbox hypervisor and start it with a zero-os OS.
-
-
-## what will it do
-
-- will look for ~/.ssh/id_rsa 
-- will download a zero-os to boot from
-- will start a VM with the name as specified
-
-## result should be a 
-
-- VM with the name as specified, you can use your virtualbox ui tool to see that the zero-os is booted
-
-## what if it goes wrong
-
-- VM should be in '~/VirtualBox VMs/$MYCHOSEN_NAME'
-- you can redo the init, but then make sure you remove this directory
+Creates a zero-os machine on virtualbox
 
 
 ## example
@@ -74,3 +58,19 @@ bash-3.2$ ./zos container list
 ]
 ```
 
+## expected behavior
+
+### what will it do
+- will look for ~/.ssh/id_rsa 
+- will download a zero-os to boot from
+- will start a VM with the name as specified
+- VM with the name as specified, you can use your virtualbox ui tool to see that the zero-os is booted
+
+## starting in case of existing vm with the same name
+- will start the old vm
+
+## reset 
+- will remove the old machine and the portforwards
+
+## starting on the same portforward
+- zos will exit with error code 8
