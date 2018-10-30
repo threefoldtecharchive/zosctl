@@ -12,6 +12,7 @@ import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
 import zosapp/errorcodes
+import zosapp/namegenerator
 
 let appTimeout = 30 
 let pingTimeout = 5
@@ -580,6 +581,9 @@ proc execContainer*(this:App, containerid:int, command: string="hostname", timeo
   result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
   echo $result
 
+proc execContainerSilently*(this:App, containerid:int, command: string="hostname", timeout=5): string =
+  result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
+
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
   result = this.currentconnection.zosContainerCmd(containerid, command, timeout, debug)
   echo $result  
@@ -624,7 +628,9 @@ proc sshEnable*(this: App, containerid:int): string =
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
-  discard this.execContainer(containerid, "service ssh start")
+  discard this.execContainerSilently(containerid, "service ssh start")
+  discard this.execContainer(containerid, "service ssh status")
+  # discard this.execContainer(containerid, "netstat -ntlp")
 
   result = this.sshInfo(containerid)
 
@@ -818,7 +824,7 @@ proc handleConfigured(args:Table[string, Value]) =
   proc handleContainerNew() =
     var containername = ""
     if not args["--name"]:
-      containername = newUUID()
+      containername = getRandomName()
     else:
       containername = $args["--name"]
     let rootflist = $args["--root"]
