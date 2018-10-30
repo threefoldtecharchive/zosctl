@@ -299,6 +299,9 @@ proc containersInfo(this:App, showjson=false): string =
     result = ""
 
 proc syncContainersIds(this: App) =
+  # updates the configfile with the still existing containers.
+  # less likely we will need to crossreference against the IPs to make sure
+  # if they're the same containers or the node was reinstalled?
   let activeZos = getActiveZosName()
   let conf = loadConfig(configfile)
 

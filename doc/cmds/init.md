@@ -22,7 +22,7 @@ Goal is to configure a virtualbox hypervisor and start it with a zero-os OS.
 ## example
 
 ```bash
-zos init --name=kds --disksize=20000 --memory=6000
+zos init --name=kds --disksize=20 --memory=6
 ** executing command vboxmanage modifyvm kds   --memory=6000
 ** executing command vboxmanage modifyvm kds   --ioapic on
 ** executing command vboxmanage modifyvm kds   --boot1 dvd --boot2 disk
