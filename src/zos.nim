@@ -123,6 +123,9 @@ proc exec*(this:App, command: string="hostname", timeout:int=5, debug=false): st
 
 proc setdefault*(name="local", debug=false)=
   var tbl = loadConfig(configfile)
+  if not tbl.hasKey(name):
+    error(fmt"instance {name} isn't configured to be used as default")
+    quit instanceNotConfigured
   tbl.setSectionKey("app", "defaultzos", name)
   tbl.setSectionKey("app", "debug", $debug)
   tbl.writeConfig(configfile)
