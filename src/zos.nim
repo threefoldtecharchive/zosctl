@@ -892,8 +892,8 @@ proc handleConfigured(args:Table[string, Value]) =
       discard
     var jscommand = args["<command>"]
 
-    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" \"js_shell \'{args["<command>"]}\' \" """
-    echo fmt"command : {sshcmd}"
+    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" 'js_shell "{args["<command>"]}" ' """
+    info(fmt"executing command: {sshcmd}")
     discard execCmd(sshcmd)
 
   
