@@ -12,6 +12,7 @@ import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
 import zosapp/errorcodes
+import zosapp/namegenerator
 
 let appTimeout = 30 
 let pingTimeout = 5
@@ -373,13 +374,17 @@ proc getContainerIp(this:App, containerid: int): string =
   var ip = ""
 
   echo fmt"[3/4] Waiting for private network connectivity"
+  var tbl = loadConfig(configfile)
+
+  let containerKey = fmt("container-{activeZos}-{containerid}")
+  if containerKey in tbl and tbl[containerKey].hasKey("ip"):
+     return tbl[containerKey]["ip"]
 
   for trial in countup(0, 120):
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
       # if len(parsedZts)>0:
-      var tbl = loadConfig(configfile)
       let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
       for el in assignedAddresses:
         var ip = el.getStr()
@@ -392,13 +397,10 @@ proc getContainerIp(this:App, containerid: int): string =
             tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
             tbl.writeConfig(configfile)
             return ip
-
           except:
-            sleep(1000)
+            discard
     except:
-      discard
-
-    sleep(1000)
+      sleep(1000)
 
   error(fmt"couldn't get zerotier information for container {containerid}")
 
@@ -580,6 +582,9 @@ proc execContainer*(this:App, containerid:int, command: string="hostname", timeo
   result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
   echo $result
 
+proc execContainerSilently*(this:App, containerid:int, command: string="hostname", timeout=5): string =
+  result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
+
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
   result = this.currentconnection.zosContainerCmd(containerid, command, timeout, debug)
   echo $result  
@@ -624,7 +629,9 @@ proc sshEnable*(this: App, containerid:int): string =
 
     tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
     tbl.writeConfig(configfile)
-  discard this.execContainer(containerid, "service ssh start")
+  discard this.execContainerSilently(containerid, "service ssh start")
+  discard this.execContainer(containerid, "service ssh status")
+  # discard this.execContainer(containerid, "netstat -ntlp")
 
   result = this.sshInfo(containerid)
 
@@ -818,7 +825,7 @@ proc handleConfigured(args:Table[string, Value]) =
   proc handleContainerNew() =
     var containername = ""
     if not args["--name"]:
-      containername = newUUID()
+      containername = getRandomName()
     else:
       containername = $args["--name"]
     let rootflist = $args["--root"]

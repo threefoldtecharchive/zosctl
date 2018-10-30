@@ -132,7 +132,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<name> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
     creates a new container 
 
   zos container inspect
