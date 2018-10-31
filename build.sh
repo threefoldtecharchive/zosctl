@@ -1,10 +1,11 @@
-
+rm /usr/local/bin/zos
+export PATH=~/.nimble/bin:$PATH
+ 
 set -ex
 
 export LDFLAGS="-L/usr/local/opt/openssl/lib"
 export CPPFLAGS="-I/usr/local/opt/openssl/include"
-
-rm /usr/local/bin/zos
+export DYLD_LIBRARY_PATH=/usr/local/opt/openssl/lib
 
 #brew install nim 
 #mkdir -p  ~/code/github;cd ~/code/github
