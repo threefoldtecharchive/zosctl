@@ -956,16 +956,18 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
-    if not app.containerHasIP(containerid):
-      echo "Make sure to enable ssh first"
-      quit sshIsntEnabled
+
+    discard app.sshEnable(containerid) 
+
+    # if not app.containerHasIP(containerid):
+    #   echo "Make sure to enable ssh first"
+    #   quit sshIsntEnabled
     let file = $args["<file>"]
     if not (fileExists(file) or dirExists(file)):
       error(fmt"file {file} doesn't exist")
       quit fileDoesntExist
     let dest = $args["<dest>"]
     let containerConfig = app.getContainerConfig(containerid)
-    discard app.sshEnable(containerid) 
 
     let sshDest = fmt"""root@{containerConfig["ip"]}:{dest}"""
 
@@ -980,13 +982,14 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
-    if not app.containerHasIP(containerid):
-      echo "Make sure to enable ssh first"
-      quit sshIsntEnabled
+    # if not app.containerHasIP(containerid):
+    #   echo "Make sure to enable ssh first"
+    #   quit sshIsntEnabled
+    discard app.sshEnable(containerid) 
+
     let file = $args["<file>"]
     let dest = $args["<dest>"]
     let containerConfig = app.getContainerConfig(containerid)
-    discard app.sshEnable(containerid) 
 
     let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
     var isDir = true # always true.
