@@ -22,7 +22,7 @@ var fL* = newFileLogger("zos.log", fmtStr = verboseFmtStr)
 addHandler(L)
 addHandler(fL)
 
-let sshtools = @["ssh", "scp"]
+let sshtools = @["ssh", "scp", "sshfs"]
 
 proc sshBinsCheck() = 
   for b in sshtools:
