@@ -384,23 +384,25 @@ proc getContainerIp(this:App, containerid: int): string =
     try:
       let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
       let parsedZts = parseJson(ztsJson)
-      # if len(parsedZts)>0:
-      let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
-      for el in assignedAddresses:
-        var ip = el.getStr()
-        if ip.count('.') == 3:
-          # potential ip4
-          if ip.contains("/"):
-            ip = ip[0..<ip.find("/")]
-          try:
-            ip = $parseIpAddress(ip)
-            tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
-            tbl.writeConfig(configfile)
-            return ip
-          except:
-            discard
+      if len(parsedZts)>0:
+        let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
+        for el in assignedAddresses:
+          var ip = el.getStr()
+          if ip.count('.') == 3:
+            # potential ip4
+            if ip.contains("/"):
+              ip = ip[0..<ip.find("/")]
+            try:
+              ip = $parseIpAddress(ip)
+              tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
+              tbl.writeConfig(configfile)
+              return ip
+            except:
+              sleep(1000)
     except:
-      sleep(1000)
+      info("retrying to get connectivity information.")
+      discard
+    sleep(1000)
 
   error(fmt"couldn't get zerotier information for container {containerid}")
 
@@ -894,7 +896,34 @@ proc handleConfigured(args:Table[string, Value]) =
     
     let zosMachine = getActiveZosName()
     info(fmt"sshing to container {containerid} on {zosMachine}")
-    let sshcmd = "ssh " & app.sshEnable(containerid)
+    let sshcmd = "ssh -A " & app.sshEnable(containerid)
+    discard execCmd(sshcmd)
+
+
+  proc handleContainerMount() = 
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    
+    let srcPath = $args["<src>"]
+    let destPath = $args["<dest>"]
+
+
+    let (output, rc) = execCmdEx("mount")
+    if destPath in output:
+      error(fmt"{destPath} is already mounted. umount it using `umount {destPath}`")
+      quit pathAlreadyMounted
+
+
+    if not dirExists(destPath):
+      createDir(destPath)
+
+    let zosMachine = getActiveZosName()
+    info(fmt"sshing to container {containerid} on {zosMachine}")
+    let containerIp = app.getContainerIp(containerid)
+    let sshcmd = fmt"sshfs root@{containerIp}:{srcPath} {destPath}"
     discard execCmd(sshcmd)
 
   proc handleContainerJumpscaleCommand() = 
@@ -1026,6 +1055,8 @@ proc handleConfigured(args:Table[string, Value]) =
       handleContainerDownload()
     elif args["container"] and args["js9"]:
       handleContainerJumpscaleCommand()
+    elif args["container"] and args["mount"]:
+      handleContainerMount()
     else:
       getHelp("")
       quit unknownCommand

@@ -35,6 +35,8 @@ Usage:
   zos container <id> exec <command>
   zos container <id> js9 <command>
   zos container js9 <command>
+  zos container <id> mount <src> <dest>
+  zos container mount <src> <dest>
   zos container sshenable
   zos container sshinfo
   zos container shell
@@ -170,6 +172,12 @@ proc getHelp*(cmdname:string) =
   zos container <id> shell
     ssh into a container
 
+  zos container <id> mount <src> <dest>
+    mount src on specific container to dest using sshfs 
+    
+  zos container mount <src> <dest>
+    mount src on the last zos created container to dest using sshfs 
+ 
   zos container <id> upload <file> <dest>
     upload <file> to <dest> on container <id>
 
