@@ -27,5 +27,7 @@ bash-3.2$ zos container list
 ## to enable ssh
 
 ```bash
-zos container 5 sshenable
+zos container shell
 ```
+
+when container id not specified will always use the latest container created
