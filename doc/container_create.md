@@ -2,16 +2,8 @@
 
 
 ```bash
-#To create new machine in VirtualBox use
-
-
-#e.g. ubuntu 16.04
-./zos container new --name=mycont --root="https://hub.grid.tf/tf-bootable/ubuntu:lts.flist"
-./zos container new --name=ub18 --root="https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist"
-
-#e.g. ubuntu 18.04
-#BUT with a predefined ssh login/passwd root/rooter
-./zos container new --name=mycont --root="https://hub.grid.tf/tf-official-apps/ubuntu-bionic-build.flist"
+#e.g. ubuntu 18.04, will be empty 18.04 is the default
+./zos container new --name=mycont 
 
 ```
 
@@ -19,22 +11,17 @@ to check if its there
 
 ```bash
 bash-3.2$ zos container list
-[
-  {
-    "id": "1",
-    "cpu": 0.007175177296659887,
-    "root": "https://hub.grid.tf/tf-autobuilder/threefoldtech-0-robot-autostart-development.flist",
-    "hostname": "",
-    "pid": 506
-  },
-  {
-    "id": "2",
-    "cpu": 0.0,
-    "root": "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist",
-    "hostname": "mycont",
-    "pid": 1785
-  }
-]
+---------------------------------------------------------------------------------------------------------------
+| ID  | Name      | Ports        | Root
+---------------------------------------------------------------------------------------------------------------
+|1    |zrobot     |6600:6600     |tf-autobuilder/threefoldtech-0-robot-autostart-development.flist             |
+---------------------------------------------------------------------------------------------------------------
+|2    |zrobot2    |              |tf-autobuilder/threefoldtech-digital_me-autostart-development_simple.flist   |
+---------------------------------------------------------------------------------------------------------------
+|3    |me         |              |tf-autobuilder/threefoldtech-digital_me-autostart-development_simple.flist   |
+---------------------------------------------------------------------------------------------------------------
+|4    |me         |              |tf-bootable/ubuntu:18.04.flist                                               |
+---------------------------------------------------------------------------------------------------------------
 ```
 
 ## to enable ssh
