@@ -27,8 +27,9 @@ let sshtools = @["ssh", "scp", "sshfs"]
 proc sshBinsCheck() = 
   for b in sshtools:
     if findExe(b) == "":
-      error("ssh tools aren't installed")
+      error(fmt"ssh tools aren't installed: can't find {b} in \$PATH")
       quit sshToolsNotInstalled
+
 
 proc prepareConfig() = 
   try:
@@ -730,6 +731,7 @@ proc handleUnconfigured(args:Table[string, Value]) =
 
 
 proc handleConfigured(args:Table[string, Value]) = 
+
   let app = initApp()
   
   proc handleInit() = 
@@ -1006,9 +1008,11 @@ proc handleConfigured(args:Table[string, Value]) =
       var con = app.currentconnection()
       con.timeout = 5000
       discard con.execCommand("PING", @[])
+      con.timeout = 0
     except:
       echo(getCurrentExceptionMsg())
-      error("[-]can't reach zos")
+      let activeName = getActiveZosName()
+      error(fmt"[-]can't reach zos instance <{activeName}> at {app.currentconnectionConfig.address}:{app.currentconnectionConfig.port}")
       quit unreachableZos
     
     if args["ping"]:
