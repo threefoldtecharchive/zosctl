@@ -44,6 +44,26 @@ proc prepareConfig() =
     t.setSectionKey("app", "debug", "false")
     t.writeConfig(configfile)
     info(firstTimeMessage)
+  
+  let sshconfigFile = getHomeDir() / ".ssh" / "config"
+  let sshconfigFileBackup = getHomeDir() / ".ssh" / "config.backup"
+  let sshconfigTemplate = """
+Host *
+  StrictHostKeyChecking no
+
+
+"""
+  if fileExists(sshconfigFile):
+    let content = readFile(sshconfigFile)
+    if not content.contains(sshconfigTemplate):
+      copyFile(sshconfigFile, sshconfigFileBackup)
+      # info(fmt"copied {sshconfigFile} to {sshconfigFileBackup}")
+      let oldContent = readFile(sshconfigFile)
+      let newContent = sshconfigTemplate & oldContent 
+      writeFile(sshconfigFile, sshconfigTemplate)
+  else:
+      writeFile(sshconfigFile, sshconfigTemplate)
+
 
 prepareConfig()
 
