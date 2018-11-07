@@ -947,7 +947,7 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
-    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
+    let sshcmd = "ssh -A" & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
     discard execCmd(sshcmd)
 
   proc handleContainerUpload() =
