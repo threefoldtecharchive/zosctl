@@ -50,7 +50,7 @@ proc prepareConfig() =
   let sshconfigTemplate = """
 Host *
   StrictHostKeyChecking no
-
+  ForwardAgent yes
 
 """
   if fileExists(sshconfigFile):
@@ -967,7 +967,7 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
-    let sshcmd = "ssh -A" & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
+    let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
     discard execCmd(sshcmd)
 
   proc handleContainerUpload() =
