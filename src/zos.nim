@@ -504,7 +504,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
   if sshkey == "":
     keys = getAgentPublicKeys()
-  else:
+  if keys == "" or sshkey != "":
+    # NO KEY IN AGENT
     let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
     let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
 
