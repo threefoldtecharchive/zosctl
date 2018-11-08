@@ -505,7 +505,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   if sshkey == "":
     keys = getAgentPublicKeys()
   else:
-    
     let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
     let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
 
@@ -524,7 +523,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
       k =  readFile(defaultSshPubKey)
 
     keys &= k
-  
+
   if keys == "":
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
     quit cantFindSshKeys
