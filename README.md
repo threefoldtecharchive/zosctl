@@ -1,5 +1,5 @@
 # zos
-zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode)
+zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode). using zos you can spawn containers, ssh into them, mount certain directories over ssh and [plenty more](doc/cmds/README.md).
 
 ## Nim installation
 https://nim-lang.org/install.html (0.19 is required)
@@ -37,8 +37,10 @@ sudo cp zos /usr/local/bin
 Having version less than 1.1 will require an upgrade (or at least having the new version available on the system)
 
 - `brew install openssl@1.1`
-- `nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
-`
+- build the binary
+```bash
+nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
+```
 - `cp src/zos /usr/local/bin`
 
 
