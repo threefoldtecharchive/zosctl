@@ -15,6 +15,8 @@ let cantCreateContainer* = 13
 let generalError* = 14
 let malformedArgs* = 15
 let containerDoesntExist* = 16
+let instanceNotConfigured* = 17
+let pathAlreadyMounted* = 18
 
 # """
 # errorCodes

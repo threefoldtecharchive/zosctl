@@ -1,6 +1,8 @@
 
 # Upload files 
 
+`container upload` uploads a file to the container
+
 ```bash
 ~> ./zos container exec 'ls /tmp' 
 

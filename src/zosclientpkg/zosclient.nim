@@ -36,14 +36,20 @@ proc outputFromResponse*(resp: string): string =
 
   if response_state != "SUCCESS":
     let errorMsg = fmt"""
+  
+[-]Failed
+
 STDOUT: 
 {streamout}
 STDERR:
 {streamerr}
 DATA:
 {data}
+
+Complete response:
+{resp}
     """
-    raise newException(OSError, fmt"zero-os failed with \n{errorMsg}")
+    raise newException(OSError, errorMsg)
   else: 
     let code = parsed["code"].getInt()
     

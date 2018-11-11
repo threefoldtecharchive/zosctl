@@ -1,5 +1,9 @@
 # container inspect
-using `inspect` command
+
+Shows detailed information about a specific container or all the containers 
+
+
+## Inspect a container
 ```bash
 ./zos container 1 inspect
 {
@@ -62,7 +66,7 @@ using `inspect` command
   }
 }
 ```
-### Inspect all containers
+## Inspect all containers
 `./zos container inspect`
 Shows a detailed information about the container
 
