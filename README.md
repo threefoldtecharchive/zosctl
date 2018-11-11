@@ -1,5 +1,5 @@
 # zos
-zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode)
+zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode). using zos you can spawn containers, ssh into them, mount certain directories over ssh and [plenty more](doc/cmds/README.md).
 
 ## Nim installation
 https://nim-lang.org/install.html (0.19 is required)
@@ -18,6 +18,8 @@ https://github.com/nim-lang/nimble#installation (0.9 is required)
 - build using `nimble zos`
 
 ### Building on OSX 
+
+
 ```bash
 #example script to install
 
@@ -28,17 +30,19 @@ cd zos
 sudo nimble build -d:ssl --threads:on
 sudo cp zos /usr/local/bin
 ```
-> You can use install_osx.sh the repositor
+> You can use install_osx.sh the repository
 
-#### Note
-- if you face this error on MacOS while installing nimble
+
+#### OpenSSL problems on Mac 
+Having version less than 1.1 will require an upgrade (or at least having the new version available on the system)
+
+- `brew install openssl@1.1`
+- build the binary
+```bash
+nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
 ```
-Could not download: Please upgrade your OpenSSL library, it does not support the necessary protocols. OpenSSL error is: error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
-```
+- `cp src/zos /usr/local/bin`
 
-use this link to fix it (MacOS Version: 10.11.6 & Openssl Version: 0.9.8zh )
-
-https://github.com/nim-lang/nimble#troubleshooting
 
 ### Examples on OSX
 

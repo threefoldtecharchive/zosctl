@@ -1,13 +1,15 @@
 # creating new container
 
+`container new` command helps with creating new containers 
+
 ```bash
   zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--sshkey=<sshkey>] [--privileged] [--ssh] 
 ```
-
+And it accepts arguments:
 - `--name` is the name of container (also the hostname if not specified)
 - `--root` root flist
 - `--hostname` hostname
-- `--sshkey` sshkey to authenticate with (will use agent if not specified and fallback to default id_rsa if there weren't any keys in agent)
+- `--sshkey` sshkey to authenticate with (will use ssh-agent if not specified and fallback to default id_rsa if there weren't any keys in agent)
 - `--ssh` directly enable ssh
 - `--ports` list of portforwards hostport:containerport separated by comma (e.g `80:80,600:6000`)
 - `--env` list of environment variables separated by comma (e.g `HOME:/root,TOKEN:aaaaa` )

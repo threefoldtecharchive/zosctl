@@ -19,7 +19,7 @@ Usage:
   zos setdefault <zosmachine>
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new --name=<name> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
   zos container inspect
   zos container info [--json]
   zos container list [--json]
@@ -33,6 +33,10 @@ Usage:
   zos container <id> sshinfo
   zos container <id> shell
   zos container <id> exec <command>
+  zos container <id> js9 <command>
+  zos container js9 <command>
+  zos container <id> mount <src> <dest>
+  zos container mount <src> <dest>
   zos container sshenable
   zos container sshinfo
   zos container shell
@@ -49,12 +53,14 @@ Usage:
 Options:
   -h --help                       Show this screen.
   --version                       Show version.
+  --name=<name>                   container name [default:]
+  --root=<rootflist>              root flist [default: https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist]
   --disksize=<disksize>           disk size in GB [default: 20]
   --memory=<memorysize>           memory size in GB [default: 4]
   --address=<address>             zos ip [default: 127.0.0.1]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
-  --sshkey=<sshkey>               sshkey name or full path [default: id_rsa]
+  --sshkey=<sshkey>               sshkey name or full path [default:]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
   --ssh                           enable ssh on container [default: false]
@@ -128,7 +134,7 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "container":
     echo """
 
-  zos container new --name=<container> --root=<rootflist> [--hostname=<hostname>] [--ports=<ports>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
     creates a new container 
 
   zos container inspect
@@ -166,6 +172,12 @@ proc getHelp*(cmdname:string) =
   zos container <id> shell
     ssh into a container
 
+  zos container <id> mount <src> <dest>
+    mount src on specific container to dest using sshfs 
+    
+  zos container mount <src> <dest>
+    mount src on the last zos created container to dest using sshfs 
+ 
   zos container <id> upload <file> <dest>
     upload <file> to <dest> on container <id>
 

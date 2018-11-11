@@ -1,6 +1,6 @@
 # info
 
-gives you a small information about the container (i.e hostname, flist, storage..)
+gives you a small information about the container (i.e id, hostname, flist, storage..)
 
 
 ## info on all containers

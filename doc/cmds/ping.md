@@ -6,6 +6,4 @@
 ```bash
 ./zos ping
 "PONG Version: development @Revision: f61e80169fda9cf5246305feb3fde3cadd831f3c"
-
 ```
-
