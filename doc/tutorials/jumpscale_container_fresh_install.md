@@ -1,5 +1,9 @@
 
-example basic script how to install a full local jumpscale
+example basic script how to install a full local jumpscale in ZOS
+
+Don't forget to intstall ZeroTier and configure the right network:
+
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.
 
 ```bash
 

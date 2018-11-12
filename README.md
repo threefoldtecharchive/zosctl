@@ -1,55 +1,26 @@
 # zos
 zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode). using zos you can spawn containers, ssh into them, mount certain directories over ssh and [plenty more](doc/cmds/README.md).
 
-## Nim installation
-https://nim-lang.org/install.html (0.19 is required)
 
-## Nimble installation
-https://github.com/nim-lang/nimble#installation (0.9 is required)
+## Install
 
+dynamically linked requires pcre, and openssl
 
-### Binaries
-- [Linux](https://github.com/threefoldtech/zos/releases) (dynamically linked requires pcre, and openssl)
+- [releases for OSX & Linux](https://github.com/threefoldtech/zos/releases) 
 
-## Building the project
+just download this binary and copy to e.g. /usr/local/bin
 
-- clone `git clone https://github.com/threefoldtech/zos`
-- switch to directory `cd zos` 
-- build using `nimble zos`
+if you want to build see [here how to build](doc/building.md)
 
-### Building on OSX 
+## Where to get started.
 
+Don't forget to intstall ZeroTier and configure the right network:
 
-```bash
-#example script to install
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.
 
-brew install nim 
-mkdir -p  ~/code/github;cd ~/code/github
-git clone https://github.com/threefoldtech/zos 
-cd zos
-sudo nimble build -d:ssl --threads:on
-sudo cp zos /usr/local/bin
-```
-> You can use install_osx.sh the repository
+A quick and easy tutorial [can be found here](doc/tutorials/jumpscale_container_fresh_install.md)
 
 
-#### OpenSSL problems on Mac 
-Having version less than 1.1 will require an upgrade (or at least having the new version available on the system)
-
-- `brew install openssl@1.1`
-- build the binary
-```bash
-nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
-```
-- `cp src/zos /usr/local/bin`
-
-
-### Examples on OSX
-
-```bash
-#example script to install
-bash install_osx.sh
-```
 
 ## Commands documentation
 zos commands documentation is available at [Commands reference](doc/cmds/README.md)
@@ -65,7 +36,7 @@ To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
 ```
 
-## Preparing local Zero-OS machine
+### Preparing local Zero-OS machine
 ```bash
 zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 ```
