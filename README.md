@@ -305,7 +305,7 @@ ssh root@10.244.104.71
 
 ```
 
-more info on [container sshenable](doc/cmds/container_sshenable)
+more info on [container sshenable](doc/cmds/container_sshenable.md)
 
 > Can be called without argument and will enable ssh on the last container created.
 
@@ -324,7 +324,7 @@ Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
 root@reem2:~# 
 
 ```
-more info on [container shell](doc/cmds/container_shell)
+more info on [container shell](doc/cmds/container_shell.md)
 
 ### Upload/Download files 
 ```bash
