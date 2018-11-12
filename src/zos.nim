@@ -44,6 +44,26 @@ proc prepareConfig() =
     t.setSectionKey("app", "debug", "false")
     t.writeConfig(configfile)
     info(firstTimeMessage)
+  
+  let sshconfigFile = getHomeDir() / ".ssh" / "config"
+  let sshconfigFileBackup = getHomeDir() / ".ssh" / "config.backup"
+  let sshconfigTemplate = """
+Host *
+  StrictHostKeyChecking no
+  ForwardAgent yes
+
+"""
+  if fileExists(sshconfigFile):
+    let content = readFile(sshconfigFile)
+    if not content.contains(sshconfigTemplate):
+      copyFile(sshconfigFile, sshconfigFileBackup)
+      # info(fmt"copied {sshconfigFile} to {sshconfigFileBackup}")
+      let oldContent = readFile(sshconfigFile)
+      let newContent = sshconfigTemplate & oldContent 
+      writeFile(sshconfigFile, sshconfigTemplate)
+  else:
+      writeFile(sshconfigFile, sshconfigTemplate)
+
 
 prepareConfig()
 
@@ -484,8 +504,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
   if sshkey == "":
     keys = getAgentPublicKeys()
-  else:
-    
+  if keys == "" or sshkey != "":
+    # NO KEY IN AGENT
     let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
     let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
 
@@ -504,7 +524,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
       k =  readFile(defaultSshPubKey)
 
     keys &= k
-  
+
   if keys == "":
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
     quit cantFindSshKeys

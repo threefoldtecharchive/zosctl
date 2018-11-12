@@ -815,6 +815,7 @@ let right = @[
 ]
 
 proc getRandomName*(): string =
-  let randomLeft = random(left)
-  let randomRight = random(right)
+  randomize()
+  let randomLeft = rand(left)
+  let randomRight = rand(right)
   result = randomLeft & "_" & randomRight

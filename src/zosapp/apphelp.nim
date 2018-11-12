@@ -60,7 +60,7 @@ Options:
   --address=<address>             zos ip [default: 127.0.0.1]
   --redisport=<redisport>         redis port [default: 4444]
   --port=<port>                   zero-os port [default: 6379]
-  --sshkey=<sshkey>               sshkey name or full path [default: id_rsa]
+  --sshkey=<sshkey>               sshkey name or full path [default:]
   --setdefault                    sets the configured machine to be default one
   --privileged                    privileged container [default: false]
   --ssh                           enable ssh on container [default: false]
