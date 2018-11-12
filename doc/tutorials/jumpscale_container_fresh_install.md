@@ -3,7 +3,9 @@ example basic script how to install a full local jumpscale
 
 ```bash
 
-export name="jumpscale"
+#if you didn't init you zos environment yet do (WILL RESET)
+zos init --name=default --memory=4 --reset
+
 #get container
 zos container new --name=js9 
 

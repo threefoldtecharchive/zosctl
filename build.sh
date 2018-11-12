@@ -8,6 +8,6 @@ export NIMBLE_DIR=$HOME/.nimble
 brew install openssl@1.1
 sudo nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
 
-sudo nimble build -d:ssl --threads:on
+# sudo nimble build -d:ssl --threads:on
 # sudo nimble build -d:openssl10 --threads:on
 sudo cp src/zos /usr/local/bin/zos
