@@ -11,4 +11,5 @@ export CPPFLAGS="-I/usr/local/opt/openssl/include"
 export DYLD_LIBRARY_PATH="/usr/local/opt/openssl/lib"
 
 sudo nimble build -d:ssl --threads:on
+# sudo nimble build -d:openssl10 --threads:on
 sudo cp zos /usr/local/bin

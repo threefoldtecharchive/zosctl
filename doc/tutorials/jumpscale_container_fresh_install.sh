@@ -4,8 +4,6 @@ set -ex
 #get container
 zos container new --name=js9
 
-zos container sshenable
-
 #not really needed but good practice
 zos container exec "apt update;apt upgrade -y"
 
