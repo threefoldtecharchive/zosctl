@@ -114,7 +114,6 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   var isvbox = false
   try:
     isvbox = tbl.getSectionValue(name, "isvbox") == "true"
-    echo  "ISVBOX: " & $isvbox
   except:
     discard
   
@@ -124,11 +123,12 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
     if tbl[name].hasKey("lastsshport"):
       lastsshport = parseInt(tbl.getSectionValue(name, "lastsshport"))
     else:
-      # tbl.setSectionKey(name, "lastsshport", $lastsshport)
-      tbl[name]["lastsshport"] = $lastsshport
+      tbl.setSectionKey(name, "lastsshport", $lastsshport)
+      # tbl[name]["lastsshport"] = $lastsshport
   else:
-      tbl[name]["lastsshport"] = "22"
-
+      tbl.setSectionKey(name, "lastsshport", "22")
+  
+  tbl.writeConfig(configfile)
   var port = 6379
   try:
     port = parseInt(parsed)
@@ -138,11 +138,13 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
 proc getNextAvailableSshPort(name:string): int = 
+  discard getConnectionConfigForInstance(name)
   var tbl = loadConfig(configfile)
   var port = tbl[name]["lastsshport"].parseInt()
   return port+1;
 
 proc incSshPort(name: string): void =
+  discard getConnectionConfigForInstance(name)
   var tbl = loadConfig(configfile)
   var port = tbl[name]["lastsshport"].parseInt()
   tbl.setSectionKey(name, "lastsshport", $(port+1));
