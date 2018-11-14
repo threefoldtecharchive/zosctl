@@ -119,6 +119,10 @@ proc listHostOnlyInterfaces*(): seq[TableRef[string, string]] =
   return parseSectionsStartsWith(output, "Name")
 
 
+proc hasHostOnlyInterface*(name:string): bool =
+  let output = executeVBoxManage("list hostonlyifs -l -s") 
+  return output.contains(name)
+
 proc modify*(this: VM, cmd: string): string =
   let command = fmt"{this.name} {cmd}"
   return executeVBoxManageModify(cmd)
@@ -192,20 +196,18 @@ proc createDisk*(this: VM, name:string, size:int=10000): Disk =
 
 proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=1000, memory:int=2000, redisPort=4444) = 
 
+  # try create hostonly interface and if it fails it's fine.
+  if not hasHostOnlyInterface("vboxnet0"):
+    discard executeVBoxManage("hostonlyif create", die=false)
+
   let cmd = fmt"""createvm --name "{vmName}" --ostype "Linux_64" --register """
   discard executeVBoxManage(cmd)
 
-  var cmdsmodify = fmt"""
-  --memory={memory}
-  --ioapic on
-  --boot1 dvd --boot2 disk
-  --nic1 nat
-  --vrde on 
-  --natpf1 "redis,tcp,,{redisPort},,6379" """
-  for l in cmdsmodify.splitLines:
-    if l == "" or l.startsWith("#"):
-      continue
-    discard executeVBoxManageModify(fmt"""{vmName} {l}""")
+  var cmdsmodify = fmt"""--memory={memory}  --ioapic on --boot1 dvd --boot2 disk --nic1 nat --nic2 hostonly --hostonlyadapter2 vboxnet0 --vrde on --natpf1 "redis,tcp,,{redisPort},,6379" """
+  # for l in cmdsmodify.splitLines:
+  #   if l == "" or l.startsWith("#"):
+      # continue
+  discard executeVBoxManageModify(fmt"""{vmName} {cmdsmodify}""")
     
   var vm: VM
   try:
@@ -219,9 +221,10 @@ proc newVM*(vmName: string, isoPath: string="/tmp/zos.iso", datadiskSize:int=100
       let disk = vm.createDisk(fmt"main{vmName}", datadiskSize)
       discard executeVBoxManage(fmt"""storagectl {vmName} --name "SATA Controller" --add sata  --controller IntelAHCI """)
       discard executeVBoxManage(fmt"""storageattach {vmName} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "{disk.path}" """)
-
+  
   discard executeVBoxManage(fmt"""storagectl {vmName} --name "IDE Controller" --add ide """)
   discard executeVBoxManage(fmt"""storageattach "{vmName}" --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium {isoPath} """)
+
 
 proc vmInfo*(this: VM|string): TableRef[string, string] =
   var vmName = ""

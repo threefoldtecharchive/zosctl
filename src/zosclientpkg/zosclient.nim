@@ -25,7 +25,6 @@ proc outputFromResponse*(resp: string): string =
   let response_state = $parsed["state"].getStr()
   let repsonse_level = parsed["level"].getInt()
 
-
   var data =""
   var streamerr = ""
   var streamout = ""
@@ -174,3 +173,19 @@ proc zosCore*( con:Redis|AsyncRedis, command: string="core.ping", arguments="", 
   return con.zosCoreWithJsonNode(command, payloadNode, timeout, debug)
 
     
+proc getZosHostOnlyInterfaceIp*(con:Redis|AsyncRedis): string=
+  let cmd = "info.nic"
+  let res = con.zosCore(cmd)
+  try:
+    let parsedNics = parseJson(res)
+    if len(parsedNics) > 0:
+      for nic in parsedNics:
+        for address in nic["addrs"].getElems():
+          let addressString = address["addr"].getStr()
+          if addressString.startsWith("192.168"):
+            return addressString[0..addressString.find("/")-1]
+  except:
+    echo getCurrentExceptionMsg()
+    echo "couldn't parse json out of res."
+
+  return ""
