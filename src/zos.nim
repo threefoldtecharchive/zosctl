@@ -114,6 +114,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   var isvbox = false
   try:
     isvbox = tbl.getSectionValue(name, "isvbox") == "true"
+    echo  "ISVBOX: " & $isvbox
   except:
     discard
   
@@ -134,7 +135,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   except:
     warn("Invalid port value: {parsed} will use default for now.")
   
-  result = newZosConnectionConfig(name, address, port, sshkey, isvbox, )
+  result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
 proc getNextAvailableSshPort(name:string): int = 
   var tbl = loadConfig(configfile)
@@ -187,7 +188,7 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, 
   var tbl = loadConfig(configfile)
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
-  tbl.setSectionKey(name, "vbox", $(vbox==true))
+  tbl.setSectionKey(name, "isvbox", $(vbox==true))
 
   tbl.writeConfig(configfile)
   if setdefault or not isConfigured():
