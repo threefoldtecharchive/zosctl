@@ -438,10 +438,11 @@ proc getContainerIp(this:App, containerid: int): string =
   var tbl = loadConfig(configfile)
   
   let containerKey = fmt("container-{activeZos}-{containerid}")
-  if containerKey in tbl and tbl[containerKey].hasKey("ip"):
+  if containerKey in tbl and tbl[containerKey].hasKey("ip") and tbl[containerKey]["ip"] != "" :
      return tbl[containerKey]["ip"]
 
   if not invbox:
+    echo "NOT INVBOX"
     for trial in countup(0, 120):
       try:
         let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
@@ -465,14 +466,19 @@ proc getContainerIp(this:App, containerid: int): string =
         info("retrying to get connectivity information.")
         discard
       sleep(1000)
+    error(fmt"couldn't get zerotier information for container {containerid}")
   else:
     let hostIp = this.currentconnection().getZosHostOnlyInterfaceIp()
     if hostIp != "":
-      tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
-      return hostIp
+      try:
+        discard $parseIpAddress(hostIp)
+        tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
+        tbl.writeConfig(configfile)
+        return hostIp
+      except:
+        error(fmt"couldn't get {containerid} host ip {hostIp}")
 
 
-  error(fmt"couldn't get zerotier information for container {containerid}")
 
 proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports="", env=""):int =
   let activeZos = getActiveZosName()
@@ -589,8 +595,9 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   
   # info(fmt"new container: {command} {args}")
   echo fmt"[1/4] Sending instructions to host"
-  
-  let contId = this.currentconnection().zosCoreWithJsonNode(command, args, timeout, debug)
+  var red = this.currentconnection()
+
+  let contId = red.zosCoreWithJsonNode(command, args, timeout, debug)
   try:
     result = parseInt(contId)
   except:
@@ -687,7 +694,7 @@ proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): strin
 proc sshInfo*(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
-  let containerName = this.getContainerNameById(containerid)
+  # let containerName = this.getContainerNameById(containerid)
   var currentContainerConfig = this.getContainerConfig(containerid)
 
   var tbl = loadConfig(configfile)
@@ -695,22 +702,23 @@ proc sshInfo*(this:App, containerid: int): string =
   var configuredsshport = tbl[fmt"container-{activeZos}-{containerid}"].getOrDefault("sshport", "22")
 
   let sshport = parseInt(configuredsshport) 
-  
-  var connectionString = ""
+  let contIp = this.getContainerIp(containerid)
+  echo fmt"CONTIP : {contIp}"
+
   if not invbox:
     if currentContainerConfig.hasKey("ip"):
       if configuredsshkey != "false":
-        connectionString = fmt"""root@{currentContainerConfig["ip"]} -i {configuredsshkey}"""
+        result = fmt"""root@{contIp} -i {configuredsshkey}"""
       else:
-        connectionString = fmt"""root@{currentContainerConfig["ip"]}"""
+        result = fmt"""root@{contIp}"""
   else:
     if currentContainerConfig.hasKey("ip"):
       if configuredsshkey != "false":
-        connectionString = fmt"""root@{currentContainerConfig["ip"]} -p {sshport}-i {configuredsshkey}"""
+        result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
       else:
-        connectionString = fmt"""root@{currentContainerConfig["ip"]}"""
+        result = fmt"""root@{contIp}"""
 
-  return connectionString
+  echo "SSHINFO: " & result
 
 proc sshEnable*(this: App, containerid:int): string =
   let activeZos = getActiveZosName()
@@ -1183,7 +1191,7 @@ when isMainModule:
     var app = initApp()
     echo "weclome from test"
     echo app.currentconnection().getZosHostOnlyInterfaceIp()
-
+    echo activeZosIsVbox()
   if args["test"]:
     handleTest()
     echo $activeZosIsVbox()

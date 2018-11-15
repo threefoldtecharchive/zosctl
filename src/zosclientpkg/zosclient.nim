@@ -14,11 +14,19 @@ proc streamId*(id: string): string =
 proc newUUID*(): string = 
   result = $uuids.genUUID()
 
-proc getResponseString*(con: Redis|AsyncRedis, id: string, timeout=10): Future[string] {.multisync.} = 
-  let exists = $(await con.execCommand("EXISTS", @[flagifyId(id)]))
+proc getResponseString*(con: Redis, id: string, timeout=10): string = 
+  let exists = $(con.execCommand("EXISTS", @[flagifyId(id)]))
   if exists == "1":
-    let reskey = resultifyId(id)
-    result = $(await con.execCommand("BRPOPLPUSH", @[reskey, reskey, $timeout]))
+    for i in countup(0, 5):
+      let reskey = resultifyId(id)
+      result = $(con.execCommand("BRPOPLPUSH", @[reskey, reskey, $timeout]))
+      try:
+        discard result.parseJson()
+        return
+      except:
+        sleep(2000)
+    
+
 
 proc outputFromResponse*(resp: string): string =
   let parsed = parseJson(resp)
@@ -160,7 +168,7 @@ proc zosCoreWithJsonNode*(con:Redis|AsyncRedis, command: string="core.ping", pay
   }
   if payloadNode != nil:
     payload["arguments"] = payloadNode
-
+  
   return con.zosSend(payload, false,timeout, debug)
   
 proc zosContainerCmd*(con: Redis|AsyncRedis, containerid:int, command:string, timeout=5, debug=false): string =
