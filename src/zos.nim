@@ -399,25 +399,14 @@ proc containersInfo(this:App, showjson=false): string =
 
 
 proc getLastContainerId(this:App): int = 
-  # make sure to sync containers information from zero-os first
-  # just in case of deletion from other application.
+  # TODO: should fail if the key doesn't exist
+  let exists = this.currentconnection().exists("zos:lastcontainerid")
+  if exists:
+    result = ($this.currentconnection().get("zos:lastcontainerid")).parseInt()
+  else:
+    error("zos can only be used to manage containers created by it.")
+    quit didntCreateZosContainersYet
 
-  result = ($this.currentconnection().get("zos:lastcontainerid")).parseInt()
-  # this.syncContainersIds()
-  # let activeZos = getActiveZosName()
-  # let conf = loadConfig(configfile)
-
-  # var containersIds:seq[int] = @[]
-  # for sectionKey, tbl in conf:
-  #   if sectionKey.startsWith(fmt"container-{activeZos}") == true:
-  #     containersIds.add(parseInt(sectionKey.split("-")[2]))
-  
-  # if containersIds.len == 0:
-  #   error("you need to create containers using zos to use them implicitly")
-  #   quit containerDoesntExist
-    
-  # result = containersIds.sorted(system.cmp[int], Descending)[0]
-  
 
 proc getContainerNameById*(this:App, containerid:int): string =
   let allContainers = this.getContainerInfoList()
@@ -600,7 +589,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
     quit cantFindSshKeys
 
-  # if not extraArgs["config"].hasKey("/root/.ssh/authorized_keys"):
   extraArgs["config"]["/root/.ssh/authorized_keys"] = %*(keys)
 
   if extraArgs != nil:
