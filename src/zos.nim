@@ -258,13 +258,13 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   else:
     error("couldn't prepare zos machine.")
   
-proc removeContainerFromConfig*(this:App, containerid:int) =
-  let activeZos = getActiveZosName()
-  var tbl = loadConfig(configfile)
-  let containerKey = fmt"container-{activeZos}-{containerid}"
-  if tbl.hasKey(containerKey):
-    tbl.del(containerKey)
-  tbl.writeConfig(configfile)
+# proc removeContainerFromConfig*(this:App, containerid:int) =
+#   let activeZos = getActiveZosName()
+#   var tbl = loadConfig(configfile)
+#   let containerKey = fmt"container-{activeZos}-{containerid}"
+#   if tbl.hasKey(containerKey):
+#     tbl.del(containerKey)
+#   tbl.writeConfig(configfile)
 
 proc containersInspect(this:App): string=
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
@@ -371,50 +371,52 @@ proc containersInfo(this:App, showjson=false): string =
       echo "-".repeat(sumWidths)
     result = ""
 
-proc syncContainersIds(this: App) =
-  # updates the configfile with the still existing containers.
-  # less likely we will need to crossreference against the IPs to make sure
-  # if they're the same containers or the node was reinstalled?
-  let activeZos = getActiveZosName()
-  let conf = loadConfig(configfile)
+# proc syncContainersIds(this: App) =
+#   # updates the configfile with the still existing containers.
+#   # less likely we will need to crossreference against the IPs to make sure
+#   # if they're the same containers or the node was reinstalled?
+#   let activeZos = getActiveZosName()
+#   let conf = loadConfig(configfile)
 
-  var containersIds:seq[int] = @[]
-  for sectionKey, tbl in conf:
-    if sectionKey.startsWith(fmt"container-{activeZos}") == true:
-      containersIds.add(parseInt(sectionKey.split("-")[2]))
+#   var containersIds:seq[int] = @[]
+#   for sectionKey, tbl in conf:
+#     if sectionKey.startsWith(fmt"container-{activeZos}") == true:
+#       containersIds.add(parseInt(sectionKey.split("-")[2]))
   
-  if containersIds.len == 0:
-    error("you need to create containers using zos to use them implicitly")
-    quit containerDoesntExist
+  # if containersIds.len == 0:
+  #   error("you need to create containers using zos to use them implicitly")
+  #   quit containerDoesntExist
 
-  let actualContainersInfo = this.getContainerInfoList()
-  var actualContainersIds: seq[int] = @[]
-  for c in actualContainersInfo:
-    let cid = parseInt(c.id)
-    actualContainersIds.add(cid)
+  # let actualContainersInfo = this.getContainerInfoList()
+  # var actualContainersIds: seq[int] = @[]
+  # for c in actualContainersInfo:
+  #   let cid = parseInt(c.id)
+  #   actualContainersIds.add(cid)
 
-  for cid in containersIds:
-    if not actualContainersIds.contains(cid):
-      this.removeContainerFromConfig(cid)
+  # for cid in containersIds:
+  #   if not actualContainersIds.contains(cid):
+  #     this.removeContainerFromConfig(cid)
 
 
 proc getLastContainerId(this:App): int = 
   # make sure to sync containers information from zero-os first
   # just in case of deletion from other application.
-  this.syncContainersIds()
-  let activeZos = getActiveZosName()
-  let conf = loadConfig(configfile)
 
-  var containersIds:seq[int] = @[]
-  for sectionKey, tbl in conf:
-    if sectionKey.startsWith(fmt"container-{activeZos}") == true:
-      containersIds.add(parseInt(sectionKey.split("-")[2]))
+  result = ($this.currentconnection().get("zos:lastcontainerid")).parseInt()
+  # this.syncContainersIds()
+  # let activeZos = getActiveZosName()
+  # let conf = loadConfig(configfile)
+
+  # var containersIds:seq[int] = @[]
+  # for sectionKey, tbl in conf:
+  #   if sectionKey.startsWith(fmt"container-{activeZos}") == true:
+  #     containersIds.add(parseInt(sectionKey.split("-")[2]))
   
-  if containersIds.len == 0:
-    error("you need to create containers using zos to use them implicitly")
-    quit containerDoesntExist
+  # if containersIds.len == 0:
+  #   error("you need to create containers using zos to use them implicitly")
+  #   quit containerDoesntExist
     
-  result = containersIds.sorted(system.cmp[int], Descending)[0]
+  # result = containersIds.sorted(system.cmp[int], Descending)[0]
   
 
 proc getContainerNameById*(this:App, containerid:int): string =
@@ -456,8 +458,8 @@ proc getContainerIp(this:App, containerid: int): string =
   var tbl = loadConfig(configfile)
   
   let containerKey = fmt("container-{activeZos}-{containerid}")
-  if containerKey in tbl and tbl[containerKey].hasKey("ip") and tbl[containerKey]["ip"] != "" :
-     return tbl[containerKey]["ip"]
+  if this.existsContainerKey(containerid, "ip") and $this.getContainerKey(containerid, "ip") != "" :
+     return this.getContainerKey(containerid, "ip") 
 
   if not invbox:
     for trial in countup(0, 120):
@@ -475,8 +477,6 @@ proc getContainerIp(this:App, containerid: int): string =
               try:
                 ip = $parseIpAddress(ip)
                 this.setContainerKV(containerid, "ip", ip)
-                tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", ip)
-                tbl.writeConfig(configfile)
                 return ip
               except:
                 sleep(1000)
@@ -490,9 +490,7 @@ proc getContainerIp(this:App, containerid: int): string =
     if hostIp != "":
       try:
         discard $parseIpAddress(hostIp)
-        tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "ip", hostIp)
         this.setContainerKV(containerid, "ip", hostIp)
-        tbl.writeConfig(configfile)
         return hostIp
       except:
         error(fmt"couldn't get {containerid} host ip {hostIp}")
@@ -614,11 +612,11 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   
   # info(fmt"new container: {command} {args}")
   echo fmt"[1/4] Sending instructions to host"
-  var red = this.currentconnection()
 
-  let containerid = red.zosCoreWithJsonNode(command, args, timeout, debug)
+  let containerid = this.currentconnection().zosCoreWithJsonNode(command, args, timeout, debug)
   try:
     result = parseInt(containerid)
+    discard this.currentconnection.setk("zos:lastcontainerid", containerid)
   except:
     # if debug:
     error(getCurrentExceptionMsg())
@@ -636,11 +634,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   this.setContainerKV(result, "layeredssh", "false")
   this.setContainerKV(result, "sshport", $containerSshport)
   
-  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshkey", configuredsshkey)
-  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
-  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshport", $containerSshport)
-  tbl.writeConfig(configfile)
-
   if activeZosIsVbox() :
 
     # now create portforward on zos host (sshport) to 22 on that container.
@@ -668,29 +661,26 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   var tbl = loadConfig(configfile)
 
   let containerName = this.getContainerNameById(containerid)
-  let containerKey = fmt"container-{activeZos}-{containerid}"
-  if tbl.hasKey(containerKey): 
-    if tbl[containerKey]["layeredssh"] == "false":
-      let parsedJson = parseJson(this.containerInspect(containerid))
-      let id = $containerid
-      let cpu = parsedJson["cpu"].getFloat()
-      let root = parsedJson["container"]["arguments"]["root"].getStr()
-      if root != sshflist:
-        echo "[...] Adding SSH support to your container"
 
-        var args = %*{
-          "container": containerid,
-          "flist": sshflist
-        }
+  if $this.getContainerKey(containerid, "layerdssh") == "false":
+    let parsedJson = parseJson(this.containerInspect(containerid))
+    let id = $containerid
+    let cpu = parsedJson["cpu"].getFloat()
+    let root = parsedJson["container"]["arguments"]["root"].getStr()
+    if root != sshflist:
+      echo "[...] Adding SSH support to your container"
 
-        let command = "corex.flist-layer"
-        echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-      
-      echo "[...] SSH support enabled"
-      tbl[containerKey]["layeredssh"] = "true"
-      this.setContainerKV(containerid, "layeredssh", "true")
+      var args = %*{
+        "container": containerid,
+        "flist": sshflist
+      }
+
+      let command = "corex.flist-layer"
+      echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
+    
+    echo "[...] SSH support enabled"
+    this.setContainerKV(containerid, "layeredssh", "true")
   
-  tbl.writeConfig(configfile)
 
 
 
@@ -701,7 +691,7 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
   let arguments = %*{"container": containerid}
   discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, debug)
 
-  this.removeContainerFromConfig(containerid)
+  # this.removeContainerFromConfig(containerid)
 
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
   result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
@@ -719,32 +709,25 @@ proc sshInfo*(this:App, containerid: int): string =
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
   # let containerName = this.getContainerNameById(containerid)
-  var currentContainerConfig = this.getContainerConfig(containerid)
+  # var currentContainerConfig = this.getContainerConfig(containerid)
 
-  var tbl = loadConfig(configfile)
   
-  let theconfiguredsshkey = $this.getContainerKey(containerid, "sshkey")
-  let theconfiguredsshport = $this.getContainerKey(containerid, "sshport")
-  echo fmt"db configured sshkey ad port {theconfiguredsshkey} {theconfiguredsshport}"
-
-  let configuredsshkey = tbl[fmt"container-{activeZos}-{containerid}"].getOrDefault("sshkey", "false")
-  var configuredsshport = tbl[fmt"container-{activeZos}-{containerid}"].getOrDefault("sshport", "22")
+  let configuredsshkey = $this.getContainerKey(containerid, "sshkey")
+  let configuredsshport = $this.getContainerKey(containerid, "sshport")
 
   let sshport = parseInt(configuredsshport) 
   let contIp = this.getContainerIp(containerid)
 
   if not invbox:
-    if currentContainerConfig.hasKey("ip"):
-      if configuredsshkey != "false":
-        result = fmt"""root@{contIp} -i {configuredsshkey}"""
-      else:
-        result = fmt"""root@{contIp}"""
+    if configuredsshkey != "false":
+      result = fmt"""root@{contIp} -i {configuredsshkey}"""
+    else:
+      result = fmt"""root@{contIp}"""
   else:
-    if currentContainerConfig.hasKey("ip"):
-      if configuredsshkey != "false":
-        result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
-      else:
-        result = fmt"""root@{contIp}"""
+    if configuredsshkey != "false":
+      result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
+    else:
+      result = fmt"""root@{contIp}"""
 
 
 proc sshEnable*(this: App, containerid:int): string =
@@ -752,10 +735,9 @@ proc sshEnable*(this: App, containerid:int): string =
   this.layerSSH(containerid)
 
   discard this.getContainerIp(containerid)
-  var tbl = loadConfig(configfile)
   let sshenabled = $this.getContainerKey(containerid, "sshenabled") 
   echo fmt"db sshenabled : {sshenabled}"
-  if tbl[fmt("container-{activeZos}-{containerid}")].getOrDefault("sshenabled", "false") == "false":
+  if sshenabled == "false":
     # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
     # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
 
@@ -768,8 +750,7 @@ proc sshEnable*(this: App, containerid:int): string =
     discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
 
     this.setContainerKV(containerid, "sshenabled", "true")
-    tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "true")
-    tbl.writeConfig(configfile)
+
   discard this.execContainerSilently(containerid, "service ssh start")
   discard this.execContainer(containerid, "service ssh status")
   # discard this.execContainer(containerid, "netstat -ntlp")
@@ -836,9 +817,6 @@ proc authorizeContainer(this:App, containerid:int, sshkey=""): int =
   this.setContainerKV(containerid, "sshkey", configuredsshkey)
   this.setContainerKV(containerid, "layeredssh", "false")
 
-  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "sshkey", configuredsshkey)
-  tbl.setSectionKey(fmt"container-{activeZos}-{result}", "layeredssh", "false")
-  tbl.writeConfig(configfile)
   discard this.getContainerIp(containerid)
 
   echo $this.sshEnable(containerid)
