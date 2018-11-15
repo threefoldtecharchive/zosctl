@@ -632,6 +632,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   var tbl = loadConfig(configfile)
   this.setContainerKV(result, "sshkey", configuredsshkey)
   this.setContainerKV(result, "layeredssh", "false")
+  this.setContainerKV(result, "sshenabled", "false")
   this.setContainerKV(result, "sshport", $containerSshport)
   
   if activeZosIsVbox() :
