@@ -17,7 +17,7 @@ proc newUUID*(): string =
 proc getResponseString*(con: Redis, id: string, timeout=10): string = 
   let exists = $(con.execCommand("EXISTS", @[flagifyId(id)]))
   if exists == "1":
-    for i in countup(0, 5):
+    for i in countup(0, 10):
       let reskey = resultifyId(id)
       result = $(con.execCommand("BRPOPLPUSH", @[reskey, reskey, $timeout]))
       try:

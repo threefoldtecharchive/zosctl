@@ -671,8 +671,6 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
     this.setContainerKV(containerid, "layeredssh", "true")
   
 
-
-
 proc stopContainer*(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
   let containerName = this.getContainerNameById(containerid)
@@ -697,9 +695,6 @@ proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): strin
 proc sshInfo*(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
-  # let containerName = this.getContainerNameById(containerid)
-  # var currentContainerConfig = this.getContainerConfig(containerid)
-
   
   let configuredsshkey = $this.getContainerKey(containerid, "sshkey")
   let configuredsshport = $this.getContainerKey(containerid, "sshport")
@@ -725,7 +720,6 @@ proc sshEnable*(this: App, containerid:int): string =
 
   discard this.getContainerIp(containerid)
   let sshenabled = $this.getContainerKey(containerid, "sshenabled") 
-  echo fmt"db sshenabled : {sshenabled}"
   if sshenabled == "false":
     # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
     # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
