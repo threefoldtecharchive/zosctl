@@ -690,6 +690,8 @@ proc sshInfo*(this:App, containerid: int): string =
 
   let sshport = parseInt(configuredsshport) 
   let contIp = this.getContainerIp(containerid)
+  echo "sshport: " & $sshport
+  echo "contip : " & contIp
 
   if not invbox:
     if configuredsshkey != "false":
@@ -700,7 +702,7 @@ proc sshInfo*(this:App, containerid: int): string =
     if configuredsshkey != "false":
       result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
     else:
-      result = fmt"""root@{contIp}"""
+      result = fmt"""root@{contIp} -p {sshport} """
 
 
 proc sshEnable*(this: App, containerid:int): string =
