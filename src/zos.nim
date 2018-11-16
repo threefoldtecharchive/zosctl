@@ -416,24 +416,6 @@ proc getContainerNameById*(this:App, containerid:int): string =
       return c.name
       
 
-proc getContainerConfig(this:App, containerid:int): OrderedTableRef[string, string] = 
-  let containerName = this.getContainerNameById(containerid)
-  let activeZos = getActiveZosName()
-
-  var tbl = loadConfig(configfile)
-  if tbl.hasKey(fmt"container-{activeZos}-{containerid}"):
-    return tbl[fmt"container-{activeZos}-{containerid}"]
-  else:
-    tbl.setSectionKey(fmt("container-{activeZos}-{containerid}"), "sshenabled", "false")
-  tbl.writeConfig(configfile)
-  return tbl[fmt"container-{activeZos}-{containerid}"]
-    
-
-proc containerHasIP(this: App, containerid:int): bool = 
-  let containerConfig = this.getContainerConfig(containerid)
-  echo "CONTAINER IN 0-OS " & $this.getContainerKey(containerid, "ip")
-  return containerConfig.hasKey("ip")
-
 
 proc getContainerIp(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
@@ -444,10 +426,8 @@ proc getContainerIp(this:App, containerid: int): string =
   var ip = ""
 
   echo fmt"[3/4] Waiting for private network connectivity"
-  var tbl = loadConfig(configfile)
   
-  let containerKey = fmt("container-{activeZos}-{containerid}")
-  if this.existsContainerKey(containerid, "ip") and $this.getContainerKey(containerid, "ip") != "" :
+  if this.existsContainerKey(containerid, "ip") and ($this.getContainerKey(containerid, "ip")).count(".") == 3:
      return this.getContainerKey(containerid, "ip") 
 
   if not invbox:
@@ -485,6 +465,15 @@ proc getContainerIp(this:App, containerid: int): string =
         error(fmt"couldn't get {containerid} host ip {hostIp}")
 
 
+proc getContainerConfig(this:App, containerid:int): Table[string, string] = 
+  let containerName = this.getContainerNameById(containerid)
+  let activeZos = getActiveZosName()
+  
+  var result = initTable[string, string]()
+  result["port"] = $this.getContainerKey(containerid, "sshport")
+  result["ip"] = $this.getContainerIp(containerid)
+
+  return result
 
 proc newContainer(this:App, name:string, root:string, hostname="", privileged=false, timeout=30, sshkey="", ports="", env=""):int =
   let activeZos = getActiveZosName()
