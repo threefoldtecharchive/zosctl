@@ -27,19 +27,19 @@ proc getPublicSshkeyFromKeyPath*(keypath=getHomeDir()/".ssh"/"id_rsa"):string =
   if fileExists(keypath):
     result = readFile(keypath & ".pub")
 
-proc rsyncUpload*(src: string, sshDest:string, isDir=false):string =
+proc rsyncUpload*(src: string, sshDest:string, isDir=false,extraflags=""):string =
   var rflag = ""
   if isDir:
     rflag = "-r"
 
-  result = fmt"""scp {rflag} {src} {sshDest} """ 
+  result = fmt"""scp {extraflags} {rflag} {src} {sshDest} """ 
   echo result 
 
-proc rsyncDownload*(sshSrc:string , dest:string, isDir=false):string = 
+proc rsyncDownload*(sshSrc:string , dest:string, isDir=false, extraflags=""):string = 
   var rflag = ""
   if isDir:
     rflag = "-r"
 
-  result = fmt"""scp {rflag} {sshSrc} {dest}""" 
+  result = fmt"""scp {extraflags} {rflag} {sshSrc} {dest}""" 
   echo result
 

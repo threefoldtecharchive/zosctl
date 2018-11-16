@@ -1016,8 +1016,11 @@ proc handleConfigured(args:Table[string, Value]) =
 
     let zosMachine = getActiveZosName()
     info(fmt"sshing to container {containerid} on {zosMachine}")
-    let containerIp = app.getContainerIp(containerid)
-    let sshcmd = fmt"sshfs root@{containerIp}:{srcPath} {destPath}"
+    let containerConfig = app.getContainerConfig(containerid)
+    let containerIp = containerConfig["ip"]
+    let containerSshport = containerConfig["port"]
+
+    let sshcmd = fmt"sshfs -p {containerSshport} root@{containerIp}:{srcPath} {destPath}"
     discard execCmd(sshcmd)
 
   proc handleContainerJumpscaleCommand() = 
@@ -1066,7 +1069,8 @@ proc handleConfigured(args:Table[string, Value]) =
     var isDir = false
     if dirExists(file):
       isDir=true
-    discard execCmd(rsyncUpload(file, sshDest, isDir))
+    let portFlag = fmt"""-P {containerConfig["port"]}"""
+    discard execCmd(rsyncUpload(file, sshDest, isDir, portFlag))
   
   proc handleContainerDownload() = 
     var containerid = app.getLastContainerId()
@@ -1085,7 +1089,8 @@ proc handleConfigured(args:Table[string, Value]) =
 
     let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
     var isDir = true # always true.
-    discard execCmd(rsyncDownload(sshSrc, dest, isDir))
+    let portFlag = fmt"""-P {containerConfig["port"]}"""
+    discard execCmd(rsyncDownload(sshSrc, dest, isDir, portFlag))
 
   if args["init"]:
     handleInit()
