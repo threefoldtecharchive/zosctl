@@ -17,8 +17,8 @@ import zosapp/namegenerator
 let appTimeout = 30 
 let pingTimeout = 5
 
-var L* = newConsoleLogger()
-var fL* = newFileLogger("zos.log", fmtStr = verboseFmtStr)
+var L* = newConsoleLogger(levelThreshold=lvlInfo)
+var fL* = newFileLogger("zos.log", levelThreshold=lvlAll, fmtStr = verboseFmtStr)
 addHandler(L)
 addHandler(fL)
 
@@ -56,7 +56,7 @@ Host *
     let content = readFile(sshconfigFile)
     if not content.contains(sshconfigTemplate):
       copyFile(sshconfigFile, sshconfigFileBackup)
-      # info(fmt"copied {sshconfigFile} to {sshconfigFileBackup}")
+      debug(fmt"copied {sshconfigFile} to {sshconfigFileBackup}")
       let oldContent = readFile(sshconfigFile)
       let newContent = sshconfigTemplate & oldContent 
       writeFile(sshconfigFile, sshconfigTemplate)
@@ -87,9 +87,9 @@ let debug = isDebug()
 proc getZerotierId*(): string =
   if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
     result = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
-    info(fmt"using special zerotier network {result}")
   else:
     result = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
+  debug(fmt"using zerotier network {result}")
 
 let zerotierId = getZerotierId()
 
@@ -103,7 +103,6 @@ type ZosConnectionConfig  = object
 proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa", isvbox=false): ZosConnectionConfig  = 
   result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, isvbox:isvbox)
   
-
 proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   var tbl = loadConfig(configfile)
   let address = tbl.getSectionValue(name, "address")
@@ -114,6 +113,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   try:
     isvbox = tbl.getSectionValue(name, "isvbox") == "true"
   except:
+    debug(fmt"machine {name} is not on virtualbox")
     discard
   
   var lastsshport = 22
@@ -132,7 +132,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   try:
     port = parseInt(parsed)
   except:
-    warn("Invalid port value: {parsed} will use default for now.")
+    warn("invalid port value: {parsed} will use default for now.")
   
   result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
