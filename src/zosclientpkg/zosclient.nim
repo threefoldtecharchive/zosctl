@@ -191,9 +191,11 @@ proc getZosHostOnlyInterfaceIp*(con:Redis|AsyncRedis): string=
         for address in nic["addrs"].getElems():
           let addressString = address["addr"].getStr()
           if addressString.startsWith("192.168"):
+            echo "Address string"
             return addressString[0..addressString.find("/")-1]
   except:
     echo getCurrentExceptionMsg()
     echo "couldn't parse json out of res."
-
+  
+  echo "ERRROR"
   return ""

@@ -471,7 +471,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   if containerHostName == "":
     containerHostName = name
 
-  echo fmt"[...] Preparing container"
+  info(fmt"preparing container")
 
   var portsMap = initTable[string,int]()
   if ports != "":
@@ -635,7 +635,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
     let cpu = parsedJson["cpu"].getFloat()
     let root = parsedJson["container"]["arguments"]["root"].getStr()
     if root != sshflist:
-      info("[...] adding SSH support to your container")
+      info("adding SSH support to your container")
 
       var args = %*{
         "container": containerid,
@@ -933,7 +933,7 @@ proc handleConfigured(args:Table[string, Value]) =
     # info(fmt"Creating '{containername}' using root: {rootflist}")
 
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports, env=env)
-    echo fmt"[+] container private address: ", app.getContainerIp(containerId)
+    echo fmt"container private address: ", app.getContainerIp(containerId)
 
     if args["--ssh"]:
       discard app.sshEnable(containerId)
@@ -1163,12 +1163,6 @@ when isMainModule:
   if args["help"]:
     getHelp("")
     quit 0
-
-  proc handleTest() =
-    var app = initApp()
-    echo "weclome from test"
-    echo app.currentconnection().getZosHostOnlyInterfaceIp()
-    echo activeZosIsVbox()
 
   if not isConfigured():
     handleUnconfigured(args)
