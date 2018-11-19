@@ -588,7 +588,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   except:
     # if debug:
     error(getCurrentExceptionMsg())
-    echo "couldn't create container"
+    error("couldn't create container")
     quit cantCreateContainer
   
   info(fmt"created container {containerid}")
@@ -629,9 +629,8 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
 
   var tbl = loadConfig(configfile)
 
-
   let layeredssh = this.getContainerKey(containerid, "layeredssh") 
-  
+
   if layeredssh == "false" or layeredssh.strip().len == 0:
     let parsedJson = parseJson(this.containerInspect(containerid))
     let id = $containerid
@@ -678,8 +677,8 @@ proc sshInfo*(this:App, containerid: int): string =
 
   let sshport = parseInt(configuredsshport) 
   let contIp = this.getContainerIp(containerid)
-  echo "sshport: " & $sshport
-  echo "contip : " & contIp
+  # echo "sshport: " & $sshport
+  # echo "contip : " & contIp
 
   if not invbox:
     if configuredsshkey != "false":
