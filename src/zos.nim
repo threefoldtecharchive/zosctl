@@ -188,11 +188,12 @@ proc initApp(): App =
 
 proc cmd*(this:App, command: string="core.ping", arguments="{}", timeout=5): string =
   result = this.currentconnection.zosCore(command, arguments, timeout, debug)
+  debug(fmt"executing zero-os command: {command}\nresult:{result}")
   echo $result
-
 
 proc exec*(this:App, command: string="hostname", timeout:int=5, debug=false): string =
   result = this.currentconnection.zosBash(command,timeout, debug)
+  debug(fmt"executing shell command: {command}\nresult:{result}")
   echo $result
 
 proc setdefault*(name="local", debug=false)=
@@ -202,11 +203,13 @@ proc setdefault*(name="local", debug=false)=
     quit instanceNotConfigured
   tbl.setSectionKey("app", "defaultzos", name)
   tbl.setSectionKey("app", "debug", $debug)
+  debug(fmt("changed defaultzos to {name}"))
   tbl.writeConfig(configfile)
   
 
 proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, vbox=false) =
   var tbl = loadConfig(configfile)
+  debug(fmt("configured machine {name} on {address}:{port} isvbox:{vbox}"))
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
   tbl.setSectionKey(name, "isvbox", $(vbox==true))
@@ -256,9 +259,8 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   if ponged:
     info("created zos machine and we are ready.")
     configure(name, "127.0.0.1", redisPort, setdefault=true,vbox=true)
-
   else:
-    error("couldn't prepare zos machine.")
+    error(fmt"couldn't prepare zos machine {name} address:127.0.0.1 redisPort:{redisPort} isvbox: true")
   
 # proc removeContainerFromConfig*(this:App, containerid:int) =
 #   let activeZos = getActiveZosName()
@@ -358,7 +360,6 @@ proc containersInfo(this:App, showjson=false): string =
     var sumWidths = 0
     for w in widths:
       sumWidths += w
-
     
     echo "-".repeat(sumWidths)
 
@@ -399,7 +400,6 @@ proc containersInfo(this:App, showjson=false): string =
   #   if not actualContainersIds.contains(cid):
   #     this.removeContainerFromConfig(cid)
 
-
 proc getLastContainerId(this:App): int = 
   # TODO: should fail if the key doesn't exist
   let exists = this.currentconnection().exists("zos:lastcontainerid")
@@ -411,13 +411,12 @@ proc getLastContainerId(this:App): int =
 
 proc getContainerIp(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
-  
   let invbox = activeZosIsVbox()
 
   var done = false
   var ip = ""
 
-  echo fmt"[3/4] Waiting for private network connectivity"
+  info("waiting for private network connectivity")
   
   if this.existsContainerKey(containerid, "ip") and ($this.getContainerKey(containerid, "ip")).count(".") == 3:
      return this.getContainerKey(containerid, "ip") 
@@ -579,7 +578,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   let command = "corex.create"
   
   # info(fmt"new container: {command} {args}")
-  echo fmt"[1/4] Sending instructions to host"
+  info(fmt"sending instructions to host")
 
   let containerid = this.currentconnection().zosCoreWithJsonNode(command, args, timeout, debug)
   try:
@@ -591,7 +590,8 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     error("couldn't create container")
     quit cantCreateContainer
   
-  info(fmt"created container {containerid}")
+  info(fmt"container {result} is created.")
+
   var containerSshport = 22
   if activeZosIsVbox():
     incSshPort(activeZos)
@@ -619,8 +619,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     discard this.currentconnection().zosCoreWithJsonNode("corex.portforward-add", args)
     info(fmt"creating portforward from {containerSshport} to 22")
 
-  echo fmt"[2/4] Container created. Identifier: {result}"
-
 
 proc layerSSH(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
@@ -637,7 +635,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
     let cpu = parsedJson["cpu"].getFloat()
     let root = parsedJson["container"]["arguments"]["root"].getStr()
     if root != sshflist:
-      echo "[...] Adding SSH support to your container"
+      info("[...] adding SSH support to your container")
 
       var args = %*{
         "container": containerid,
@@ -645,7 +643,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
       }
       let command = "corex.flist-layer"
       echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-    echo "[...] SSH support enabled"
+    info("[+] SSH support enabled")
     this.setContainerKV(containerid, "layeredssh", "true")
   
 
@@ -697,8 +695,8 @@ proc sshEnable*(this: App, containerid:int): string =
   this.layerSSH(containerid)
 
   discard this.getContainerIp(containerid)
-  let sshenabled = $this.getContainerKey(containerid, "sshenabled") 
-  if sshenabled == "false":
+  let sshenabled = this.getContainerKey(containerid, "sshenabled") 
+  if sshenabled == "false" or sshenabled != "":
     # discard this.execContainer(containerid, "busybox mkdir -p /root/.ssh")
     # discard this.execContainer(containerid, "busybox chmod 700 -R /etc/ssh")
 
@@ -935,7 +933,7 @@ proc handleConfigured(args:Table[string, Value]) =
     # info(fmt"Creating '{containername}' using root: {rootflist}")
 
     let containerId = app.newContainer(containername, rootflist, hostname, privileged, sshkey=sshkey, ports=ports, env=env)
-    echo fmt"[4/4] Container private address: ", app.getContainerIp(containerId)
+    echo fmt"[+] container private address: ", app.getContainerIp(containerId)
 
     if args["--ssh"]:
       discard app.sshEnable(containerId)
@@ -977,8 +975,9 @@ proc handleConfigured(args:Table[string, Value]) =
       discard
     
     let zosMachine = getActiveZosName()
-    info(fmt"sshing to container {containerid} on {zosMachine}")
+    debug(fmt"sshing to container {containerid} on {zosMachine}")
     let sshcmd = "ssh -A " & app.sshEnable(containerid)
+    debug(fmt("executing sshcmd {sshcmd}"))
     discard execCmd(sshcmd)
 
 
@@ -998,17 +997,18 @@ proc handleConfigured(args:Table[string, Value]) =
       error(fmt"{destPath} is already mounted. umount it using `umount {destPath}`")
       quit pathAlreadyMounted
 
-
     if not dirExists(destPath):
+      debug(fmt("dest {destPath} doesn't exist and zos will create it"))
       createDir(destPath)
 
     let zosMachine = getActiveZosName()
-    info(fmt"sshing to container {containerid} on {zosMachine}")
+    debug(fmt"sshing to container {containerid} on {zosMachine}")
     let containerConfig = app.getContainerConfig(containerid)
     let containerIp = containerConfig["ip"]
     let containerSshport = containerConfig["port"]
 
     let sshcmd = fmt"sshfs -p {containerSshport} root@{containerIp}:{srcPath} {destPath}"
+    debug(fmt("sshfs command: {sshcmd}"))
     discard execCmd(sshcmd)
 
   proc handleContainerJumpscaleCommand() = 
@@ -1020,7 +1020,7 @@ proc handleConfigured(args:Table[string, Value]) =
     var jscommand = args["<command>"]
 
     let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" 'js_shell "{args["<command>"]}" ' """
-    info(fmt"executing command: {sshcmd}")
+    debug(fmt"executing command: {sshcmd}")
     discard execCmd(sshcmd)
 
   
@@ -1031,6 +1031,7 @@ proc handleConfigured(args:Table[string, Value]) =
     except:
       discard
     let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
+    debug(fmt("executing sshcmd {sshcmd}"))
     discard execCmd(sshcmd)
 
   proc handleContainerUpload() =
@@ -1042,9 +1043,6 @@ proc handleConfigured(args:Table[string, Value]) =
 
     discard app.sshEnable(containerid) 
 
-    # if not app.containerHasIP(containerid):
-    #   echo "Make sure to enable ssh first"
-    #   quit sshIsntEnabled
     let file = $args["<file>"]
     if not (fileExists(file) or dirExists(file)):
       error(fmt"file {file} doesn't exist")
@@ -1058,7 +1056,9 @@ proc handleConfigured(args:Table[string, Value]) =
     if dirExists(file):
       isDir=true
     let portFlag = fmt"""-P {containerConfig["port"]}"""
-    discard execCmd(rsyncUpload(file, sshDest, isDir, portFlag))
+    let uploadCmd = rsyncUpload(file, sshDest, isDir, portFlag)
+    debug(fmt"uploading files to container {uploadCmd}")
+    discard execCmd(uploadCmd)
   
   proc handleContainerDownload() = 
     var containerid = app.getLastContainerId()
@@ -1066,9 +1066,7 @@ proc handleConfigured(args:Table[string, Value]) =
       containerid = parseInt($args["<id>"])
     except:
       discard
-    # if not app.containerHasIP(containerid):
-    #   echo "Make sure to enable ssh first"
-    #   quit sshIsntEnabled
+
     discard app.sshEnable(containerid) 
 
     let file = $args["<file>"]
@@ -1078,7 +1076,8 @@ proc handleConfigured(args:Table[string, Value]) =
     let sshSrc = fmt"""root@{containerConfig["ip"]}:{file}"""
     var isDir = true # always true.
     let portFlag = fmt"""-P {containerConfig["port"]}"""
-    discard execCmd(rsyncDownload(sshSrc, dest, isDir, portFlag))
+    let downloadCmd = rsyncDownload(sshSrc, dest, isDir, portFlag)
+    discard execCmd(downloadCmd)
 
   if args["init"]:
     handleInit()
@@ -1170,11 +1169,6 @@ when isMainModule:
     echo "weclome from test"
     echo app.currentconnection().getZosHostOnlyInterfaceIp()
     echo activeZosIsVbox()
-  if args["test"]:
-    handleTest()
-    echo $activeZosIsVbox()
-    quit 80
-  
 
   if not isConfigured():
     handleUnconfigured(args)
