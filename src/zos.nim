@@ -324,62 +324,65 @@ proc containerInfo(this:App, containerid:int): string =
 proc getContainerInfoList(this:App): seq[ContainerInfo] =
   result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(this.containersInspect())
-  
-  for k,v in parsedJson.pairs:
-    let id = k
-    let cpu = parsedJson[k]["cpu"].getFloat()
-    let root = parsedJson[k]["container"]["arguments"]["root"].getStr()
-    let name = parsedJson[k]["container"]["arguments"]["name"].getStr()
-    let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
-    let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
-    let pid = parsedJson[k]["container"]["pid"].getInt()
+  if parsedJson.len > 0:
+    for k,v in parsedJson.pairs:
+      let id = k
+      let cpu = parsedJson[k]["cpu"].getFloat()
+      let root = parsedJson[k]["container"]["arguments"]["root"].getStr()
+      let name = parsedJson[k]["container"]["arguments"]["name"].getStr()
+      let hostname = parsedJson[k]["container"]["arguments"]["hostname"].getStr()
+      let storage = parsedJson[k]["container"]["arguments"]["storage"].getStr()
+      let pid = parsedJson[k]["container"]["pid"].getInt()
 
-    var ports = "" 
-    if parsedJson[k]["container"]["arguments"]["port"].len > 0:
-      for k, v in parsedJson[k]["container"]["arguments"]["port"].pairs:
-        let vnum = v.getInt()
-        ports &= fmt"{k}:{vnum},"
-    if ports != "":
-      ports = ports[0..^2] # strip last comma
-    
-    let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
-    result.add(cont)
+      var ports = "" 
+      if parsedJson[k]["container"]["arguments"]["port"].len > 0:
+        for k, v in parsedJson[k]["container"]["arguments"]["port"].pairs:
+          let vnum = v.getInt()
+          ports &= fmt"{k}:{vnum},"
+      if ports != "":
+        ports = ports[0..^2] # strip last comma
+      
+      let cont = ContainerInfo(id:id, cpu:cpu, root:root, name:name, hostname:hostname, ports:ports, pid:pid)
+      result.add(cont)
 
-  result = result.sortedByIt(parseInt(it.id))
+    result = result.sortedByIt(parseInt(it.id))
   
 proc containersInfo(this:App, showjson=false): string =
   let info = this.getContainerInfoList()
   
-  if showjson == true:
-    result = parseJson($$(info)).pretty(2)
+  if info.len == 0:
+    info("machine doesn't have any active containers.")
   else:
-    var widths = @[0,0,0,0]  #id, name, ports, root
-    for k, v in info:
-      if len($v.id) > widths[0]:
-        widths[0] = len($v.id)
-      if len($v.name) > widths[1]:
-        widths[1] = len($v.name)
-      if len($v.ports) > widths[2]:
-        widths[2] = len($v.ports)
-      if len($v.root) > widths[3]:
-        widths[3] = len($v.root)
-    
-    var sumWidths = 0
-    for w in widths:
-      sumWidths += w
-    
-    echo "-".repeat(sumWidths)
-
-    let extraPadding = 5
-    echo "| ID"  & " ".repeat(widths[0]+ extraPadding-4) & "| Name" & " ".repeat(widths[1]+extraPadding-6) & "| Ports" & " ".repeat(widths[2]+extraPadding-6 ) & "| Root" &  " ".repeat(widths[3]-6)
-    echo "-".repeat(sumWidths)
- 
-
-    for k, v in info:
-      let nroot = replace(v.root, "https://hub.grid.tf/", "").strip()
-      echo "|" & $v.id & " ".repeat(widths[0]-len($v.id)-1 + extraPadding) & "|" & v.name & " ".repeat(widths[1]-len(v.name)-1 + extraPadding) & "|" & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & "|" & nroot & " ".repeat(widths[3]-len(v.root)+ extraPadding-2) & "|"
+    if showjson == true:
+      result = parseJson($$(info)).pretty(2)
+    else:
+      var widths = @[0,0,0,0]  #id, name, ports, root
+      for k, v in info:
+        if len($v.id) > widths[0]:
+          widths[0] = len($v.id)
+        if len($v.name) > widths[1]:
+          widths[1] = len($v.name)
+        if len($v.ports) > widths[2]:
+          widths[2] = len($v.ports)
+        if len($v.root) > widths[3]:
+          widths[3] = len($v.root)
+      
+      var sumWidths = 0
+      for w in widths:
+        sumWidths += w
+      
       echo "-".repeat(sumWidths)
-    result = ""
+
+      let extraPadding = 5
+      echo "| ID"  & " ".repeat(widths[0]+ extraPadding-4) & "| Name" & " ".repeat(widths[1]+extraPadding-6) & "| Ports" & " ".repeat(widths[2]+extraPadding-6 ) & "| Root" &  " ".repeat(widths[3]-6)
+      echo "-".repeat(sumWidths)
+  
+
+      for k, v in info:
+        let nroot = replace(v.root, "https://hub.grid.tf/", "").strip()
+        echo "|" & $v.id & " ".repeat(widths[0]-len($v.id)-1 + extraPadding) & "|" & v.name & " ".repeat(widths[1]-len(v.name)-1 + extraPadding) & "|" & v.ports & " ".repeat(widths[2]-len(v.ports)+extraPadding) & "|" & nroot & " ".repeat(widths[3]-len(v.root)+ extraPadding-2) & "|"
+        echo "-".repeat(sumWidths)
+      result = ""
 
 # proc syncContainersIds(this: App) =
 #   # updates the configfile with the still existing containers.
