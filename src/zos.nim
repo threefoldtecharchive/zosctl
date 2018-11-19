@@ -164,7 +164,8 @@ proc currentconnection*(this: App): Redis =
   result = open(this.currentconnectionConfig.address, this.currentconnectionConfig.port.Port, true)
 
 proc setContainerKV(this:App, containerid:int, k, v: string) =
-  let theKey = (fmt"container:{containerid}:{k}")
+  let theKey = fmt"container:{containerid}:{k}"
+  # echo fmt"Setting {theKey} to {v}"
   discard this.currentconnection().setk(theKey, v)
 
 # proc deleteContainerKV(this:App, containerid:int, k:string) =
@@ -172,11 +173,12 @@ proc setContainerKV(this:App, containerid:int, k, v: string) =
 #   discard this.currentconnection().del(theKey, [theKey])
 
 proc getContainerKey(this: App, containerid:int, k:string): string =
-  let theKey = (fmt"container:{containerid}:{k}")
+  let theKey = fmt"container:{containerid}:{k}"
+  # echo fmt"getting key {theKey}"
   result = $this.currentconnection().get(theKey)
 
 proc existsContainerKey(this: App, containerid:int, k:string): bool =
-  let theKey = (fmt"container:{containerid}:{k}")
+  let theKey = fmt"container:{containerid}:{k}"
   result = this.currentconnection().exists(theKey) 
 
 
@@ -628,7 +630,9 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   var tbl = loadConfig(configfile)
 
 
-  if $this.getContainerKey(containerid, "layerdssh") == "false":
+  let layeredssh = this.getContainerKey(containerid, "layeredssh") 
+  
+  if layeredssh == "false" or layeredssh.strip().len == 0:
     let parsedJson = parseJson(this.containerInspect(containerid))
     let id = $containerid
     let cpu = parsedJson["cpu"].getFloat()
@@ -640,10 +644,8 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
         "container": containerid,
         "flist": sshflist
       }
-
       let command = "corex.flist-layer"
       echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
-    
     echo "[...] SSH support enabled"
     this.setContainerKV(containerid, "layeredssh", "true")
   
@@ -706,8 +708,10 @@ proc sshEnable*(this: App, containerid:int): string =
     # discard this.execContainer(containerid, "busybox --install")
     # discard this.execContainer(containerid, "mkdir -p /sbin")
 
-    discard this.execContainer(containerid, "mkdir -p /root/.ssh")
-    discard this.execContainer(containerid, "chmod 700 -R /etc/ssh")
+    ## TODO: why zero-os can't resolve paths of binaries?
+    # Specify the full path for now..
+    discard this.execContainer(containerid, "/bin/mkdir -p /root/.ssh")
+    discard this.execContainer(containerid, "/bin/chmod 700 -R /etc/ssh")
 
     this.setContainerKV(containerid, "sshenabled", "true")
 
@@ -719,67 +723,66 @@ proc sshEnable*(this: App, containerid:int): string =
 
 
 
-proc authorizeContainer(this:App, containerid:int, sshkey=""): int = 
-  result = containerid
-  let activeZos = getActiveZosName()
+# proc authorizeContainer(this:App, containerid:int, sshkey=""): int = 
+#   result = containerid
+#   let activeZos = getActiveZosName()
 
-  var keys = ""
-  var configuredsshkey = ""
-  if sshkey == "":
-    keys = getAgentPublicKeys()
-  else:
+#   var keys = ""
+#   var configuredsshkey = ""
+#   if sshkey == "":
+#     keys = getAgentPublicKeys()
+#   else:
     
-    let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
-    let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
+#     let sshDirRelativeKey = getHomeDir() / ".ssh" / fmt"{sshkey}"
+#     let sshDirRelativePubKey = getHomeDir() / ".ssh" / fmt"{sshkey}.pub"
 
-    let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa"
-    let defaultSshPubKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
+#     let defaultSshKey = getHomeDir() / ".ssh" / fmt"id_rsa"
+#     let defaultSshPubKey = getHomeDir() / ".ssh" / fmt"id_rsa.pub"
     
-    var k = ""
-    if fileExists(sshkey):
-      k = readFile(sshkey & ".pub")
-      configuredsshkey = sshkey
-    elif fileExists(sshDirRelativeKey):
-      configuredsshkey = sshDirRelativeKey
-      k = readFile(sshDirRelativePubKey)
-    elif fileExists(defaultSshKey):
-      configuredsshkey = defaultSshKey
-      k =  readFile(defaultSshPubKey)
+#     var k = ""
+#     if fileExists(sshkey):
+#       k = readFile(sshkey & ".pub")
+#       configuredsshkey = sshkey
+#     elif fileExists(sshDirRelativeKey):
+#       configuredsshkey = sshDirRelativeKey
+#       k = readFile(sshDirRelativePubKey)
+#     elif fileExists(defaultSshKey):
+#       configuredsshkey = defaultSshKey
+#       k =  readFile(defaultSshPubKey)
 
-    keys &= k
+#     keys &= k
 
-  if keys == "":
-    error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
-    quit cantFindSshKeys
+#   if keys == "":
+#     error("couldn't find sshkeys in agent or in default paths [generate one with ssh-keygen]")
+#     quit cantFindSshKeys
 
-  discard this.exec("mkdir -p /mnt/containers/{containerid}/root/.ssh")
-  discard this.exec("mkdir -p /mnt/containers/{containerid}/var/run/sshd")
-  discard this.exec("touch /mnt/containers/{containerid}/root/.ssh/authorized_keys")
+#   discard this.exec("mkdir -p /mnt/containers/{containerid}/root/.ssh")
+#   discard this.exec("mkdir -p /mnt/containers/{containerid}/var/run/sshd")
+#   discard this.exec("touch /mnt/containers/{containerid}/root/.ssh/authorized_keys")
 
-  var args = %*{
-   "file": fmt"/mnt/containers/{containerid}/root/.ssh/authorized_keys",
-   "mode":"a"
-  }
+#   var args = %*{
+#    "file": fmt"/mnt/containers/{containerid}/root/.ssh/authorized_keys",
+#    "mode":"a"
+#   }
 
-  var fd = this.currentconnection().zosCoreWithJsonNode("filesystem.open", args)
-  if fd.startsWith("\""):
-    fd = fd[1..^2]  # double quotes encoded
-  let content = base64.encode(keys)
+#   var fd = this.currentconnection().zosCoreWithJsonNode("filesystem.open", args)
+#   if fd.startsWith("\""):
+#     fd = fd[1..^2]  # double quotes encoded
+#   let content = base64.encode(keys)
 
-  args = %*{
-   "fd": fd,
-   "block": content
-  }
+#   args = %*{
+#    "fd": fd,
+#    "block": content
+#   }
 
-  discard this.currentconnection().zosCoreWithJsonNode("filesystem.write", args)
+#   discard this.currentconnection().zosCoreWithJsonNode("filesystem.write", args)
 
-  var tbl = loadConfig(configfile)
-  this.setContainerKV(containerid, "sshkey", configuredsshkey)
-  this.setContainerKV(containerid, "layeredssh", "false")
+#   this.setContainerKV(containerid, "sshkey", configuredsshkey)
+#   this.setContainerKV(containerid, "layeredssh", "false")
 
-  discard this.getContainerIp(containerid)
+#   discard this.getContainerIp(containerid)
 
-  echo $this.sshEnable(containerid)
+#   echo $this.sshEnable(containerid)
 
 
 proc handleUnconfigured(args:Table[string, Value]) =
@@ -938,12 +941,12 @@ proc handleConfigured(args:Table[string, Value]) =
     if args["--ssh"]:
       discard app.sshEnable(containerId)
 
-  proc handleContainerAuthorize() =
-    let containerid = parseInt($args["<id>"])
-    var sshkey = ""
-    if args["--sshkey"]:
-      sshkey = $args["--sshkey"]
-    echo $app.authorizeContainer(containerid, sshkey=sshkey)
+  # proc handleContainerAuthorize() =
+  #   let containerid = parseInt($args["<id>"])
+  #   var sshkey = ""
+  #   if args["--sshkey"]:
+  #     sshkey = $args["--sshkey"]
+  #   echo $app.authorizeContainer(containerid, sshkey=sshkey)
 
 
   proc handleContainerZosExec() =
