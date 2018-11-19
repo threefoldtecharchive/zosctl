@@ -407,16 +407,6 @@ proc getLastContainerId(this:App): int =
     error("zos can only be used to manage containers created by it.")
     quit didntCreateZosContainersYet
 
-
-proc getContainerNameById*(this:App, containerid:int): string =
-  let allContainers = this.getContainerInfoList()
-  var name = ""
-  for c in allContainers:
-    if c.id == $containerid:
-      return c.name
-      
-
-
 proc getContainerIp(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
   
@@ -466,7 +456,6 @@ proc getContainerIp(this:App, containerid: int): string =
 
 
 proc getContainerConfig(this:App, containerid:int): Table[string, string] = 
-  let containerName = this.getContainerNameById(containerid)
   let activeZos = getActiveZosName()
   
   var result = initTable[string, string]()
@@ -638,7 +627,6 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
 
   var tbl = loadConfig(configfile)
 
-  let containerName = this.getContainerNameById(containerid)
 
   if $this.getContainerKey(containerid, "layerdssh") == "false":
     let parsedJson = parseJson(this.containerInspect(containerid))
@@ -662,12 +650,10 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
 
 proc stopContainer*(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
-  let containerName = this.getContainerNameById(containerid)
   let command = "corex.terminate"
   let arguments = %*{"container": containerid}
   discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, debug)
 
-  # this.removeContainerFromConfig(containerid)
 
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
   result = this.currentconnection.containersCore(containerid, command, "", timeout, debug)
