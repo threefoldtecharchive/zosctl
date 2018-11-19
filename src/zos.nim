@@ -208,6 +208,10 @@ proc setdefault*(name="local", debug=false)=
   
 
 proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, vbox=false) =
+  if name == "app":
+    error("app is invalid machine name")
+    quit invalidMachineName
+  
   var tbl = loadConfig(configfile)
   debug(fmt("configured machine {name} on {address}:{port} isvbox:{vbox}"))
   tbl.setSectionKey(name, "address", address)
@@ -222,6 +226,9 @@ proc showconfig*() =
   echo readFile(configfile)
 
 proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
+  if name == "app":
+    error("app is invalid machine name")
+    quit invalidMachineName
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
   let (taken, byVm) = portAlreadyForwarded(redisPort)
@@ -454,6 +461,9 @@ proc getContainerIp(this:App, containerid: int): string =
         return hostIp
       except:
         error(fmt"couldn't get {containerid} host ip {hostIp}")
+    else:
+      error("couldn't get {containerid} host ip")
+      quit noHostOnlyInterfaceIp
 
 
 proc getContainerConfig(this:App, containerid:int): Table[string, string] = 

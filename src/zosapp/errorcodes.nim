@@ -19,6 +19,10 @@ let instanceNotConfigured* = 17
 let pathAlreadyMounted* = 18
 let noHostonlyInterface* = 19
 let didntCreateZosContainersYet* = 20
+let noHostOnlyInterfaceIp* = 21
+let invalidMachineName* = 22
+
+
 # """
 # errorCodes
 # 1: can't create configdir

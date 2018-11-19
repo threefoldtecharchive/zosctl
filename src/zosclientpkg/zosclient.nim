@@ -196,6 +196,5 @@ proc getZosHostOnlyInterfaceIp*(con:Redis|AsyncRedis): string=
   except:
     echo getCurrentExceptionMsg()
     echo "couldn't parse json out of res."
-  
-  echo "ERRROR"
+
   return ""
