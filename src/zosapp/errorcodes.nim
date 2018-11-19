@@ -17,7 +17,8 @@ let malformedArgs* = 15
 let containerDoesntExist* = 16
 let instanceNotConfigured* = 17
 let pathAlreadyMounted* = 18
-
+let noHostonlyInterface* = 19
+let didntCreateZosContainersYet* = 20
 # """
 # errorCodes
 # 1: can't create configdir
