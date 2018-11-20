@@ -812,35 +812,16 @@ proc handleUnconfigured(args:Table[string, Value]) =
       error("please make sure to have VirtualBox installed")
       quit vboxNotInstalled
 
-    try:
-      discard parseInt($args["--disksize"])
-      discard parseInt($args["--memory"])
-      discard parseInt($args["--redisport"])
-    except:
-      let disksize = $args["--disksize"]
-      let memory = $args["--memory"]
-      let redisport = $args["--redisport"]
-      error(fmt"invalid arguments disksize {disksize} memory {memory} redisport {redisport}")
-      quit malformedArgs
-
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
     let memory = parseInt($args["--memory"])
     let redisport = parseInt($args["--redisport"])
-  
     init(name, disksize, memory, redisport)
 
 
   elif args["configure"]:
     let name = $args["--name"]
     let address = $args["--address"]
-    try:
-      discard parseInt($args["--port"]):
-    except:
-      let invalidport = $args["--port"]
-      error(fmt"invalid port {invalidport}")
-      quit malformedArgs
-
     let port = parseInt($args["--port"])
     if args["--setdefault"]:
       configure(name, address, port, true) 
@@ -850,23 +831,10 @@ proc handleUnconfigured(args:Table[string, Value]) =
     let name = $args["<zosmachine>"]
     setdefault(name)
 
-
 proc handleConfigured(args:Table[string, Value]) = 
-
   let app = initApp()
   
   proc handleInit() = 
-    try:
-      discard parseInt($args["--disksize"])
-      discard parseInt($args["--memory"])
-      discard parseInt($args["--redisport"])
-    except:
-      let disksize = $args["--disksize"]
-      let memory = $args["--memory"]
-      let redisport = $args["--redisport"]
-      error(fmt"invalid arguments disksize {disksize} memory {memory} redisport {redisport}")
-      quit malformedArgs
-
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
     let memory = parseInt($args["--memory"])
@@ -913,10 +881,8 @@ proc handleConfigured(args:Table[string, Value]) =
       error(fmt"invalid port {invalidport}")
       quit malformedArgs
 
-
     let name = $args["--name"]
     let address = $args["--address"]
-
     let port = parseInt($args["--port"])
     let sshkeyname = $args["--sshkey"]
     if args["--setdefault"]:
@@ -941,7 +907,7 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       discard app.cmd(command, jsonargs)
     except:
-      error("can't execute command {command}")
+      error(fmt"can't execute command {command}")
       error(getCurrentExceptionMsg())
       quit(cmdFailed)
 
@@ -951,7 +917,7 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       discard app.exec(command)
     except:
-      error("can't execute command {command}")
+      error(fmt"can't execute command {command}")
       error(getCurrentExceptionMsg())
       quit(cmdFailed)
 
@@ -960,13 +926,10 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleContainerInspect() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     echo app.containerInspect(containerid)
 
@@ -977,27 +940,20 @@ proc handleConfigured(args:Table[string, Value]) =
     echo app.containersInfo(showjson)
   
   proc handleContainerInfo() =
-
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     echo app.containerInfo(containerid)
    
   proc handleContainerDelete() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     app.stopContainer(containerid)
 
@@ -1045,50 +1001,38 @@ proc handleConfigured(args:Table[string, Value]) =
 
   proc handleContainerZosExec() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     let command = $args["<command>"]
     discard app.execContainer(containerid, command)
 
   proc handleSshEnable() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     echo app.sshEnable(containerid)
 
   proc handleSshInfo() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     echo app.sshEnable(containerid)
 
   proc handleContainerShell() = 
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     let zosMachine = getActiveZosName()
     debug(fmt"sshing to container {containerid} on {zosMachine}")
@@ -1099,13 +1043,10 @@ proc handleConfigured(args:Table[string, Value]) =
 
   proc handleContainerMount() = 
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     let srcPath = $args["<src>"]
     let destPath = $args["<dest>"]
@@ -1132,13 +1073,10 @@ proc handleConfigured(args:Table[string, Value]) =
 
   proc handleContainerJumpscaleCommand() = 
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     var jscommand = args["<command>"]
 
@@ -1149,13 +1087,10 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleContainerExec() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
 
     let sshcmd = "ssh " & app.sshEnable(containerid) & fmt""" '{args["<command>"]}'"""
@@ -1164,13 +1099,10 @@ proc handleConfigured(args:Table[string, Value]) =
 
   proc handleContainerUpload() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     discard app.sshEnable(containerid) 
 
@@ -1193,13 +1125,10 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleContainerDownload() = 
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
-
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     discard app.sshEnable(containerid) 
 
@@ -1215,12 +1144,10 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleContainerZerotierInfo() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     try:
       discard app.cmdContainer(containerid, "corex.zerotier.info")
@@ -1230,12 +1157,10 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleContainerZerotierList() =
     var containerid = app.getLastContainerId()
-    if args["<id>"]:
-      try:
-        containerid = parseInt($args["<id>"])
-      except:
-        error("invalid containerid {containerid}")
-        quit malformedArgs
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
     app.quitIfContainerDoesntExist(containerid)
     try:
       discard app.cmdContainer(containerid, "corex.zerotier.list")
@@ -1317,8 +1242,60 @@ proc handleConfigured(args:Table[string, Value]) =
 const buildBranchName = staticExec("git rev-parse --abbrev-ref HEAD")
 const buildCommit = staticExec("git rev-parse HEAD")
       
+
 when isMainModule:
+  proc checkArgs(args: Table[string, Value]) =
+    # check
+    if args["--name"]:
+      if $args["--name"] == "app":
+        error("invalid name app")
+        quit malformedArgs
+    if args["--disksize"]:
+      let disksize = $args["--disksize"]
+      try:
+        discard parseInt($args["--disksize"])
+      except:
+        error("invalid --disksize {disksize}")
+        quit malformedArgs
+    if args["--memory"]:
+      let memory = $args["--memory"]
+      try:
+        discard parseInt($args["--memory"])
+      except:
+        error("invalid --memory {memory}")
+        quit malformedArgs
+    if args["--port"]:
+      let port = $args["--port"]
+      try:
+        discard parseInt($args["--port"])
+      except:
+        error(fmt"invalid --port {port}")
+        quit malformedArgs
+    if args["--redisport"]:
+      let redisport = $args["--redisport"]
+      try:
+        discard parseInt($args["--redisport"])
+      except:
+        error(fmt"invalid redisport {redisport}")
+        quit malformedArgs
+    if args["<id>"]:
+      let contid = $args["<id>"]
+      try:
+        discard parseInt($args["<id>"])
+      except:
+        error(fmt"invalid container id {contid}")
+        quit malformedArgs
+    if args["--jsonargs"]:
+      let jsonargs = $args["--jsonargs"]
+      try:
+        discard parseJson($args["--jsonargs"])
+      except:
+        error("invalid --jsonargs {jsonargs}")
+        quit malformedArgs
+    
   let args = docopt(doc, version=fmt"zos 0.1.0 ({buildBranchName}#{buildCommit})")
+
+  checkArgs(args)
   if args["help"] and args["<cmdname>"]:
     getHelp($args["<cmdname>"])
     quit 0

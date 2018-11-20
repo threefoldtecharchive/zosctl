@@ -43,6 +43,7 @@ proc outputFromResponse*(resp: string): string =
 
   if response_state != "SUCCESS":
     let errorMsg = fmt"""
+
 STDOUT: 
 {streamout}
 STDERR:
