@@ -78,21 +78,19 @@ more on [configure command](doc/cmds/configure.md)
 
 - You should you [`zos showconfig`](doc/cmds/showconfig.md) to see the current configurations 
 
-```bash
+```
 [app]
 debug=false
-defaultzos=firstmachine
+defaultzos=local
+[dm]
+address=10.102.115.21
+port=6379
+lastsshport=22
 [local]
 address=127.0.0.1
-port=7777
-[container-mycont]
-sshenabled=false
-[container-cont1]
-sshenabled=true
-ip=10.244.106.212
-[firstmachine]
-address=127.0.0.1
-port=5555
+port=12345
+isvbox=true
+lastsshport=19021
 
 ```
 

@@ -17,7 +17,7 @@ proc newUUID*(): string =
 proc getResponseString*(con: Redis, id: string, timeout=10): string = 
   let exists = $(con.execCommand("EXISTS", @[flagifyId(id)]))
   if exists == "1":
-    for i in countup(0, 10):
+    for i in countup(0, 100):
       let reskey = resultifyId(id)
       result = $(con.execCommand("BRPOPLPUSH", @[reskey, reskey, $timeout]))
       try:
@@ -191,6 +191,7 @@ proc getZosHostOnlyInterfaceIp*(con:Redis|AsyncRedis): string=
         for address in nic["addrs"].getElems():
           let addressString = address["addr"].getStr()
           if addressString.startsWith("192.168"):
+            echo "Address string"
             return addressString[0..addressString.find("/")-1]
   except:
     echo getCurrentExceptionMsg()

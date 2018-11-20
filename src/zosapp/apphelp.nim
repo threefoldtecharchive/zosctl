@@ -46,7 +46,6 @@ Usage:
   zos container upload <file> <dest>
   zos container download <file> <dest>
   zos help <cmdname>
-  zos test
   zos --version
 
 
