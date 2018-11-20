@@ -28,7 +28,10 @@ Usage:
   zos container <id> delete
   zos container <id> zerotierinfo
   zos container <id> zerotierlist
+  zos container zerotierinfo
+  zos container zerotierlist
   zos container <id> zosexec <command>
+  zos container zosexec <command>
   zos container <id> sshenable
   zos container <id> sshinfo
   zos container <id> shell
