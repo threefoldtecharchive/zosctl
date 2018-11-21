@@ -14,8 +14,6 @@ import zosapp/sshexec
 import zosapp/errorcodes
 import zosapp/hostnamegenerator
 
-let appTimeout = 30 
-let pingTimeout = 5
 
 var L* = newConsoleLogger(levelThreshold=lvlInfo)
 var fL* = newFileLogger("zos.log", levelThreshold=lvlAll, fmtStr = verboseFmtStr)
@@ -1179,7 +1177,7 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       discard app.cmdContainer(containerid, "corex.zerotier.list")
     except:
-      error("couldn't get zerotierinfo for container {containerid}")
+      error(fmt"couldn't get zerotierinfo for container {containerid}")
       quit canGetZerotierInfo
 
   if args["init"]:
