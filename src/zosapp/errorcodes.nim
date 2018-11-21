@@ -21,8 +21,9 @@ let noHostonlyInterface* = 19
 let didntCreateZosContainersYet* = 20
 let noHostOnlyInterfaceIp* = 21
 let invalidMachineName* = 22
-let canGetZerotierInfo* = 23
+let cantGetZerotierInfo* = 23
 let cmdFailed* = 24
+let cantReservePort* = 25
 
 # """
 # errorCodes

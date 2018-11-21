@@ -113,17 +113,6 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
     debug(fmt"machine {name} is not on virtualbox")
     discard
   
-  var lastsshport = 22
-  if isvbox:
-    var lastsshport = 19000
-    if tbl[name].hasKey("lastsshport"):
-      lastsshport = parseInt(tbl.getSectionValue(name, "lastsshport"))
-    else:
-      tbl.setSectionKey(name, "lastsshport", $lastsshport)
-      # tbl[name]["lastsshport"] = $lastsshport
-  else:
-      tbl.setSectionKey(name, "lastsshport", "22")
-  
   tbl.writeConfig(configfile)
   var port = 6379
   try:
@@ -133,18 +122,6 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   
   result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
-proc getNextAvailableSshPort(name:string): int = 
-  discard getConnectionConfigForInstance(name)
-  var tbl = loadConfig(configfile)
-  var port = tbl[name]["lastsshport"].parseInt()
-  return port+1;
-
-proc incSshPort(name: string): void =
-  discard getConnectionConfigForInstance(name)
-  var tbl = loadConfig(configfile)
-  var port = tbl[name]["lastsshport"].parseInt()
-  tbl.setSectionKey(name, "lastsshport", $(port+1));
-  tbl.writeConfig(configfile)
 
 proc getCurrentConnectionConfig(): ZosConnectionConfig =
   let tbl = loadConfig(configfile)
@@ -617,8 +594,15 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
   var containerSshport = 22
   if activeZosIsVbox():
-    incSshPort(activeZos)
-    containerSshport = getNextAvailableSshPort(activeZos)
+    args = %*{
+      "number": 1
+    }
+    try:
+      containerSshport = this.currentconnection().zosCoreWithJsonNode("socat.reserve", args).parseJson()[0].getInt()
+    except:
+      error(fmt"can't reserve port for container {result}")
+      error(getCurrentExceptionMsg())
+      quit cantReservePort
 
   var tbl = loadConfig(configfile)
   this.setContainerKV(result, "sshkey", configuredsshkey)
@@ -978,7 +962,6 @@ proc handleConfigured(args:Table[string, Value]) =
       containername = $args["--name"]
     let rootflist = $args["--root"]
 
-
     var hostname = containername
     var ports = ""
     var env = ""
@@ -1165,7 +1148,7 @@ proc handleConfigured(args:Table[string, Value]) =
       discard app.cmdContainer(containerid, "corex.zerotier.info")
     except:
       error(fmt"couldn't get zerotierinfo for container {containerid}")
-      quit canGetZerotierInfo
+      quit cantGetZerotierInfo
   
   proc handleContainerZerotierList() =
     var containerid = app.getLastContainerId()
@@ -1178,7 +1161,7 @@ proc handleConfigured(args:Table[string, Value]) =
       discard app.cmdContainer(containerid, "corex.zerotier.list")
     except:
       error(fmt"couldn't get zerotierinfo for container {containerid}")
-      quit canGetZerotierInfo
+      quit cantGetZerotierInfo
 
   if args["init"]:
     handleInit()
