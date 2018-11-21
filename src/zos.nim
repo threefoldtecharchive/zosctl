@@ -909,7 +909,7 @@ proc handleConfigured(args:Table[string, Value]) =
   proc handleShowActive() =
     showActive()
 
-  proc handleShowDefault() =
+  proc handleShowActiveConfig() =
     showDefaultConfig()
 
   proc handlePing() =
@@ -1192,8 +1192,8 @@ proc handleConfigured(args:Table[string, Value]) =
     handleSetDefault()
   elif args["showconfig"]:
     handleShowConfig()
-  elif args["showdefault"]:
-    handleShowDefault()
+  elif args["showactiveconfig"]:
+    handleShowActiveConfig()
   elif args["showactive"]:
     handleShowActive()
   else: 

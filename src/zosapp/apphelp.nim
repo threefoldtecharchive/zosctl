@@ -17,7 +17,7 @@ Usage:
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
-  zos showdefault
+  zos showactiveconfig
   zos showactive
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
