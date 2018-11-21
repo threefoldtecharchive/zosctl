@@ -12,7 +12,7 @@ import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
 import zosapp/errorcodes
-import zosapp/namegenerator
+import zosapp/hostnamegenerator
 
 let appTimeout = 30 
 let pingTimeout = 5
