@@ -225,6 +225,15 @@ proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, 
 proc showconfig*() =
   echo readFile(configfile)
 
+proc showDefaultConfig*() =
+  let tbl = loadConfig(configfile)
+  let activeZos = getActiveZosName()
+  if tbl.hasKey(activeZos):
+    echo tbl[activeZos]
+
+proc showActive*() = 
+  echo getActiveZosName()
+
 proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
   if name == "app":
     error("app is invalid machine name")
@@ -896,6 +905,12 @@ proc handleConfigured(args:Table[string, Value]) =
 
   proc handleShowConfig() = 
     showconfig()
+  
+  proc handleShowActive() =
+    showActive()
+
+  proc handleShowDefault() =
+    showDefaultConfig()
 
   proc handlePing() =
     discard app.cmd("core.ping", "")
@@ -997,7 +1012,6 @@ proc handleConfigured(args:Table[string, Value]) =
   #   if args["--sshkey"]:
   #     sshkey = $args["--sshkey"]
   #   echo $app.authorizeContainer(containerid, sshkey=sshkey)
-
 
   proc handleContainerZosExec() =
     var containerid = app.getLastContainerId()
@@ -1152,7 +1166,7 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       discard app.cmdContainer(containerid, "corex.zerotier.info")
     except:
-      error("couldn't get zerotierinfo")
+      error(fmt"couldn't get zerotierinfo for container {containerid}")
       quit canGetZerotierInfo
   
   proc handleContainerZerotierList() =
@@ -1165,7 +1179,7 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       discard app.cmdContainer(containerid, "corex.zerotier.list")
     except:
-      error("couldn't get zerotierinfo")
+      error("couldn't get zerotierinfo for container {containerid}")
       quit canGetZerotierInfo
 
   if args["init"]:
@@ -1178,6 +1192,10 @@ proc handleConfigured(args:Table[string, Value]) =
     handleSetDefault()
   elif args["showconfig"]:
     handleShowConfig()
+  elif args["showdefault"]:
+    handleShowDefault()
+  elif args["showactive"]:
+    handleShowActive()
   else: 
     # commands requires active zos connection.
     try:
@@ -1263,6 +1281,13 @@ when isMainModule:
         discard parseInt($args["--memory"])
       except:
         error("invalid --memory {memory}")
+        quit malformedArgs
+    if args["--address"]:
+      let address = $args["--address"]
+      try:
+        discard $parseIpAddress(address) 
+      except:
+        error(fmt"invalid --address {address}")
         quit malformedArgs
     if args["--port"]:
       let port = $args["--port"]

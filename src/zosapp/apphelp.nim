@@ -17,6 +17,8 @@ Usage:
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
+  zos showdefault
+  zos showactive
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
   zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
@@ -105,18 +107,29 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "remove":
     echo """
            zos remove --name=<zosmachine>
-            removes zero-os virtualbox machine 
+            removes zero-os virtualbox machine. 
 
     """
   elif cmdname == "showconfig":
     echo """
         zos showconfig
-            Shows application config
+            shows application config
         """
   elif cmdname == "setdefault":
     echo """
         zos setdefault <zosmachine>
-          Sets the default instance to work with
+          sets the default instance to work with.
+    """
+  elif cmdname == "showdefault":
+    echo """
+        zos showdefault
+          shows default configured instance.
+
+    """
+  elif cmdname == "showactive":
+    echo """
+        zos showactive
+          shows active machine zos configured against.
     """
   elif cmdname == "cmd":
     echo """
