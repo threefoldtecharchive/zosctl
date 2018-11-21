@@ -1289,22 +1289,32 @@ when isMainModule:
         quit malformedArgs
     if args["--port"]:
       let port = $args["--port"]
-      if port.isDigit():
-        if port.parseInt() > 65535:
-          error(fmt("invalid --port {port} > 65535 (max port number)"))
-          quit malformedArgs
-      else:
-        error(fmt"invalid --port {port}")
-        quit malformedArgs
+      var porterror =false
+      if not port.isDigit():
+        porterror = true
+      try:
+        if port.parseInt() > 65535: # may raise overflow error
+          porterror = true
+      except:
+          porterror = true
+      
+      if porterror:
+        error(fmt("invalid --port {port} (should be a number and less than 65535)"))
+        quit malformedArgs 
 
     if args["--redisport"]:
       let redisport = $args["--redisport"]
-      if redisport.isDigit():
-        if redisport.parseInt() > 65535:
-          error(fmt("invalid --redisport {redisport} > 65535 (max port number)"))
-          quit malformedArgs
-      else:
-        error(fmt"invalid --redisport {redisport}")
+      var porterror = false
+      if not redisport.isDigit():
+        porterror = true
+      try:
+        if redisport.parseInt() > 65535: # may raise overflow error
+          porterror = true
+      except:
+        porterror = true
+    
+      if porterror:
+        error(fmt"invalid --redisport {redisport} (should be a number and less than 65535)")
         quit malformedArgs
       
     if args["<id>"]:
