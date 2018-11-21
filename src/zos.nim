@@ -73,7 +73,6 @@ let appconfig = getAppConfig()
 proc isConfigured*(): bool =
   return appconfig.hasKey("defaultzos") == true
 
-
 proc getActiveZosName*(): string =
   return appconfig["defaultzos"]
 
@@ -206,10 +205,6 @@ proc setdefault*(name="local", debug=false)=
   
 
 proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, vbox=false) =
-  if name == "app":
-    error("app is invalid machine name")
-    quit invalidMachineName
-  
   var tbl = loadConfig(configfile)
   debug(fmt("configured machine {name} on {address}:{port} isvbox:{vbox}"))
   tbl.setSectionKey(name, "address", address)
@@ -233,9 +228,6 @@ proc showActive*() =
   echo getActiveZosName()
 
 proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) = 
-  if name == "app":
-    error("app is invalid machine name")
-    quit invalidMachineName
   # TODO: add cores parameter.
   let isopath = downloadZOSIso()
   let (taken, byVm) = portAlreadyForwarded(redisPort)
@@ -750,6 +742,15 @@ proc sshEnable*(this: App, containerid:int): string =
   result = this.sshInfo(containerid)
 
 
+proc removeVmConfig*(this:App, name:string) = 
+  debug(fmt"removing vm info {name}")
+  let activeZos = getActiveZosName()
+  var tbl = loadConfig(configfile)
+  if tbl.hasKey(name):
+    tbl.del(name)
+  if activeZos == name:
+    tbl["app"].del("defaultzos")
+  tbl.writeConfig(configfile)
 
 # proc authorizeContainer(this:App, containerid:int, sshkey=""): int = 
 #   result = containerid
@@ -874,20 +875,19 @@ proc handleConfigured(args:Table[string, Value]) =
   
   proc handleRemove() = 
     let name = $args["--name"]
+    let activeZos = getActiveZosName()
     try:
       vmDelete(name)
       info(fmt"deleted vm {name}")
     except:
       discard # clear error here..
+    app.removeVmConfig(name)
+  
+  proc handleForgetVm() = 
+    let name = $args["--name"]
+    app.removeVmConfig(name)
   
   proc handleConfigure() =
-    try:
-      discard parseInt($args["--port"]):
-    except:
-      let invalidport = $args["--port"]
-      error(fmt"invalid port {invalidport}")
-      quit malformedArgs
-
     let name = $args["--name"]
     let address = $args["--address"]
     let port = parseInt($args["--port"])
@@ -1184,6 +1184,8 @@ proc handleConfigured(args:Table[string, Value]) =
     handleInit()
   elif args["remove"]:
     handleRemove()
+  elif args["forgetvm"]:
+    handleForgetVm()
   elif args["configure"]:
     handleConfigure()
   elif args["setdefault"]:

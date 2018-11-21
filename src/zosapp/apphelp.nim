@@ -14,6 +14,7 @@ Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
   zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault] [--vbox]
   zos remove --name=<zosmachine>
+  zos forgetvm --name=<zosmachine>
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
@@ -107,9 +108,16 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "remove":
     echo """
            zos remove --name=<zosmachine>
-            removes zero-os virtualbox machine. 
+            removes zero-os virtualbox machine and its configuration. 
 
     """
+  elif cmdname == "forgetvm":
+    echo """
+           zos forgetvm --name=<zosmachine>
+            removes machine configurations. 
+
+    """
+
   elif cmdname == "showconfig":
     echo """
         zos showconfig
