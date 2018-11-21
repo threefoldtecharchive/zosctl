@@ -132,7 +132,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
   try:
     port = parseInt(parsed)
   except:
-    warn("invalid port value: {parsed} will use default for now.")
+    warn(fmt"invalid port value: >{parsed}< will use default for now.")
   
   result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
@@ -1267,14 +1267,14 @@ when isMainModule:
     if args["--port"]:
       let port = $args["--port"]
       try:
-        discard parseInt($args["--port"])
+        discard parseInt($args["--port"]).Port
       except:
         error(fmt"invalid --port {port}")
         quit malformedArgs
     if args["--redisport"]:
       let redisport = $args["--redisport"]
       try:
-        discard parseInt($args["--redisport"])
+        discard parseInt($args["--redisport"]).Port
       except:
         error(fmt"invalid redisport {redisport}")
         quit malformedArgs
