@@ -1289,18 +1289,24 @@ when isMainModule:
         quit malformedArgs
     if args["--port"]:
       let port = $args["--port"]
-      try:
-        discard parseInt($args["--port"]).Port
-      except:
+      if port.isDigit():
+        if port.parseInt() > 65535:
+          error(fmt("invalid --port {port} > 65535 (max port number)"))
+          quit malformedArgs
+      else:
         error(fmt"invalid --port {port}")
         quit malformedArgs
+
     if args["--redisport"]:
       let redisport = $args["--redisport"]
-      try:
-        discard parseInt($args["--redisport"]).Port
-      except:
-        error(fmt"invalid redisport {redisport}")
+      if redisport.isDigit():
+        if redisport.parseInt() > 65535:
+          error(fmt("invalid --redisport {redisport} > 65535 (max port number)"))
+          quit malformedArgs
+      else:
+        error(fmt"invalid --redisport {redisport}")
         quit malformedArgs
+      
     if args["<id>"]:
       let contid = $args["<id>"]
       try:
