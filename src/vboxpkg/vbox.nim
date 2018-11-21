@@ -272,7 +272,7 @@ proc vmDelete*(this: VM|string) =
       try:
         discard executeVBoxManage(fmt"controlvm {vm.guid} poweroff")
       except:
-        discard
+        echo "ERROR: " & getCurrentExceptionMsg()
     # for d in vm.vmDisks():
     #   try:
     #   discard delete(d) 
@@ -281,7 +281,7 @@ proc vmDelete*(this: VM|string) =
     try:
       removeDir(vm.getPath())
     except:
-      discard
+      echo "ERROR: " & getCurrentExceptionMsg()
 
 
 proc portAlreadyForwarded*(p:int): (bool, string) =
