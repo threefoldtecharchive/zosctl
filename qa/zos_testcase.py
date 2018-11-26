@@ -1,7 +1,8 @@
 import os
+import json
 import unittest
 import subprocess
-#from parameterized import parameterized  (uncommit it when we use parameterized)
+from configparser import ConfigParser
 
 class SimpleTest(unittest.TestCase):
 
@@ -13,19 +14,23 @@ class SimpleTest(unittest.TestCase):
         """
         create VM instance and then create containers on top of it 
         """
-        self.default_init = subprocess.run(["./zos init --name=default_init --port=12345 --reset"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)  # need to use parameterization here (name , different size ,memeory , redis port)
+        self.default_init = subprocess.run(["./zos init --name=default_init --port=12345 --reset"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        self.default_init_1 = subprocess.run(["./zos init --name=default_init_1 --port=123456 --reset"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+
 
     def setUp(self):
         pass
 
     def test_setdefault():
         """
-        check if certain node is used as default or not using setdefault 
+        check if certain node is used as default or not
         """
         set_default = subprocess.run(["./zos setdefault default_init"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        show_active = subprocess.run(["./zos showactive"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        show_active_instance = show_active.stdout.decode().strip('\n')
-        self.assertEqual(show_active_instance, "default_init", msg="default_init VM is used as default instance")
+        # check if the default_init node is used as default or not
+        parser = ConfigParser()
+        parser.read("~/.config/zos.toml')
+        node = parser.get('app', 'defaultzos')
+        assertEqual(node,'default_init' , msg = "default_init node is set as default")   # check with Thabet
 
     def test_ping(self):
         """
@@ -40,28 +45,27 @@ class SimpleTest(unittest.TestCase):
 
     def test_showconfig(self):
         """
-        test showconfig command 
+            test showconfig command 
         """
         showconfig =  subprocess.run(["./zos showconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        test_show_config = showconfig.stderr.decode()
-        self.assertEqual(test_show_config, None, msg="showconfig is done correctly without any output error message")
+        output = showconfig.stdout.decode()
+        self.assertIn("defaultzos", output, msg="showconfig command is working correctly")
 
     def test_showactive(self):
         """
-        test showactive command
+            test showactive command
         """
         showactive =  subprocess.run(["./zos showactive"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        show_active_instance = show_active.stdout.decode().strip('\n')
-        self.assertEqual(show_active_instance, "default_init", msg="default_init VM is used as default instance")
+        output = showactive.stdout.decode()
+        self.assertIn("default_init", output, msg="default_init node is an active node")
 
     def test_showactiveconfig(self):
         showactiveconfig =  subprocess.run(["./zos showactiveconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        show_active_config = showactiveconfig.stdout.decode().strip("\n")
-        self.assertEqual(show_active_config, '{"address": "127.0.0.1", "port": "12345", "isvbox": "true"}', msg="showactiveconfig command is working correctly")
+        
 
     def test_create_container():   ##################################################################################################################
         """
-        test create container 
+            test create container 
         """
         container1 =  subprocess.run(["./zos container new --name=container1 --root=https://hub.grid.tf/thabet/redis.flist"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         container2 =  subprocess.run(["./zos container new --name=container2"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)  # need to test that the container is created correctly
