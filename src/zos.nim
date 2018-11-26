@@ -463,7 +463,7 @@ proc getContainerIp(this:App, containerid: int): string =
     except:
       error(fmt"couldn't get {containerid} host ip {hostIp}")
   else:
-    error("couldn't get {containerid} host ip")
+    error(fmt"couldn't get {containerid} host ip")
     quit noHostOnlyInterfaceIp
 
 
@@ -652,7 +652,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
         "flist": sshflist
       }
       let command = "corex.flist-layer"
-      this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
+      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
     info("SSH support enabled")
     this.setContainerKV(containerid, "layeredssh", "true")
   
