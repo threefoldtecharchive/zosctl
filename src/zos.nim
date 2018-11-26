@@ -407,6 +407,37 @@ proc getLastContainerId(this:App): int =
     error("zos can only be used to manage containers created by it.")
     quit didntCreateZosContainersYet
 
+
+proc getZerotierIp(this:App, containerid:int): string = 
+
+  if this.existsContainerKey(containerid, "zerotierip") and ($this.getContainerKey(containerid, "zerotierip")).count(".") == 3:
+    return this.getContainerKey(containerid, "zerotierip") 
+  for trial in countup(0, 120):
+    try:
+      let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
+      let parsedZts = parseJson(ztsJson)
+      if len(parsedZts)>0:
+        let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
+        for el in assignedAddresses:
+          var ip = el.getStr()
+          if ip.count('.') == 3:
+            # potential ip4
+            if ip.contains("/"):
+              ip = ip[0..<ip.find("/")]
+            try:
+              ip = $parseIpAddress(ip)
+              this.setContainerKV(containerid, "zerotierip", ip)
+              return ip
+            except:
+              sleep(1000)
+    except:
+      info("retrying to get connectivity information.")
+      discard
+    sleep(1000)
+  error(fmt"couldn't get zerotier information for container {containerid}")
+  quit cantGetZerotierInfo
+
+
 proc getContainerIp(this:App, containerid: int): string = 
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
@@ -415,45 +446,25 @@ proc getContainerIp(this:App, containerid: int): string =
   var ip = ""
 
   info("waiting for private network connectivity")
-  
+
   if this.existsContainerKey(containerid, "ip") and ($this.getContainerKey(containerid, "ip")).count(".") == 3:
      return this.getContainerKey(containerid, "ip") 
-  if not invbox:
-    for trial in countup(0, 120):
-      try:
-        let ztsJson = zosCoreWithJsonNode(this.currentconnection, "corex.zerotier.list", %*{"container":containerid})
-        let parsedZts = parseJson(ztsJson)
-        if len(parsedZts)>0:
-          let assignedAddresses = parsedZts[0]["assignedAddresses"].getElems()
-          for el in assignedAddresses:
-            var ip = el.getStr()
-            if ip.count('.') == 3:
-              # potential ip4
-              if ip.contains("/"):
-                ip = ip[0..<ip.find("/")]
-              try:
-                ip = $parseIpAddress(ip)
-                this.setContainerKV(containerid, "ip", ip)
-                return ip
-              except:
-                sleep(1000)
-      except:
-        info("retrying to get connectivity information.")
-        discard
-      sleep(1000)
-    error(fmt"couldn't get zerotier information for container {containerid}")
+
+  var hostIp = ""
+  if invbox:
+    hostIp = this.currentconnection().getZosHostOnlyInterfaceIp()
   else:
-    let hostIp = this.currentconnection().getZosHostOnlyInterfaceIp()
-    if hostIp != "":
-      try:
-        discard $parseIpAddress(hostIp)
-        this.setContainerKV(containerid, "ip", hostIp)
-        return hostIp
-      except:
-        error(fmt"couldn't get {containerid} host ip {hostIp}")
-    else:
-      error("couldn't get {containerid} host ip")
-      quit noHostOnlyInterfaceIp
+    hostIp = getCurrentConnectionConfig().address
+  if hostIp != "":
+    try:
+      discard $parseIpAddress(hostIp)
+      this.setContainerKV(containerid, "ip", hostIp)
+      return hostIp
+    except:
+      error(fmt"couldn't get {containerid} host ip {hostIp}")
+  else:
+    error(fmt"couldn't get {containerid} host ip")
+    quit noHostOnlyInterfaceIp
 
 
 proc getContainerConfig(this:App, containerid:int): Table[string, string] = 
@@ -530,10 +541,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     extraArgs["env"][k] = %*v
  
   if not extraArgs.hasKey("nics"):
-    if not activeZosIsVbox():
-      extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
-    else:
-      extraArgs["nics"] = %*[ %*{"type": "default"}]
+    extraArgs["nics"] = %*[ %*{"type": "default"}, %*{"type": "zerotier", "id":zerotierId}]
 
   if not extraArgs.hasKey("config"):
     extraArgs["config"] = newJObject()
@@ -577,7 +585,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   let appconfig = getAppConfig() 
   let command = "corex.create"
   
-  # info(fmt"new container: {command} {args}")
   info(fmt"sending instructions to host")
 
   let containerid = this.currentconnection().zosCoreWithJsonNode(command, args, timeout, debug)
@@ -585,7 +592,6 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     result = parseInt(containerid)
     discard this.currentconnection.setk("zos:lastcontainerid", containerid)
   except:
-    # if debug:
     error(getCurrentExceptionMsg())
     error("couldn't create container")
     quit cantCreateContainer
@@ -593,16 +599,15 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   info(fmt"container {result} is created.")
 
   var containerSshport = 22
-  if activeZosIsVbox():
-    args = %*{
-      "number": 1
-    }
-    try:
-      containerSshport = this.currentconnection().zosCoreWithJsonNode("socat.reserve", args).parseJson()[0].getInt()
-    except:
-      error(fmt"can't reserve port for container {result}")
-      error(getCurrentExceptionMsg())
-      quit cantReservePort
+  args = %*{
+    "number": 1
+  }
+  try:
+    containerSshport = this.currentconnection().zosCoreWithJsonNode("socat.reserve", args).parseJson()[0].getInt()
+  except:
+    error(fmt"can't reserve port for container {result}")
+    error(getCurrentExceptionMsg())
+    quit cantReservePort
 
   var tbl = loadConfig(configfile)
   this.setContainerKV(result, "sshkey", configuredsshkey)
@@ -610,21 +615,19 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   this.setContainerKV(result, "sshenabled", "false")
   this.setContainerKV(result, "sshport", $containerSshport)
   
-  if activeZosIsVbox() :
-
-    # now create portforward on zos host (sshport) to 22 on that container.
-    args = %*{
-      "port": containerSshport,
-    }
-    info(fmt"opening port {containerSshport}")
-    discard this.currentconnection().zosCoreWithJsonNode("nft.open_port", args)
-    args = %*{ 
-      "container": parseInt(containerid),
-      "host_port": $containerSshport,
-      "container_port": 22
-    }
-    discard this.currentconnection().zosCoreWithJsonNode("corex.portforward-add", args)
-    info(fmt"creating portforward from {containerSshport} to 22")
+  # now create portforward on zos host (sshport) to 22 on that container.
+  args = %*{
+    "port": containerSshport,
+  }
+  info(fmt"opening port {containerSshport}")
+  discard this.currentconnection().zosCoreWithJsonNode("nft.open_port", args)
+  args = %*{ 
+    "container": parseInt(containerid),
+    "host_port": $containerSshport,
+    "container_port": 22
+  }
+  discard this.currentconnection().zosCoreWithJsonNode("corex.portforward-add", args)
+  info(fmt"creating portforward from {containerSshport} to 22")
 
 
 proc layerSSH(this:App, containerid:int, timeout=30) =
@@ -649,7 +652,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
         "flist": sshflist
       }
       let command = "corex.flist-layer"
-      echo this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
+      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, debug)
     info("SSH support enabled")
     this.setContainerKV(containerid, "layeredssh", "true")
   
@@ -687,9 +690,9 @@ proc sshInfo*(this:App, containerid: int): string =
 
   if not invbox:
     if configuredsshkey != "false":
-      result = fmt"""root@{contIp} -i {configuredsshkey}"""
+      result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
     else:
-      result = fmt"""root@{contIp}"""
+      result = fmt"""root@{contIp} -p {sshport}"""
   else:
     if configuredsshkey != "false":
       result = fmt"""root@{contIp} -p {sshport} -i {configuredsshkey}"""
