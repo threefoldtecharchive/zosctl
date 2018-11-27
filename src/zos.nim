@@ -5,10 +5,9 @@ import algorithm
 import base64
 import redisclient, redisparser, docopt
 #import spinny, colorize
-import logging
+
 import vboxpkg/vbox
 import zosclientpkg/zosclient
-import zosapp/logger
 import zosapp/settings
 import zosapp/apphelp
 import zosapp/sshexec
@@ -16,7 +15,10 @@ import zosapp/errorcodes
 import zosapp/hostnamegenerator
 
 
-
+var L* = newConsoleLogger(levelThreshold=lvlInfo)
+var fL* = newFileLogger("zos.log", levelThreshold=lvlAll, fmtStr = verboseFmtStr)
+addHandler(L)
+addHandler(fL)
 
 let sshtools = @["ssh", "scp", "sshfs"]
 
@@ -1184,7 +1186,7 @@ proc handleConfigured(args:Table[string, Value]) =
     # commands requires active zos connection.
     try:
       var con = app.currentconnection()
-      con.timeout = appTimeout # 5000
+      con.timeout = 5000
       if existsEnv("ZOS_JWT"):
         # info("Authenticating to secure ZOS.")
         let res = $con.execCommand("AUTH", getEnv("ZOS_JWT"))
@@ -1251,9 +1253,85 @@ proc handleConfigured(args:Table[string, Value]) =
       getHelp("")
       quit unknownCommand
 
+const buildBranchName = staticExec("git rev-parse --abbrev-ref HEAD")
+const buildCommit = staticExec("git rev-parse HEAD")
+      
 
 when isMainModule:
+  proc checkArgs(args: Table[string, Value]) =
+    # check
+    if args["--name"]:
+      if $args["--name"] == "app":
+        error("invalid name app")
+        quit malformedArgs
+    if args["--disksize"]:
+      let disksize = $args["--disksize"]
+      try:
+        discard parseInt($args["--disksize"])
+      except:
+        error("invalid --disksize {disksize}")
+        quit malformedArgs
+    if args["--memory"]:
+      let memory = $args["--memory"]
+      try:
+        discard parseInt($args["--memory"])
+      except:
+        error("invalid --memory {memory}")
+        quit malformedArgs
+    if args["--address"]:
+      let address = $args["--address"]
+      try:
+        discard $parseIpAddress(address) 
+      except:
+        error(fmt"invalid --address {address}")
+        quit malformedArgs
+    if args["--port"]:
+      let port = $args["--port"]
+      var porterror =false
+      if not port.isDigit():
+        porterror = true
+      try:
+        if port.parseInt() > 65535: # may raise overflow error
+          porterror = true
+      except:
+          porterror = true
+      
+      if porterror:
+        error(fmt("invalid --port {port} (should be a number and less than 65535)"))
+        quit malformedArgs 
+
+    if args["--redisport"]:
+      let redisport = $args["--redisport"]
+      var porterror = false
+      if not redisport.isDigit():
+        porterror = true
+      try:
+        if redisport.parseInt() > 65535: # may raise overflow error
+          porterror = true
+      except:
+        porterror = true
+    
+      if porterror:
+        error(fmt"invalid --redisport {redisport} (should be a number and less than 65535)")
+        quit malformedArgs
+      
+    if args["<id>"]:
+      let contid = $args["<id>"]
+      try:
+        discard parseInt($args["<id>"])
+      except:
+        error(fmt"invalid container id {contid}")
+        quit malformedArgs
+    if args["--jsonargs"]:
+      let jsonargs = $args["--jsonargs"]
+      try:
+        discard parseJson($args["--jsonargs"])
+      except:
+        error("invalid --jsonargs {jsonargs}")
+        quit malformedArgs
+    
   let args = docopt(doc, version=fmt"zos 0.1.0 ({buildBranchName}#{buildCommit})")
+
   checkArgs(args)
   if args["help"] and args["<cmdname>"]:
     getHelp($args["<cmdname>"])
