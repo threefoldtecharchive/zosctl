@@ -1,4 +1,5 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
+import errorcodes, logger, logging, net, docopt
 
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
@@ -219,3 +220,76 @@ proc getHelp*(cmdname:string) =
     echo firstTimeMessage
     echo doc
 
+
+proc checkArgs*(args: Table[string, Value]) =
+  # check
+  if args["--name"]:
+    if $args["--name"] == "app":
+      error("invalid name app")
+      quit malformedArgs
+  if args["--disksize"]:
+    let disksize = $args["--disksize"]
+    try:
+      discard parseInt($args["--disksize"])
+    except:
+      error("invalid --disksize {disksize}")
+      quit malformedArgs
+  if args["--memory"]:
+    let memory = $args["--memory"]
+    try:
+      discard parseInt($args["--memory"])
+    except:
+      error("invalid --memory {memory}")
+      quit malformedArgs
+  if args["--address"]:
+    let address = $args["--address"]
+    try:
+      discard $parseIpAddress(address) 
+    except:
+      error(fmt"invalid --address {address}")
+      quit malformedArgs
+  if args["--port"]:
+    let port = $args["--port"]
+    var porterror =false
+    if not port.isDigit():
+      porterror = true
+    try:
+      if port.parseInt() > 65535: # may raise overflow error
+        porterror = true
+    except:
+        porterror = true
+    
+    if porterror:
+      error(fmt("invalid --port {port} (should be a number and less than 65535)"))
+      quit malformedArgs 
+
+  if args["--redisport"]:
+    let redisport = $args["--redisport"]
+    var porterror = false
+    if not redisport.isDigit():
+      porterror = true
+    try:
+      if redisport.parseInt() > 65535: # may raise overflow error
+        porterror = true
+    except:
+      porterror = true
+  
+    if porterror:
+      error(fmt"invalid --redisport {redisport} (should be a number and less than 65535)")
+      quit malformedArgs
+    
+  if args["<id>"]:
+    let contid = $args["<id>"]
+    try:
+      discard parseInt($args["<id>"])
+    except:
+      error(fmt"invalid container id {contid}")
+      quit malformedArgs
+  if args["--jsonargs"]:
+    let jsonargs = $args["--jsonargs"]
+    try:
+      discard parseJson($args["--jsonargs"])
+    except:
+      error("invalid --jsonargs {jsonargs}")
+      quit malformedArgs
+  
