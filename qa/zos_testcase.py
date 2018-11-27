@@ -2,6 +2,7 @@ import os
 import json
 import unittest
 import subprocess
+from jumpscale import j
 from configparser import ConfigParser
 
 class SimpleTest(unittest.TestCase):
@@ -61,20 +62,23 @@ class SimpleTest(unittest.TestCase):
 
     def test_showactiveconfig(self):
         showactiveconfig =  subprocess.run(["./zos showactiveconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        
+        output = json.loads(showactiveconfig.stdout.decode())
+        # need to check if the output contains (address, isvbox, port)
+        if 'address' and 'isvbox' and 'port' not in output:
+            raise ValueError("wrong output") 
 
-    def test_create_container():   ##################################################################################################################
+    def test_create_container(): 
         """
             test create container 
+            connect to vm instance remotely using js9 client and check the new created vms 
         """
         container1 =  subprocess.run(["./zos container new --name=container1 --root=https://hub.grid.tf/thabet/redis.flist"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        container2 =  subprocess.run(["./zos container new --name=container2"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)  # need to test that the container is created correctly
-        ############ need to test that the container is created correctly  ########################################
-        # return continer ID
-        container_num = container.stdout.decode().split("\n")[2].split(":")[-1]
-        return container_num   # need to make this like list to save all container num id 
-
-    def test_containers_list(self):    ################################################################################################################
+        container2 =  subprocess.run(["./zos container new --name=container2"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
+        test_con = j.clients.zos.get('test', data={'host':'127.0.0.1', 'port':'12345'})
+        con_list = test_con.containers.list()
+        self.assertIn("3" and "2", con_list.keys(), msg="two containers are created correctly")
+        
+    def test_containers_list(self):    
         """
             test list containers
         """
