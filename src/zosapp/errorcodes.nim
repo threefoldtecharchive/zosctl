@@ -24,7 +24,8 @@ let invalidMachineName* = 22
 let cantGetZerotierInfo* = 23
 let cmdFailed* = 24
 let cantReservePort* = 25
-
+let invalidJwt* = 26
+let cantPingZos* = 27
 # """
 # errorCodes
 # 1: can't create configdir

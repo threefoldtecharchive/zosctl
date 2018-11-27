@@ -1187,7 +1187,17 @@ proc handleConfigured(args:Table[string, Value]) =
     try:
       var con = app.currentconnection()
       con.timeout = 5000
-      discard con.execCommand("PING", @[])
+      if existsEnv("ZOS_JWT"):
+        # info("Authenticating to secure ZOS.")
+        let res = $con.execCommand("AUTH", getEnv("ZOS_JWT"))
+        if not res.contains("OK"):
+          echo res
+          quit invalidJwt
+
+      let res = $con.execCommand("PING", @[])
+      if not res.contains("PONG"):
+        error(fmt"[-]can't ping zos. if running in secure mode make sure ZOS_JWT is set correctly.")
+        quit cantPingZos
       con.timeout = 0
     except:
       echo(getCurrentExceptionMsg())
