@@ -31,7 +31,7 @@ class SimpleTest(unittest.TestCase):
         parser = ConfigParser()
         parser.read("~/.config/zos.toml')
         node = parser.get('app', 'defaultzos')
-        assertEqual(node,'default_init' , msg = "default_init node is set as default")   # check with Thabet
+        assertEqual(node,'default_init' , msg = "default_init node is set as default")   # check with Thabet about the file
 
     def test_ping(self):
         """
@@ -62,10 +62,11 @@ class SimpleTest(unittest.TestCase):
 
     def test_showactiveconfig(self):
         showactiveconfig =  subprocess.run(["./zos showactiveconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        output = json.loads(showactiveconfig.stdout.decode())
+        output_showactiveconfig = json.loads(showactiveconfig.stdout.decode())
         # need to check if the output contains (address, isvbox, port)
-        if 'address' and 'isvbox' and 'port' not in output:
-            raise ValueError("wrong output") 
+        self.assertIn("address", output_showactiveconfig.keys(), msg=None)
+        self.assertIn("port", output_showactiveconfig.keys(), msg=None)
+        self.assertIn("isvbox", output_showactiveconfig.keys(), msg=None)
 
     def test_create_container(): 
         """
@@ -76,17 +77,25 @@ class SimpleTest(unittest.TestCase):
         container2 =  subprocess.run(["./zos container new --name=container2"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
         test_con = j.clients.zos.get('test', data={'host':'127.0.0.1', 'port':'12345'})
         con_list = test_con.containers.list()
-        self.assertIn("3" and "2", con_list.keys(), msg="two containers are created correctly")
-        
-    def test_containers_list(self):    
+        self.assertIn("2", con_list.keys(), msg="first container is created correctly")
+        self.assertIn("3", con_list.keys(), msg="second container is created correctly")
+
+    def test_containers_list(self):     
         """
             test list containers
         """
-        container_list = subprocess.run(["./zos container list --json"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) # need to test the output 
-        
+        container_list = subprocess.run(["./zos container list --json"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
+        output_container_list = json.loads(container_list.stdout.decode())
+        self.assertIn("id", output_container_list, msg=None)
+        self.assertIn("cpu", output_container_list, msg=None)
+        self.assertIn("root", output_container_list, msg=None)
+        self.assertIn("storage", output_container_list, msg=None)
+        self.assertIn("pid", output_container_list, msg=None)
+        self.assertIn("ports", output_container_list, msg="container list command is working correctly")
+
     def test_containers_info(self):
         """
-        show summarized container info
+            show summarized container info
         """
         container_info = subprocess.run(["./zos container info"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
         container_info_json = subprocess.run(["./zos container info --json"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)  
@@ -134,8 +143,6 @@ class SimpleTest(unittest.TestCase):
         file_test = os.system('touch /tmp/test') 
         file_upload_file = subprocess.run(["./zos container upload /tmp/test /tmp/"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         # check if the file is uploaded correctly or not using zos exec command line
-
-
 
     def tearDown(self):
         pass
