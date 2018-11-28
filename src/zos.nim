@@ -351,11 +351,11 @@ proc handleConfigured(args:Table[string, Value]) =
       info(fmt"deleted vm {name}")
     except:
       debug("vm delete error: " & getCurrentExceptionMsg())
-    app.removeVmConfig(name)
+    removeVmConfig(name)
   
   proc handleForgetVm() = 
     let name = $args["--name"]
-    app.removeVmConfig(name)
+    removeVmConfig(name)
   
   proc handleConfigure() =
     let name = $args["--name"]
