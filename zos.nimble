@@ -15,6 +15,12 @@ requires "nim >= 0.19", "docopt#head", "redisclient >= 0.1.1", "asciitables >= 0
 task zos, "Creating zos binary":
     exec "nimble build -d:ssl --threads:on"
 
+task genDocs, "Create code documentation for zos":
+    exec "nim doc  --threads:on --project src/zos.nim "
+
+task zosMac, "Create zos binary for mac":
+    exec "bash build.sh"
+
 task zosStatic, "Creating static binary":
     exec "nim musl --threads:on -d:release -d:pcre -d:openssl src/zos.nim"
     exec "cp zos zosStatic"

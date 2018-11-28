@@ -1,38 +1,28 @@
 
-let cantCreateConfigDir* = 1
-let sshKeyNotFound* = 2
-let containerNotFound* = 3
-let vboxNotInstalled* = 4
-let unconfiguredZos* = 5
-let unknownCommand* = 6
-let depsNotInstalled* = 7
-let portForwardExists* = 8
-let cantFindSshKeys* = 9
-let sshIsntEnabled* = 10
-let fileDoesntExist* = 11
-let unreachableZos* = 12
-let cantCreateContainer* = 13
-let generalError* = 14
-let malformedArgs* = 15
-let containerDoesntExist* = 16
-let instanceNotConfigured* = 17
-let pathAlreadyMounted* = 18
-let noHostonlyInterface* = 19
-let didntCreateZosContainersYet* = 20
-let noHostOnlyInterfaceIp* = 21
-let invalidMachineName* = 22
-let cantGetZerotierInfo* = 23
-let cmdFailed* = 24
-let cantReservePort* = 25
-let invalidJwt* = 26
-let cantPingZos* = 27
-# """
-# errorCodes
-# 1: can't create configDir
-# 2: sshkey not found
-# 3: container not found
-# 4: vbox not found
-# 5: unconfigured zos
-# 6: unknown command
-# 7: ssh tools not installed
-# """
+let cantCreateConfigDir* = 1                     ## Can't create configuration directory
+let sshKeyNotFound* = 2                          ## ssh key wasn't found.
+let containerNotFound* = 3                       ## Container isn't found
+let vboxNotInstalled* = 4                        ## Virtualbox isn't installed
+let unconfiguredZos* = 5                         ## Zos is unconfigured
+let unknownCommand* = 6                          ## Unknown command
+let depsNotInstalled* = 7                        ## Zos dependencies aren't installed.
+let portForwardExists* = 8                       ## Portforward exists already
+let cantFindSshKeys* = 9                         ## Can't find sshkeys.
+let sshIsntEnabled* = 10                         ## SSH isn't enabled
+let fileDoesntExist* = 11                        ## File Doesn't exist.
+let unreachableZos* = 12                         ## Zos is unreachable
+let cantCreateContainer* = 13                    ## Can't create container 
+let generalError* = 14                           ## General Error (check zos.log for more debugging information)
+let malformedArgs* = 15                          ## Arguments passed are incorrect 
+let containerDoesntExist* = 16                   ## Cibtauber doesn't exist.
+let instanceNotConfigured* = 17                  ## Instance not configured
+let pathAlreadyMounted* = 18                     ## Path is already mounted
+let noHostonlyInterface* = 19                    ## Virtualbox machine is started without hostonly interface
+let didntCreateZosContainersYet* = 20            ## Didn't create any containers using zos yet.
+let noHostOnlyInterfaceIp* = 21                  ## Can't resolve hostonly interface IP
+let invalidMachineName* = 22                     ## Invalid machine name
+let cantGetZerotierInfo* = 23                    ## Can't get zerotier information
+let cmdFailed* = 24                              ## command execution failed
+let cantReservePort* = 25                        ## Can't reserve port
+let invalidJwt* = 26                             ## JWT is invalid
+let cantPingZos* = 27                            ## Can't ping Zero-OS machine

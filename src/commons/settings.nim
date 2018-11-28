@@ -7,16 +7,16 @@ import ./errorcodes
 let configDir* = ospaths.getConfigDir()
 let configFile* = configDir / "zos.toml"
 
-let appTimeout* = 30 
+let appTimeout* = 30
 let pingTimeout* = 5
 
 let appDeps* = @["ssh", "scp", "sshfs"]
-
 
 const buildBranchName* = staticExec("git rev-parse --abbrev-ref HEAD")
 const buildCommit* = staticExec("git rev-parse HEAD")
 
 proc depsCheck*() = 
+  ## Checks for dependencies for zos (mainly ssh tools ssh, scp, sshfs)
   for b in appDeps:
     if findExe(b) == "":
       error(fmt"Application dependencies aren't installed: can't find {b} in \$PATH")
@@ -33,6 +33,7 @@ Host *
 """
 
 proc prepareConfig*() = 
+  ## Prepare configuration environment for zos
   try:
     createDir(configDir)
   except:
@@ -63,23 +64,30 @@ prepareConfig()
       
 
 proc getAppConfig*(): OrderedTableRef[string, string] =
+  ## Gets the application section configuration
   let tbl = loadConfig(configFile)
   result = tbl.getOrDefault("app")
 
 let appconfig* = getAppConfig()
 
 proc isConfigured*(): bool =
+  ## Checks if zos is already configured or not
   return appconfig.hasKey("defaultzos") == true
 
 proc getActiveZosName*(): string =
+  ## Gets the current active machine zos configured against.
   return appconfig["defaultzos"]
 
 
 proc isDebug*(): bool =
-  return appconfig["debug"] == "true"
+  ## Checks if the application running in debug mode
+  return appconfig["debug"] == "true" or (os.existsEnv("ZOS_DEBUG") and os.getEnv("ZOS_DEBUG") == "1")
   
 
 proc getZerotierId*(): string =
+  ## Gets the zerotier zos configured against 
+  ## By default it's the TF_GRID_PUBLIC network 
+  ## Can be overriden using GRID_ZEROTIER_ID_TESTING env variable 
   if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
     result = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
   else:
@@ -90,16 +98,19 @@ let zerotierId* = getZerotierId()
 
 
 type ZosConnectionConfig*  = object
-      name*: string
-      address*: string
-      port*: int
-      sshkey*: string 
-      isvbox*: bool
+  ## Zero-OS machine configuration object 
+  name*: string
+  address*: string
+  port*: int
+  sshkey*: string 
+  isvbox*: bool
 
 proc newZosConnectionConfig*(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa", isvbox=false): ZosConnectionConfig  = 
+  ## Create new ZosConnectionConfig
   result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, isvbox:isvbox)
   
 proc getConnectionConfigForInstance*(name: string): ZosConnectionConfig  =
+  ## Get ZosConnectionConfig object for a specific instance
   var tbl = loadConfig(configFile)
   let address = tbl.getSectionValue(name, "address")
   let parsed = tbl.getSectionValue(name, "port")
@@ -122,9 +133,11 @@ proc getConnectionConfigForInstance*(name: string): ZosConnectionConfig  =
   result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
 
 proc getCurrentConnectionConfig*(): ZosConnectionConfig =
+  ## Get the current connection configuration ZosConnectionConfig object.
   let tbl = loadConfig(configFile)
   let name = tbl.getSectionValue("app", "defaultzos")
   result = getConnectionConfigForInstance(name)
 
 proc activeZosIsVbox*(): bool = 
+  ## Returns true if the current machine is in VirtualBox
   return getCurrentConnectionConfig().isvbox == true
