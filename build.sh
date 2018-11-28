@@ -18,3 +18,4 @@ brew install openssl@1.1
 sudo nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
 
 sudo cp src/zos /usr/local/bin/zos
+sudo cp src/zos /usr/local/bin/zosMac

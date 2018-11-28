@@ -815,6 +815,7 @@ let right = @[
 ]
 
 proc getRandomName*(): string =
+  ## Generate random hostname for containers.
   randomize()
   let randomLeft = rand(left)
   let randomRight = rand(right)

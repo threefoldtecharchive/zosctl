@@ -14,20 +14,25 @@ proc sshExec*(cmd:string): int =
 #   echo cmd
 
 proc getAgentPublicKeys*(): string = 
+  ## Extract Public keys loaded in Agent
   let (output, rc) = execCmdEx("ssh-add -L")
   if rc == 0:
     return $output
 
 proc getPublicSshKeyByName*(keyname="id_rsa"): string =
+  ## Get public key content by key name `keyname`
   let path = getHomeDir() / ".ssh" / fmt"{keyname}.pub"
   if fileExists(path):
     result = readFile(path)
 
 proc getPublicSshkeyFromKeyPath*(keypath=getHomeDir()/".ssh"/"id_rsa"):string = 
+  ## Get public key content from full path
   if fileExists(keypath):
     result = readFile(keypath & ".pub")
 
 proc rsyncUpload*(src: string, sshDest:string, isDir=false,extraflags=""):string =
+  ## Format SCP command to upload `src` to `sshDest`
+  ## isDir is false by default (set to true in case of uploading directories)
   var rflag = ""
   if isDir:
     rflag = "-r"
@@ -36,6 +41,8 @@ proc rsyncUpload*(src: string, sshDest:string, isDir=false,extraflags=""):string
   echo result 
 
 proc rsyncDownload*(sshSrc:string , dest:string, isDir=false, extraflags=""):string = 
+  ## Format SCP command to download `src` to `dest`
+  ## isDir is false by default (set to true in case of uploading directories)
   var rflag = ""
   if isDir:
     rflag = "-r"

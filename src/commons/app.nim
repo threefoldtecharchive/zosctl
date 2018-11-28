@@ -52,12 +52,12 @@ proc initApp*(): App =
 
 
 proc cmd*(this:App, command: string="core.ping", arguments="{}", timeout=5): string =
-  result = this.currentconnection.zosCore(command, arguments, timeout, isDebug())
+  result = this.currentconnection.zosCore(command, arguments, timeout)
   debug(fmt"executing zero-os command: {command}\nresult:{result}")
   echo $result
 
-proc exec*(this:App, command: string="hostname", timeout:int=5, debug=isDebug()): string =
-  result = this.currentconnection.zosBash(command,timeout, isDebug())
+proc exec*(this:App, command: string="hostname", timeout:int=5): string =
+  result = this.currentconnection.zosBash(command,timeout)
   debug(fmt"executing shell command: {command}\nresult:{result}")
   echo $result
 
@@ -259,7 +259,7 @@ proc layerSSH*(this:App, containerid:int, timeout=30) =
         "flist": sshflist
       }
       let command = "corex.flist-layer"
-      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout, isDebug())
+      discard this.currentconnection.zosCoreWithJsonNode(command, args, timeout)
     info("SSH support enabled")
     this.setContainerKV(containerid, "layeredssh", "true")
   
@@ -268,18 +268,18 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
   let activeZos = getActiveZosName()
   let command = "corex.terminate"
   let arguments = %*{"container": containerid}
-  discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout, isDebug())
+  discard this.currentconnection.zosCoreWithJsonNode(command, arguments, timeout)
 
   
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
-  result = this.currentconnection.containersCore(containerid, command, "", timeout, isDebug())
+  result = this.currentconnection.containersCore(containerid, command, "", timeout)
   echo $result
   
 proc execContainerSilently*(this:App, containerid:int, command: string="hostname", timeout=5): string =
-  result = this.currentconnection.containersCore(containerid, command, "", timeout, isDebug())
+  result = this.currentconnection.containersCore(containerid, command, "", timeout)
 
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
-  result = this.currentconnection.zosContainerCmd(containerid, command, timeout, isDebug())
+  result = this.currentconnection.zosContainerCmd(containerid, command, timeout)
   echo $result  
 
   

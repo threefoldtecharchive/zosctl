@@ -81,6 +81,7 @@ Options:
 
 
 proc getHelp*(cmdname:string) =
+  ## Shows help for certain command or all if `cmdname` is empty.
   if cmdname == "":
     echo doc 
   elif cmdname == "init":
@@ -223,7 +224,8 @@ proc getHelp*(cmdname:string) =
     echo doc
 
 proc checkArgs*(args: Table[string, Value]) =
-  # check
+  ## Entry point for checking arguments passed to zos if they're valid
+  ## `args` are coming from docopt parsing
   if args["--name"]:
     if $args["--name"] == "app":
       error("invalid name app")
