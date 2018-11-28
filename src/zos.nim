@@ -1,71 +1,29 @@
-import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
-import net, asyncdispatch, asyncnet, streams, threadpool
+import strutils, strformat, os, ospaths, osproc, tables, parsecfg, json, marshal, logging
+import net, asyncdispatch, asyncnet, streams, threadpool, uri
 import logging
 import algorithm
 import base64
-import redisclient, redisparser, docopt
+
+import redisclient, redisparser
+import docopt
 #import spinny, colorize
+
+import commons/logger
+import commons/settings
+import commons/apphelp
+import commons/sshexec
+import commons/errorcodes
+import commons/hostnamegenerator
 
 import vboxpkg/vbox
 import zosclientpkg/zosclient
-import zosapp/settings
-import zosapp/apphelp
-import zosapp/sshexec
-import zosapp/errorcodes
-import zosapp/hostnamegenerator
 
 
-var L* = newConsoleLogger(levelThreshold=lvlInfo)
-var fL* = newFileLogger("zos.log", levelThreshold=lvlAll, fmtStr = verboseFmtStr)
-addHandler(L)
-addHandler(fL)
-
-let sshtools = @["ssh", "scp", "sshfs"]
-
-proc sshBinsCheck() = 
-  for b in sshtools:
-    if findExe(b) == "":
-      error(fmt"ssh tools aren't installed: can't find {b} in \$PATH")
-      quit sshToolsNotInstalled
-
-proc prepareConfig() = 
-  try:
-    createDir(configdir)
-  except:
-    error(fmt"couldn't create {configdir}")
-    quit cantCreateConfigDir
-
-  if not fileExists(configfile):
-    open(configfile, fmWrite).close()
-    var t = loadConfig(configfile)
-    t.setSectionKey("app", "debug", "false")
-    t.writeConfig(configfile)
-    info(firstTimeMessage)
-  
-  let sshconfigFile = getHomeDir() / ".ssh" / "config"
-  let sshconfigFileBackup = getHomeDir() / ".ssh" / "config.backup"
-  let sshconfigTemplate = """
-Host *
-  StrictHostKeyChecking no
-  ForwardAgent yes
-
-"""
-  if fileExists(sshconfigFile):
-    let content = readFile(sshconfigFile)
-    if not content.contains(sshconfigTemplate):
-      copyFile(sshconfigFile, sshconfigFileBackup)
-      debug(fmt"copied {sshconfigFile} to {sshconfigFileBackup}")
-      let oldContent = readFile(sshconfigFile)
-      let newContent = sshconfigTemplate & oldContent 
-      writeFile(sshconfigFile, sshconfigTemplate)
-  else:
-      writeFile(sshconfigFile, sshconfigTemplate)
-
-
+depsCheck()
 prepareConfig()
 
 proc getAppConfig(): OrderedTableRef[string, string] =
-  let tbl = loadConfig(configfile)
+  let tbl = loadConfig(configFile)
   result = tbl.getOrDefault("app")
 
 let appconfig = getAppConfig()
@@ -101,7 +59,7 @@ proc newZosConnectionConfig(name, address: string, port:int, sshkey=getHomeDir()
   result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, isvbox:isvbox)
   
 proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
   let address = tbl.getSectionValue(name, "address")
   let parsed = tbl.getSectionValue(name, "port")
   let sshkey = tbl.getSectionValue(name, "sshkey")
@@ -113,7 +71,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
     debug(fmt"machine {name} is not on virtualbox")
     discard
   
-  tbl.writeConfig(configfile)
+  tbl.writeConfig(configFile)
   var port = 6379
   try:
     port = parseInt(parsed)
@@ -124,7 +82,7 @@ proc getConnectionConfigForInstance(name: string): ZosConnectionConfig  =
 
 
 proc getCurrentConnectionConfig(): ZosConnectionConfig =
-  let tbl = loadConfig(configfile)
+  let tbl = loadConfig(configFile)
   let name = tbl.getSectionValue("app", "defaultzos")
   result = getConnectionConfigForInstance(name)
 
@@ -171,32 +129,32 @@ proc exec*(this:App, command: string="hostname", timeout:int=5, debug=false): st
   echo $result
 
 proc setdefault*(name="local", debug=false)=
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
   if not tbl.hasKey(name):
     error(fmt"instance {name} isn't configured to be used as default")
     quit instanceNotConfigured
   tbl.setSectionKey("app", "defaultzos", name)
   tbl.setSectionKey("app", "debug", $debug)
   debug(fmt("changed defaultzos to {name}"))
-  tbl.writeConfig(configfile)
+  tbl.writeConfig(configFile)
   
 
 proc configure*(name="local", address="127.0.0.1", port=4444, setdefault=false, vbox=false) =
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
   debug(fmt("configured machine {name} on {address}:{port} isvbox:{vbox}"))
   tbl.setSectionKey(name, "address", address)
   tbl.setSectionKey(name, "port", $port)
   tbl.setSectionKey(name, "isvbox", $(vbox==true))
 
-  tbl.writeConfig(configfile)
+  tbl.writeConfig(configFile)
   if setdefault or not isConfigured():
     setdefault(name)
   
 proc showconfig*() =
-  echo readFile(configfile)
+  echo readFile(configFile)
 
 proc showDefaultConfig*() =
-  let tbl = loadConfig(configfile)
+  let tbl = loadConfig(configFile)
   let activeZos = getActiveZosName()
   if tbl.hasKey(activeZos):
     echo tbl[activeZos]
@@ -247,11 +205,11 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
   
 # proc removeContainerFromConfig*(this:App, containerid:int) =
 #   let activeZos = getActiveZosName()
-#   var tbl = loadConfig(configfile)
+#   var tbl = loadConfig(configFile)
 #   let containerKey = fmt"container-{activeZos}-{containerid}"
 #   if tbl.hasKey(containerKey):
 #     tbl.del(containerKey)
-#   tbl.writeConfig(configfile)
+#   tbl.writeConfig(configFile)
 
 proc containersInspect(this:App): string=
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
@@ -373,11 +331,11 @@ proc containersInfo(this:App, showjson=false): string =
       result = ""
 
 # proc syncContainersIds(this: App) =
-#   # updates the configfile with the still existing containers.
+#   # updates the configFile with the still existing containers.
 #   # less likely we will need to crossreference against the IPs to make sure
 #   # if they're the same containers or the node was reinstalled?
 #   let activeZos = getActiveZosName()
-#   let conf = loadConfig(configfile)
+#   let conf = loadConfig(configFile)
 
 #   var containersIds:seq[int] = @[]
 #   for sectionKey, tbl in conf:
@@ -609,7 +567,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
     error(getCurrentExceptionMsg())
     quit cantReservePort
 
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
   this.setContainerKV(result, "sshkey", configuredsshkey)
   this.setContainerKV(result, "layeredssh", "false")
   this.setContainerKV(result, "sshenabled", "false")
@@ -635,7 +593,7 @@ proc layerSSH(this:App, containerid:int, timeout=30) =
   #let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
   let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist"
 
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
 
   let layeredssh = this.getContainerKey(containerid, "layeredssh") 
 
@@ -732,12 +690,12 @@ proc sshEnable*(this: App, containerid:int): string =
 proc removeVmConfig*(this:App, name:string) = 
   debug(fmt"removing vm info {name}")
   let activeZos = getActiveZosName()
-  var tbl = loadConfig(configfile)
+  var tbl = loadConfig(configFile)
   if tbl.hasKey(name):
     tbl.del(name)
   if activeZos == name:
     tbl["app"].del("defaultzos")
-  tbl.writeConfig(configfile)
+  tbl.writeConfig(configFile)
 
 # proc authorizeContainer(this:App, containerid:int, sshkey=""): int = 
 #   result = containerid
@@ -1253,8 +1211,6 @@ proc handleConfigured(args:Table[string, Value]) =
       getHelp("")
       quit unknownCommand
 
-const buildBranchName = staticExec("git rev-parse --abbrev-ref HEAD")
-const buildCommit = staticExec("git rev-parse HEAD")
       
 
 when isMainModule:

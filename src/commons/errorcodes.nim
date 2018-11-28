@@ -5,7 +5,7 @@ let containerNotFound* = 3
 let vboxNotInstalled* = 4
 let unconfiguredZos* = 5
 let unknownCommand* = 6
-let sshToolsNotInstalled* = 7
+let depsNotInstalled* = 7
 let portForwardExists* = 8
 let cantFindSshKeys* = 9
 let sshIsntEnabled* = 10
@@ -28,7 +28,7 @@ let invalidJwt* = 26
 let cantPingZos* = 27
 # """
 # errorCodes
-# 1: can't create configdir
+# 1: can't create configDir
 # 2: sshkey not found
 # 3: container not found
 # 4: vbox not found
