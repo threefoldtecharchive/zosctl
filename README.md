@@ -72,6 +72,16 @@ To configure an existing zos machine named `local` to use address `192.168.122.1
 
 more on [configure command](doc/cmds/configure.md)
 
+## Communicating with Zero-OS in production mode
+- `zos` assumes the machine is running in `development` mode and that doesn't require `jwt token`.
+
+- if machine is running in `production` you will need `ZOS_JWT` env variable (to prove you're part of support or specific organization set in the boot params) 
+
+### Setting ZOS_JWT
+```
+ export ZOS_JWT='eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCJ9.eyJhenAiOiJjYXBhY2l0eWxvY2FsIiwiZXhwIjoxNTQzNDA1MTUzLCJnbG9iYWxpZCI6ImNhcGFjaXR5bG9jYWwiLCJpc3MiOiJpdHN5b3VvbmxpbmUiLCJyZWZyZXNoX3Rva2VuIjoidldqRjdvU05ndm9UeldsRU9CeHFVMktzQkhhNiIsInNjb3Blx....'
+ ```
+
 ## Zos configurations
 - Configurations `zos.toml` is saved in your configurations directory (e.g `~/.config` in linux)
 
@@ -91,7 +101,6 @@ address=127.0.0.1
 port=12345
 isvbox=true
 lastsshport=19021
-
 ```
 
 - `defaultzos` means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`

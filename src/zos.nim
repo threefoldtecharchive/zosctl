@@ -6,7 +6,6 @@ import base64
 
 import redisclient, redisparser
 import docopt
-#import spinny, colorize
 
 import commons/logger
 import commons/settings
@@ -15,10 +14,8 @@ import commons/sshexec
 import commons/errorcodes
 import commons/hostnamegenerator
 import commons/app
-
 import vboxpkg/vbox
 import zosclientpkg/zosclient
-
 
 
 proc setdefault*(name="local", debug=isDebug())=
@@ -262,7 +259,6 @@ proc handleUnconfigured(args:Table[string, Value]) =
     let memory = parseInt($args["--memory"])
     let redisport = parseInt($args["--redisport"])
     init(name, disksize, memory, redisport)
-
 
   elif args["configure"]:
     let name = $args["--name"]
@@ -696,13 +692,11 @@ proc handleConfigured(args:Table[string, Value]) =
       getHelp("")
       quit unknownCommand
 
-      
 
 when isMainModule:
- 
   let args = docopt(doc, version=fmt"zos 0.1.0 ({buildBranchName}#{buildCommit})")
-
   checkArgs(args)
+
   if args["help"] and args["<cmdname>"]:
     getHelp($args["<cmdname>"])
     quit 0
