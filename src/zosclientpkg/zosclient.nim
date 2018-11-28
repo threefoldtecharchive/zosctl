@@ -26,8 +26,6 @@ proc getResponseString*(con: Redis, id: string, timeout=10): string =
       except:
         sleep(2000)
     
-
-
 proc outputFromResponse*(resp: string): string =
   let parsed = parseJson(resp)
   let response_state = $parsed["state"].getStr()
@@ -67,6 +65,9 @@ Complete response:
         result = streamerr
 
 proc zosSend*(con: Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5, debug=false): string =
+  if existsEnv("ZOS_JWT"):
+    # info("Authenticating..")
+    discard con.execCommand("AUTH", getEnv("ZOS_JWT"))
   let cmdid = payload["id"].getStr()
 
   if debug == true:
