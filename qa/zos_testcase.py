@@ -106,15 +106,33 @@ class SimpleTest(unittest.TestCase):
 
     def file_upload(self):
         """
-            function to test upload & download for 
-            files and directories from and to certain continer
+            function to test upload for files to certain continer
         """
-        con_num = self.create_container()
         # create file to test upload function
         file_test = os.system('touch /tmp/test') 
         file_upload_file = subprocess.run(["./zos container upload /tmp/test /tmp/"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         # check if the file is uploaded correctly or not using zos exec command line
 
+    def container_mount(self):
+        """
+            test mount command 
+        """
+        os.system("mkdir /tmp/testmount")
+        test_container_mount = subprocess.run(["./zos container mount / /tmp/testmount"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        os.system("ls /tmp/ | grep testmount")
+        
+
+    def container_delete(self):
+        """
+            test delete container function
+        """
+        # delete the last container (container 3) which i just created
+        delete_container = subprocess.run(["./zos container delete"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        # check the list of containers on vm instance node
+        test_con = j.clients.zos.get('test', data={'host':'127.0.0.1', 'port':'12345'})
+        con_list = test_con.containers.list()
+        ########--> 
+    
     def tearDown(self):
         pass
 
