@@ -56,3 +56,75 @@ proc prepareConfig*() =
       writeFile(sshconfigFile, sshconfigTemplate)
   else:
       writeFile(sshconfigFile, sshconfigTemplate)
+
+
+depsCheck()
+prepareConfig()
+      
+
+proc getAppConfig*(): OrderedTableRef[string, string] =
+  let tbl = loadConfig(configFile)
+  result = tbl.getOrDefault("app")
+
+let appconfig* = getAppConfig()
+
+proc isConfigured*(): bool =
+  return appconfig.hasKey("defaultzos") == true
+
+proc getActiveZosName*(): string =
+  return appconfig["defaultzos"]
+
+
+proc isDebug*(): bool =
+  return appconfig["debug"] == "true"
+  
+
+proc getZerotierId*(): string =
+  if os.existsEnv("GRID_ZEROTIER_ID_TESTING"):
+    result = os.getEnv("GRID_ZEROTIER_ID_TESTING")    
+  else:
+    result = os.getEnv("GRID_ZEROTIER_ID", "9bee8941b5717835") # pub tf network.
+  debug(fmt"using zerotier network {result}")
+
+let zerotierId* = getZerotierId()
+
+
+type ZosConnectionConfig*  = object
+      name*: string
+      address*: string
+      port*: int
+      sshkey*: string 
+      isvbox*: bool
+
+proc newZosConnectionConfig*(name, address: string, port:int, sshkey=getHomeDir()/".ssh/id_rsa", isvbox=false): ZosConnectionConfig  = 
+  result = ZosConnectionConfig(name:name, address:address, port:port, sshkey:sshkey, isvbox:isvbox)
+  
+proc getConnectionConfigForInstance*(name: string): ZosConnectionConfig  =
+  var tbl = loadConfig(configFile)
+  let address = tbl.getSectionValue(name, "address")
+  let parsed = tbl.getSectionValue(name, "port")
+  let sshkey = tbl.getSectionValue(name, "sshkey")
+
+  var isvbox = false
+  try:
+    isvbox = tbl.getSectionValue(name, "isvbox") == "true"
+  except:
+    debug(fmt"machine {name} is not on virtualbox")
+    discard
+  
+  tbl.writeConfig(configFile)
+  var port = 6379
+  try:
+    port = parseInt(parsed)
+  except:
+    warn(fmt"invalid port value: >{parsed}< will use default for now.")
+  
+  result = newZosConnectionConfig(name, address, port, sshkey, isvbox)
+
+proc getCurrentConnectionConfig*(): ZosConnectionConfig =
+  let tbl = loadConfig(configFile)
+  let name = tbl.getSectionValue("app", "defaultzos")
+  result = getConnectionConfigForInstance(name)
+
+proc activeZosIsVbox*(): bool = 
+  return getCurrentConnectionConfig().isvbox == true

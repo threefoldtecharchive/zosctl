@@ -1,4 +1,7 @@
-import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
+import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal, net, logging
+import docopt 
+import ./logger
+import ./errorcodes
 
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
@@ -219,7 +222,7 @@ proc getHelp*(cmdname:string) =
     echo firstTimeMessage
     echo doc
 
-proc checkArgs(args: Table[string, Value]) =
+proc checkArgs*(args: Table[string, Value]) =
   # check
   if args["--name"]:
     if $args["--name"] == "app":
