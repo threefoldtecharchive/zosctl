@@ -1,6 +1,7 @@
 import random
 
-# Names taken from moby https://raw.githubusercontent.com/moby/moby/master/pkg/namesgenerator/names-generator.go
+## hostnamegenerator generate random hostnames for the containers in zos
+## Names are taken from moby https://raw.githubusercontent.com/moby/moby/master/pkg/namesgenerator/names-generator.go
 
 
 let left = @[
@@ -815,6 +816,7 @@ let right = @[
 ]
 
 proc getRandomName*(): string =
+  ## Generate random hostname for containers.
   randomize()
   let randomLeft = rand(left)
   let randomRight = rand(right)

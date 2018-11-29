@@ -1,16 +1,17 @@
 
-example basic script how to install a full local jumpscale
+example basic script how to install a full local jumpscale in ZOS
+
+Don't forget to intstall ZeroTier and configure the right network:
+
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.
 
 ```bash
 
-export name="jumpscale"
+#if you didn't init you zos environment yet do (WILL RESET)
+zos init --name=default --memory=4 --reset
+
 #get container
 zos container new --name=js9 
-
-zos container sshenable
-
-#not really needed but good practice
-zos container exec "apt update;apt upgrade -y"
 
 #install jumpscale 
 zos container exec "curl https://raw.githubusercontent.com/threefoldtech/jumpscale_core/development_960/install.sh?$RANDOM > /tmp/install_jumpscale.sh;bash /tmp/install_jumpscale.sh"

@@ -1,55 +1,28 @@
 # zos
 zos is container manager for [zero-os operating system](https://github.com/threefoldtech/0-core) and it can be used on local or remote zos machine (development mode). using zos you can spawn containers, ssh into them, mount certain directories over ssh and [plenty more](doc/cmds/README.md).
 
-## Nim installation
-https://nim-lang.org/install.html (0.19 is required)
 
-## Nimble installation
-https://github.com/nim-lang/nimble#installation (0.9 is required)
+## Install
 
+dynamically linked requires pcre, and openssl
 
-### Binaries
-- [Linux](https://github.com/threefoldtech/zos/releases) (dynamically linked requires pcre, and openssl)
+- [releases for OSX & Linux](https://github.com/threefoldtech/zos/releases) 
 
-## Building the project
+just download this binary and copy to e.g. /usr/local/bin
 
-- clone `git clone https://github.com/threefoldtech/zos`
-- switch to directory `cd zos` 
-- build using `nimble zos`
+if you want to build see [here how to build](doc/building.md)
 
-### Building on OSX 
+## Where to get started.
 
+Don't forget to intstall ZeroTier and configure the right network:
 
-```bash
-#example script to install
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.
 
-brew install nim 
-mkdir -p  ~/code/github;cd ~/code/github
-git clone https://github.com/threefoldtech/zos 
-cd zos
-sudo nimble build -d:ssl --threads:on
-sudo cp zos /usr/local/bin
-```
-> You can use install_osx.sh the repository
+A quick and easy tutorial [can be found here](doc/tutorials/jumpscale_container_fresh_install.md)
 
-
-#### OpenSSL problems on Mac 
-Having version less than 1.1 will require an upgrade (or at least having the new version available on the system)
-
-- `brew install openssl@1.1`
-- build the binary
-```bash
-nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:'-I/usr/local/opt/openssl\@1.1/include/' --passL:'-lssl -lcrypto -lpcre' --passL:'-L/usr/local/opt/openssl\@1.1/lib/' src/zos.nim
-```
-- `cp src/zos /usr/local/bin`
-
-
-### Examples on OSX
-
-```bash
-#example script to install
-bash install_osx.sh
-```
+- [Building](building.md)
+- Detailed [Commands reference](cmds/README.md)
+- Source code generated [documentation](https://htmlpreview.github.io/?https://raw.githubusercontent.com/threefoldtech/zos/development/src/htmldocs/zos.html)
 
 ## Commands documentation
 zos commands documentation is available at [Commands reference](doc/cmds/README.md)
@@ -65,7 +38,7 @@ To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--sshkey=<sshkeyname>] [--secret=<secret>]
 ```
 
-## Preparing local Zero-OS machine
+### Preparing local Zero-OS machine
 ```bash
 zos init --name=mymachine [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 ```
@@ -101,28 +74,35 @@ To configure an existing zos machine named `local` to use address `192.168.122.1
 
 more on [configure command](doc/cmds/configure.md)
 
+## Communicating with Zero-OS in production mode
+- `zos` assumes the machine is running in `development` mode and that doesn't require `jwt token`.
+
+- if machine is running in `production` you will need `ZOS_JWT` env variable (to prove you're part of support or specific organization set in the boot params) 
+
+### Setting ZOS_JWT
+```
+ export ZOS_JWT='eyJhbGciOiJFUzM4NCIsInR5cCI6IkpXVCJ9.eyJhenAiOiJjYXBhY2l0eWxvY2FsIiwiZXhwIjoxNTQzNDA1MTUzLCJnbG9iYWxpZCI6ImNhcGFjaXR5bG9jYWwiLCJpc3MiOiJpdHN5b3VvbmxpbmUiLCJyZWZyZXNoX3Rva2VuIjoidldqRjdvU05ndm9UeldsRU9CeHFVMktzQkhhNiIsInNjb3Blx....'
+ ```
+
 ## Zos configurations
 - Configurations `zos.toml` is saved in your configurations directory (e.g `~/.config` in linux)
 
 
 - You should you [`zos showconfig`](doc/cmds/showconfig.md) to see the current configurations 
 
-```bash
+```
 [app]
 debug=false
-defaultzos=firstmachine
+defaultzos=local
+[dm]
+address=10.102.115.21
+port=6379
+lastsshport=22
 [local]
 address=127.0.0.1
-port=7777
-[container-mycont]
-sshenabled=false
-[container-cont1]
-sshenabled=true
-ip=10.244.106.212
-[firstmachine]
-address=127.0.0.1
-port=5555
-
+port=12345
+isvbox=true
+lastsshport=19021
 ```
 
 - `defaultzos` means the active zos machine to be used in zos interactions and its connection information is in section `firstmachine`
@@ -334,7 +314,7 @@ ssh root@10.244.104.71
 
 ```
 
-more info on [container sshenable](doc/cmds/container_sshenable)
+more info on [container sshenable](doc/cmds/container_sshenable.md)
 
 > Can be called without argument and will enable ssh on the last container created.
 
@@ -353,7 +333,7 @@ Last login: Tue Oct 16 08:33:38 2018 from 10.244.131.242
 root@reem2:~# 
 
 ```
-more info on [container shell](doc/cmds/container_shell)
+more info on [container shell](doc/cmds/container_shell.md)
 
 ### Upload/Download files 
 ```bash

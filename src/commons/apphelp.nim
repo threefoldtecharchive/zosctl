@@ -1,4 +1,10 @@
-import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal
+import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal, net, logging
+import docopt 
+import ./logger
+import ./errorcodes
+
+## apphelp module has all the information related to the commands allowed to zos
+## and the logic to check the arguments in `checkArgs` proc
 
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
@@ -12,11 +18,14 @@ To configure it to use a specific zosmachine
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
-  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault]
+  zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault] [--vbox]
   zos remove --name=<zosmachine>
+  zos forgetvm --name=<zosmachine>
   zos ping
   zos showconfig
   zos setdefault <zosmachine>
+  zos showactiveconfig
+  zos showactive
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
   zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
@@ -28,7 +37,10 @@ Usage:
   zos container <id> delete
   zos container <id> zerotierinfo
   zos container <id> zerotierlist
+  zos container zerotierinfo
+  zos container zerotierlist
   zos container <id> zosexec <command>
+  zos container zosexec <command>
   zos container <id> sshenable
   zos container <id> sshinfo
   zos container <id> shell
@@ -46,7 +58,6 @@ Usage:
   zos container upload <file> <dest>
   zos container download <file> <dest>
   zos help <cmdname>
-
   zos --version
 
 
@@ -73,6 +84,7 @@ Options:
 
 
 proc getHelp*(cmdname:string) =
+  ## Shows help for certain command or all if `cmdname` is empty.
   if cmdname == "":
     echo doc 
   elif cmdname == "init":
@@ -103,18 +115,36 @@ proc getHelp*(cmdname:string) =
   elif cmdname == "remove":
     echo """
            zos remove --name=<zosmachine>
-            removes zero-os virtualbox machine 
+            removes zero-os virtualbox machine and its configuration. 
 
     """
+  elif cmdname == "forgetvm":
+    echo """
+           zos forgetvm --name=<zosmachine>
+            removes machine configurations. 
+
+    """
+
   elif cmdname == "showconfig":
     echo """
         zos showconfig
-            Shows application config
+            shows application config
         """
   elif cmdname == "setdefault":
     echo """
         zos setdefault <zosmachine>
-          Sets the default instance to work with
+          sets the default instance to work with.
+    """
+  elif cmdname == "showdefault":
+    echo """
+        zos showdefault
+          shows default configured instance.
+
+    """
+  elif cmdname == "showactive":
+    echo """
+        zos showactive
+          shows active machine zos configured against.
     """
   elif cmdname == "cmd":
     echo """
@@ -196,3 +226,76 @@ proc getHelp*(cmdname:string) =
     echo firstTimeMessage
     echo doc
 
+proc checkArgs*(args: Table[string, Value]) =
+  ## Entry point for checking arguments passed to zos if they're valid
+  ## `args` are coming from docopt parsing
+  if args["--name"]:
+    if $args["--name"] == "app":
+      error("invalid name app")
+      quit malformedArgs
+  if args["--disksize"]:
+    let disksize = $args["--disksize"]
+    try:
+      discard parseInt($args["--disksize"])
+    except:
+      error("invalid --disksize {disksize}")
+      quit malformedArgs
+  if args["--memory"]:
+    let memory = $args["--memory"]
+    try:
+      discard parseInt($args["--memory"])
+    except:
+      error("invalid --memory {memory}")
+      quit malformedArgs
+  if args["--address"]:
+    let address = $args["--address"]
+    try:
+      discard $parseIpAddress(address) 
+    except:
+      error(fmt"invalid --address {address}")
+      quit malformedArgs
+  if args["--port"]:
+    let port = $args["--port"]
+    var porterror =false
+    if not port.isDigit():
+      porterror = true
+    try:
+      if port.parseInt() > 65535: # may raise overflow error
+        porterror = true
+    except:
+        porterror = true
+    
+    if porterror:
+      error(fmt("invalid --port {port} (should be a number and less than 65535)"))
+      quit malformedArgs 
+
+  if args["--redisport"]:
+    let redisport = $args["--redisport"]
+    var porterror = false
+    if not redisport.isDigit():
+      porterror = true
+    try:
+      if redisport.parseInt() > 65535: # may raise overflow error
+        porterror = true
+    except:
+      porterror = true
+  
+    if porterror:
+      error(fmt"invalid --redisport {redisport} (should be a number and less than 65535)")
+      quit malformedArgs
+    
+  if args["<id>"]:
+    let contid = $args["<id>"]
+    try:
+      discard parseInt($args["<id>"])
+    except:
+      error(fmt"invalid container id {contid}")
+      quit malformedArgs
+  if args["--jsonargs"]:
+    let jsonargs = $args["--jsonargs"]
+    try:
+      discard parseJson($args["--jsonargs"])
+    except:
+      error("invalid --jsonargs {jsonargs}")
+      quit malformedArgs
+  
