@@ -5,6 +5,23 @@ import uuids, json, tables, net, strformat, asyncdispatch, asyncnet, strutils, o
 import ../commons/settings
 import ../commons/logger
 
+## zosclient module is responsible for all the communication with zero-os 
+## sending commands and retrieving the results as they're ready
+##
+## the main high level construct to send command (as plain string e.g core.ping) and arguments as json serialized as string
+## 
+## dispatching command to zero-os
+##    1- generate a UUID for the command to be able to query its result using `newUUID`
+##    2- create flag key `result:id:flag`           using `flagifyId`
+##    3- rpush the payload to core.default queue   
+##    4- brpoplpush  BRPOPLPUSH the flag 
+##    5- when flag key exists 
+##    6-    we brpoplpush result key `result:id`
+## 
+##    steps 3, 4 are done in zosSend
+##    the rest are done it `getResponseString` and `outputFromResponse`
+
+
 proc flagifyId*(id: string): string =
   ## Creates flag key for command with id `id`
   result = fmt"result:{id}:flag" 

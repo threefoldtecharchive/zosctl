@@ -270,8 +270,7 @@ proc getContainerIp*(this:App, containerid: int): string =
 proc getContainerConfig*(this:App, containerid:int): Table[string, string] = 
   ## Gets a table of container info (port and IP)
   let activeZos = getActiveZosName()
-  
-  var result = initTable[string, string]()
+  result = initTable[string, string]()
   result["port"] = $this.getContainerKey(containerid, "sshport")
   result["ip"] = $this.getContainerIp(containerid)
 

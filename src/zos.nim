@@ -286,6 +286,7 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
 
 proc handleUnconfigured(args:Table[string, Value]) =
   ## Handle the case of unconfigured `zos`
+  ## responsible for init, configure, setdefault commands
   if args["init"]:
     if findExe("vboxmanage") == "":
       error("please make sure to have VirtualBox installed")
@@ -310,6 +311,8 @@ proc handleUnconfigured(args:Table[string, Value]) =
     setdefault(name)
 
 proc handleConfigured(args:Table[string, Value]) = 
+  ## handle commands of configured zos
+  ## all of the available commands
   let app = initApp()
   
   proc handleInit() = 
