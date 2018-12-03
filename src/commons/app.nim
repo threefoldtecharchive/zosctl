@@ -23,12 +23,16 @@ import ../zosclientpkg/zosclient
 
 
 type App* = object of RootObj
+  ## App type represents zos application 
+  ## currentconnectionConfig the redis connection information (address and port.)
   currentconnectionConfig*:  ZosConnectionConfig
 
 proc currentconnection*(this: App): Redis =
+  ## Gets the current connection to the active zos machine.
   result = open(this.currentconnectionConfig.address, this.currentconnectionConfig.port.Port, true)
 
 proc setContainerKV*(this:App, containerid:int, k, v: string) =
+  ## Set containerid related key `k` to value `v`
   let theKey = fmt"container:{containerid}:{k}"
   discard this.currentconnection().setk(theKey, v)
 
@@ -37,36 +41,48 @@ proc setContainerKV*(this:App, containerid:int, k, v: string) =
 #   discard this.currentconnection().del(theKey, [theKey])
 
 proc getContainerKey*(this: App, containerid:int, k:string): string =
+  ## Get containerid related key `k`
   let theKey = fmt"container:{containerid}:{k}"
   # echo fmt"getting key {theKey}"
   result = $this.currentconnection().get(theKey)
 
 proc existsContainerKey*(this: App, containerid:int, k:string): bool =
+  ## Check if key `k` exists related to container with id `containerid`
   let theKey = fmt"container:{containerid}:{k}"
   result = this.currentconnection().exists(theKey) 
 
 
 proc initApp*(): App = 
+  ## Initialize Application 
+  ## Returns App object
   let currentconnectionConfig =  getCurrentConnectionConfig()
   result = App(currentconnectionConfig:currentconnectionConfig)
 
 
 proc cmd*(this:App, command: string="core.ping", arguments="{}", timeout=5): string =
+  ## Execute command `command` with json serialized arguments `arguments`
+  ## command: any valid zero-os command (default core.ping)
+  ## arguments: serialized json string
   result = this.currentconnection.zosCore(command, arguments, timeout)
   debug(fmt"executing zero-os command: {command}\nresult:{result}")
   echo $result
 
 proc exec*(this:App, command: string="hostname", timeout:int=5): string =
+  ## Execute command `command` in shell in zero-os
+  ## command: any valid shell command (default is hostname)
   result = this.currentconnection.zosBash(command,timeout)
   debug(fmt"executing shell command: {command}\nresult:{result}")
   echo $result
 
-
 proc containersInspect*(this:App): string=
+  ## Inspects the containers in the active zero-os machine
+  ## returns json result of all containers info
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
   result = resp.pretty(2)
 
 proc containerInspect*(this:App, containerid:int): string =
+  ## Inspects the container `containerid` in the active zero-os machine
+  ## returns json result of `containerid` info
   let resp = parseJson(this.currentconnection.zosCoreWithJsonNode("corex.list", nil))
   if not resp.hasKey($containerid):
     error(fmt"container {containerid} not found.")
@@ -75,6 +91,15 @@ proc containerInspect*(this:App, containerid:int): string =
     result = resp[$containerid].pretty(2) 
 
 type ContainerInfo* = object of RootObj
+  ## Type representing container info
+  ## id: container id
+  ## CPU: cpu utilization
+  ## root: flist the container is started from
+  ## hostname: container hostname
+  ## name: container name
+  ## storage: storage the flist is loaded from (the hub)
+  ## pid: container process id
+  ## ports: forwarded ports from the host to the container
   id*: string
   cpu*: float
   root*: string
@@ -86,6 +111,7 @@ type ContainerInfo* = object of RootObj
 
 
 proc containerInfo*(this:App, containerid:int): string =
+  ## returns the container `containerid` info in the active zero-os machine as json.
   let parsedJson = parseJson(this.containerInspect(containerid))
   let id = $containerid
   let cpu = parsedJson["cpu"].getFloat()
@@ -107,6 +133,7 @@ proc containerInfo*(this:App, containerid:int): string =
 
 
 proc checkContainerExists*(this:App, containerid:int): bool=
+  ## checks if container `containerid` exists or not
   try:
     discard this.containerInfo(containerid)
     result = true
@@ -114,11 +141,14 @@ proc checkContainerExists*(this:App, containerid:int): bool=
     result = false
 
 proc quitIfContainerDoesntExist*(this: App, containerid:int) =
+  ## quits with `containerDoesntExist` error if container doesn't exist
   if not this.checkContainerExists(containerid):
     error(fmt("container {containerid} doesn't exist."))
     quit containerDoesntExist
 
 proc getContainerInfoList*(this:App): seq[ContainerInfo] =
+  ## Get container info list 
+  ## Returns a sequence of ContainerInfo objects
   result = newSeq[ContainerInfo]()
   let parsedJson = parseJson(this.containersInspect())
   if parsedJson.len > 0:
@@ -145,6 +175,10 @@ proc getContainerInfoList*(this:App): seq[ContainerInfo] =
     result = result.sortedByIt(parseInt(it.id))
   
 proc containersInfo*(this:App, showjson=false): string =
+  ## Gets all the container info
+  ## showjson: returns a json string if true
+  ##           otherwise with return an ascii table.
+
   let info = this.getContainerInfoList()
   
   if info.len == 0:
@@ -163,6 +197,9 @@ proc containersInfo*(this:App, showjson=false): string =
       result = t.render()
 
 proc getLastContainerId*(this:App): int = 
+  ## Gets the alst active container zos knows about
+  ## the last container id is stored in zero-os redis with key `zos:lastcontainerid`
+  ## if `zos:lastcontainerid` isn't set zos will quit with `didntCreateZosContainersYet` error.
   let exists = this.currentconnection().exists("zos:lastcontainerid")
   if exists:
     result = ($this.currentconnection().get("zos:lastcontainerid")).parseInt()
@@ -172,6 +209,7 @@ proc getLastContainerId*(this:App): int =
 
 
 proc getZerotierIp*(this:App, containerid:int): string = 
+  ## Get the zerotier ip for container `containerid`
   if this.existsContainerKey(containerid, "zerotierip") and ($this.getContainerKey(containerid, "zerotierip")).count(".") == 3:
     return this.getContainerKey(containerid, "zerotierip") 
   for trial in countup(0, 120):
@@ -201,6 +239,7 @@ proc getZerotierIp*(this:App, containerid:int): string =
 
 
 proc getContainerIp*(this:App, containerid: int): string = 
+  ## Get the IP of container `containerid`
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
 
@@ -229,15 +268,16 @@ proc getContainerIp*(this:App, containerid: int): string =
     quit noHostOnlyInterfaceIp
 
 proc getContainerConfig*(this:App, containerid:int): Table[string, string] = 
+  ## Gets a table of container info (port and IP)
   let activeZos = getActiveZosName()
-  
-  var result = initTable[string, string]()
+  result = initTable[string, string]()
   result["port"] = $this.getContainerKey(containerid, "sshport")
   result["ip"] = $this.getContainerIp(containerid)
 
   return result
 
 proc layerSSH*(this:App, containerid:int, timeout=30) =
+  ## Layers ssh supported flist on top of the current image if it doesn't support ssh service.
   let activeZos = getActiveZosName()
   #let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
   let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist"
@@ -265,6 +305,7 @@ proc layerSSH*(this:App, containerid:int, timeout=30) =
   
 
 proc stopContainer*(this:App, containerid:int, timeout=30) =
+  ## Stops the container `containerid`
   let activeZos = getActiveZosName()
   let command = "corex.terminate"
   let arguments = %*{"container": containerid}
@@ -272,10 +313,13 @@ proc stopContainer*(this:App, containerid:int, timeout=30) =
 
   
 proc execContainer*(this:App, containerid:int, command: string="hostname", timeout=5): string =
+  ## Execute command `command` on container with id `containerid`
+  ## And echos the result
   result = this.currentconnection.containersCore(containerid, command, "", timeout)
   echo $result
   
 proc execContainerSilently*(this:App, containerid:int, command: string="hostname", timeout=5): string =
+  ## Executes command `command` on container with id `containerid` 
   result = this.currentconnection.containersCore(containerid, command, "", timeout)
 
 proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): string =
@@ -284,6 +328,7 @@ proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): strin
 
   
 proc sshInfo*(this:App, containerid: int): string = 
+  ## Gets sshinfo (ip, sshport, key used) to connect to container `containerid`
   let activeZos = getActiveZosName()
   let invbox = activeZosIsVbox()
   
@@ -308,6 +353,7 @@ proc sshInfo*(this:App, containerid: int): string =
 
   
 proc sshEnable*(this: App, containerid:int): string =
+  ## Enables ssh service on container `containerid`
   let activeZos = getActiveZosName()
   this.layerSSH(containerid)
 
@@ -335,13 +381,3 @@ proc sshEnable*(this: App, containerid:int): string =
 
   result = this.sshInfo(containerid)
 
-  
-proc removeVmConfig*(this:App, name:string) = 
-  debug(fmt"removing vm info {name}")
-  let activeZos = getActiveZosName()
-  var tbl = loadConfig(configFile)
-  if tbl.hasKey(name):
-    tbl.del(name)
-  if activeZos == name:
-    tbl["app"].del("defaultzos")
-  tbl.writeConfig(configFile)

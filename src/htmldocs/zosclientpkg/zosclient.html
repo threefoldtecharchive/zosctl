@@ -1291,7 +1291,14 @@ function main() {
   </div>
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
-  <p class="module-desc"></p>
+  <p class="module-desc"><p>zosclient module is responsible for all the communication with zero-os sending commands and retrieving the results as they're ready</p>
+<p>the main high level construct to send command (as plain string e.g core.ping) and arguments as json serialized as string</p>
+<dl class="docutils"><dt>dispatching command to zero-os</dt>
+<dd><p>1- generate a UUID for the command to be able to query its result using <cite>newUUID</cite> 2- create flag key <cite>result:id:flag</cite>           using <cite>flagifyId</cite> 3- rpush the payload to core.default queue 4- brpoplpush  BRPOPLPUSH the flag 5- when flag key exists 6-    we brpoplpush result key <cite>result:id</cite></p>
+<p>steps 3, 4 are done in zosSend the rest are done it <cite>getResponseString</cite> and <cite>outputFromResponse</cite></p>
+</dd>
+</dl>
+</p>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
@@ -1395,7 +1402,7 @@ Get the Hostonly interface configured in Virtualbox for zero-os
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-11-28 12:45:26 UTC</small>
+        <small>Made with Nim. Generated: 2018-11-29 07:11:47 UTC</small>
       </div>
     </div>
   </div>

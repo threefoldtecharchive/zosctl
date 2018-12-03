@@ -1317,8 +1317,6 @@ function main() {
     title="sshInfo(this: App; containerid: int): string"><wbr />ssh<wbr />Info<span class="attachedType" style="visibility:hidden">App</span></a></li>
   <li><a class="reference" href="#sshEnable,App,int"
     title="sshEnable(this: App; containerid: int): string"><wbr />ssh<wbr />Enable<span class="attachedType" style="visibility:hidden">App</span></a></li>
-  <li><a class="reference" href="#removeVmConfig,App,string"
-    title="removeVmConfig(this: App; name: string)"><wbr />remove<wbr />Vm<wbr />Config<span class="attachedType" style="visibility:hidden">App</span></a></li>
 
   </ul>
 </li>
@@ -1341,7 +1339,7 @@ function main() {
   <span class="Identifier">currentconnectionConfig</span><span class="Operator">*</span><span class="Other">:</span> <a href="settings.html#ZosConnectionConfig"><span class="Identifier">ZosConnectionConfig</span></a>
 </pre></dt>
 <dd>
-
+App type represents zos application currentconnectionConfig the redis connection information (address and port.)
 
 </dd>
 <dt id="ContainerInfo"><a name="ContainerInfo"></a><pre><a href="app.html#ContainerInfo"><span class="Identifier">ContainerInfo</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">RootObj</span>
@@ -1355,7 +1353,7 @@ function main() {
   <span class="Identifier">ports</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
 </pre></dt>
 <dd>
-
+Type representing container info id: container id CPU: cpu utilization root: flist the container is started from hostname: container hostname name: container name storage: storage the flist is loaded from (the hub) pid: container process id ports: forwarded ports from the host to the container
 
 </dd>
 
@@ -1366,34 +1364,34 @@ function main() {
 <dt id="currentconnection"><a name="currentconnection,App"></a><pre><span class="Keyword">proc</span> <span class="Identifier">currentconnection</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Redis</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">SslError</span><span class="Other">]</span><span class="Other">,</span>
                                        <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Gets the current connection to the active zos machine.
 
 </dd>
 <dt id="setContainerKV"><a name="setContainerKV,App,int,string,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setContainerKV</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">k</span><span class="Other">,</span> <span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">SslError</span><span class="Other">,</span>
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
+Set containerid related key <cite>k</cite> to value <cite>v</cite>
 
 </dd>
 <dt id="getContainerKey"><a name="getContainerKey,App,int,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getContainerKey</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">k</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">SslError</span><span class="Other">,</span>
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
+Get containerid related key <cite>k</cite>
 
 </dd>
 <dt id="existsContainerKey"><a name="existsContainerKey,App,int,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">existsContainerKey</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">k</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
     <span class="Identifier">SslError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
+Check if key <cite>k</cite> exists related to container with id <cite>containerid</cite>
 
 </dd>
 <dt id="initApp"><a name="initApp,"></a><pre><span class="Keyword">proc</span> <span class="Identifier">initApp</span><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
                    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Initialize Application Returns App object
 
 </dd>
 <dt id="cmd"><a name="cmd,App,string,string,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">cmd</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">command</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;core.ping&quot;</span><span class="Other">;</span> <span class="Identifier">arguments</span> <span class="Other">=</span> <span class="StringLit">&quot;{}&quot;</span><span class="Other">;</span> <span class="Identifier">timeout</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
@@ -1401,9 +1399,7 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs a debug message to all registered handlers.</p>
-<p>Messages that are useful to the application developer only and are usually turned off in release.</p>
-
+Execute command <cite>command</cite> with json serialized arguments <cite>arguments</cite> command: any valid zero-os command (default core.ping) arguments: serialized json string
 
 </dd>
 <dt id="exec"><a name="exec,App,string,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">exec</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">command</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;hostname&quot;</span><span class="Other">;</span> <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
@@ -1411,9 +1407,7 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs a debug message to all registered handlers.</p>
-<p>Messages that are useful to the application developer only and are usually turned off in release.</p>
-
+Execute command <cite>command</cite> in shell in zero-os command: any valid shell command (default is hostname)
 
 </dd>
 <dt id="containersInspect"><a name="containersInspect,App"></a><pre><span class="Keyword">proc</span> <span class="Identifier">containersInspect</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
@@ -1421,7 +1415,7 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">OverflowError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
                          <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Inspects the containers in the active zero-os machine returns json result of all containers info
 
 </dd>
 <dt id="containerInspect"><a name="containerInspect,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">containerInspect</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1429,9 +1423,7 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">OverflowError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs an error message to all registered handlers.</p>
-<p>A application-level error condition. For example, some user input generated an exception. The application will continue to run, but functionality or data was impacted, possibly visible to users.</p>
-
+Inspects the container <cite>containerid</cite> in the active zero-os machine returns json result of <cite>containerid</cite> info
 
 </dd>
 <dt id="containerInfo"><a name="containerInfo,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">containerInfo</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1439,21 +1431,19 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">IndexError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-&quot;is greater&quot; operator. This is the same as <tt class="docutils literal"><span class="pre">y &lt; x</span></tt>.
+returns the container <cite>containerid</cite> info in the active zero-os machine as json.
 
 </dd>
 <dt id="checkContainerExists"><a name="checkContainerExists,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">checkContainerExists</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+checks if container <cite>containerid</cite> exists or not
 
 </dd>
 <dt id="quitIfContainerDoesntExist"><a name="quitIfContainerDoesntExist,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">quitIfContainerDoesntExist</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs an error message to all registered handlers.</p>
-<p>A application-level error condition. For example, some user input generated an exception. The application will continue to run, but functionality or data was impacted, possibly visible to users.</p>
-
+quits with <cite>containerDoesntExist</cite> error if container doesn't exist
 
 </dd>
 <dt id="getContainerInfoList"><a name="getContainerInfoList,App"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getContainerInfoList</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="app.html#ContainerInfo"><span class="Identifier">ContainerInfo</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1461,7 +1451,7 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">OverflowError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-&quot;is greater&quot; operator. This is the same as <tt class="docutils literal"><span class="pre">y &lt; x</span></tt>.
+Get container info list Returns a sequence of ContainerInfo objects
 
 </dd>
 <dt id="containersInfo"><a name="containersInfo,App"></a><pre><span class="Keyword">proc</span> <span class="Identifier">containersInfo</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">showjson</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1469,8 +1459,9 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">IndexError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs an info message to all registered handlers.</p>
-<p>Messages that are generated during the normal operation of an application and are of no particular importance. Useful to aggregate for potential later analysis.</p>
+Gets all the container info<dl class="docutils"><dt>showjson: returns a json string if true</dt>
+<dd>otherwise with return an ascii table.</dd>
+</dl>
 
 
 </dd>
@@ -1478,16 +1469,14 @@ An alias for <tt class="docutils literal"><span class="pre">&amp;</span></tt>.
     <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
     <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs an error message to all registered handlers.</p>
-<p>A application-level error condition. For example, some user input generated an exception. The application will continue to run, but functionality or data was impacted, possibly visible to users.</p>
-
+Gets the alst active container zos knows about the last container id is stored in zero-os redis with key <cite>zos:lastcontainerid</cite> if <cite>zos:lastcontainerid</cite> isn't set zos will quit with <cite>didntCreateZosContainersYet</cite> error.
 
 </dd>
 <dt id="getZerotierIp"><a name="getZerotierIp,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getZerotierIp</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">SslError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
     <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">TimeoutError</span><span class="Other">,</span> <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-Counts from ordinal value <cite>a</cite> up to <cite>b</cite> (inclusive) with the given step count. <cite>S</cite>, <cite>T</cite> may be any ordinal type, <cite>step</cite> may only be positive. <strong>Note</strong>: This fails to count to <tt class="docutils literal"><span class="pre">high(int)</span></tt> if T = int for efficiency reasons.
+Get the zerotier ip for container <cite>containerid</cite>
 
 </dd>
 <dt id="getContainerIp"><a name="getContainerIp,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getContainerIp</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1495,9 +1484,7 @@ Counts from ordinal value <cite>a</cite> up to <cite>b</cite> (inclusive) with t
     <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-<p>Logs an info message to all registered handlers.</p>
-<p>Messages that are generated during the normal operation of an application and are of no particular importance. Useful to aggregate for potential later analysis.</p>
-
+Get the IP of container <cite>containerid</cite>
 
 </dd>
 <dt id="getContainerConfig"><a name="getContainerConfig,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getContainerConfig</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
@@ -1505,7 +1492,7 @@ Counts from ordinal value <cite>a</cite> up to <cite>b</cite> (inclusive) with t
     <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Gets a table of container info (port and IP)
 
 </dd>
 <dt id="layerSSH"><a name="layerSSH,App,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">layerSSH</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">timeout</span> <span class="Other">=</span> <span class="DecNumber">30</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1513,7 +1500,7 @@ Counts from ordinal value <cite>a</cite> up to <cite>b</cite> (inclusive) with t
     <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-unequals operator. This is a shorthand for <tt class="docutils literal"><span class="pre">not (x == y)</span></tt>.
+Layers ssh supported flist on top of the current image if it doesn't support ssh service.
 
 </dd>
 <dt id="stopContainer"><a name="stopContainer,App,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stopContainer</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">timeout</span> <span class="Other">=</span> <span class="DecNumber">30</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span>
@@ -1521,7 +1508,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
     <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Stops the container <cite>containerid</cite>
 
 </dd>
 <dt id="execContainer"><a name="execContainer,App,int,string,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">execContainer</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">command</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;hostname&quot;</span><span class="Other">;</span> <span class="Identifier">timeout</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
@@ -1529,7 +1516,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
     <span class="Identifier">OverflowError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Execute command <cite>command</cite> on container with id <cite>containerid</cite> And echos the result
 
 </dd>
 <dt id="execContainerSilently"><a name="execContainerSilently,App,int,string,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">execContainerSilently</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">command</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;hostname&quot;</span><span class="Other">;</span>
@@ -1538,7 +1525,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
     <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-
+Executes command <cite>command</cite> on container with id <cite>containerid</cite> 
 
 </dd>
 <dt id="cmdContainer"><a name="cmdContainer,App,int,string,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">cmdContainer</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">command</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">timeout</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
@@ -1554,7 +1541,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
     <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-unequals operator. This is a shorthand for <tt class="docutils literal"><span class="pre">not (x == y)</span></tt>.
+Gets sshinfo (ip, sshport, key used) to connect to container <cite>containerid</cite>
 
 </dd>
 <dt id="sshEnable"><a name="sshEnable,App,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">sshEnable</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">containerid</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
@@ -1562,16 +1549,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
     <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-unequals operator. This is a shorthand for <tt class="docutils literal"><span class="pre">not (x == y)</span></tt>.
-
-</dd>
-<dt id="removeVmConfig"><a name="removeVmConfig,App,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">removeVmConfig</span><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="app.html#App"><span class="Identifier">App</span></a><span class="Other">;</span> <span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-<p>Logs a debug message to all registered handlers.</p>
-<p>Messages that are useful to the application developer only and are usually turned off in release.</p>
-
+Enables ssh service on container <cite>containerid</cite>
 
 </dd>
 
@@ -1584,7 +1562,7 @@ unequals operator. This is a shorthand for <tt class="docutils literal"><span cl
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-11-28 12:45:26 UTC</small>
+        <small>Made with Nim. Generated: 2018-11-29 07:11:47 UTC</small>
       </div>
     </div>
   </div>

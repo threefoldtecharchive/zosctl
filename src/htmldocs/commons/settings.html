@@ -1293,7 +1293,7 @@ function main() {
       <li><a class="reference" href="#buildBranchName"
     title="buildBranchName = &quot;development&quot;"><wbr />build<wbr />Branch<wbr />Name<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#buildCommit"
-    title="buildCommit = &quot;07130fd5c065f72048693d16c720731f7d6cb577&quot;"><wbr />build<wbr />Commit<span class="attachedType" style="visibility:hidden"></span></a></li>
+    title="buildCommit = &quot;a92db2516dc44da7fa12a9adcb53f1d45b145df6&quot;"><wbr />build<wbr />Commit<span class="attachedType" style="visibility:hidden"></span></a></li>
 
   </ul>
 </li>
@@ -1323,6 +1323,8 @@ function main() {
     title="getCurrentConnectionConfig(): ZosConnectionConfig"><wbr />get<wbr />Current<wbr />Connection<wbr />Config<span class="attachedType" style="visibility:hidden">ZosConnectionConfig</span></a></li>
   <li><a class="reference" href="#activeZosIsVbox,"
     title="activeZosIsVbox(): bool"><wbr />active<wbr />Zos<wbr />Is<wbr />Vbox<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#removeVmConfig,string"
+    title="removeVmConfig(name: string)"><wbr />remove<wbr />Vm<wbr />Config<span class="attachedType" style="visibility:hidden"></span></a></li>
 
   </ul>
 </li>
@@ -1332,7 +1334,7 @@ function main() {
   </div>
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
-  <p class="module-desc"></p>
+  <p class="module-desc">settings module is the central point of all config related vars and functions of zos</p>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
@@ -1360,11 +1362,13 @@ Zero-OS machine configuration object
 <dt id="configDir"><a name="configDir"></a><pre><span class="Identifier">configDir</span> <span class="Other">=</span> <span class="Identifier">getConfigDir</span><span class="Other">(</span><span class="Other">)</span></pre></dt>
 <dd>
 
+<cite>configDir</cite> config dir for zos (for linux it's ~/.config)
 
 </dd>
 <dt id="configFile"><a name="configFile"></a><pre><span class="Identifier">configFile</span> <span class="Other">=</span> <span class="Identifier">configDir</span> <span class="Operator">/</span> <span class="StringLit">&quot;zos.toml&quot;</span></pre></dt>
 <dd>
 
+<cite>configFile</cite> config dir for zos (for linux it's ~/.config)
 
 </dd>
 <dt id="appTimeout"><a name="appTimeout"></a><pre><span class="Identifier">appTimeout</span> <span class="Other">=</span> <span class="DecNumber">30</span></pre></dt>
@@ -1380,6 +1384,7 @@ Zero-OS machine configuration object
 <dt id="appDeps"><a name="appDeps"></a><pre><span class="Identifier">appDeps</span> <span class="Other">=</span> <span class="Other">[</span><span class="StringLit">&quot;ssh&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;scp&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;sshfs&quot;</span><span class="Other">]</span></pre></dt>
 <dd>
 
+<cite>appDeps</cite> dependencies for the application 
 
 </dd>
 <dt id="sshconfigFile"><a name="sshconfigFile"></a><pre><span class="Identifier">sshconfigFile</span> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.ssh&quot;</span> <span class="Operator">/</span> <span class="StringLit">&quot;config&quot;</span></pre></dt>
@@ -1404,6 +1409,7 @@ Zero-OS machine configuration object
 <dt id="appconfig"><a name="appconfig"></a><pre><span class="Identifier">appconfig</span> <span class="Other">=</span> <span class="Identifier">getAppConfig</span><span class="Other">(</span><span class="Other">)</span></pre></dt>
 <dd>
 
+<cite>appconfig</cite> is the current config of the application
 
 </dd>
 <dt id="zerotierId"><a name="zerotierId"></a><pre><span class="Identifier">zerotierId</span> <span class="Other">=</span> <span class="Identifier">getZerotierId</span><span class="Other">(</span><span class="Other">)</span></pre></dt>
@@ -1419,11 +1425,13 @@ Zero-OS machine configuration object
 <dt id="buildBranchName"><a name="buildBranchName"></a><pre><span class="Identifier">buildBranchName</span> <span class="Other">=</span> <span class="StringLit">&quot;development&quot;</span></pre></dt>
 <dd>
 
+<cite>buildBranchName</cite> branch zos is built from
 
 </dd>
-<dt id="buildCommit"><a name="buildCommit"></a><pre><span class="Identifier">buildCommit</span> <span class="Other">=</span> <span class="StringLit">&quot;07130fd5c065f72048693d16c720731f7d6cb577&quot;</span></pre></dt>
+<dt id="buildCommit"><a name="buildCommit"></a><pre><span class="Identifier">buildCommit</span> <span class="Other">=</span> <span class="StringLit">&quot;a92db2516dc44da7fa12a9adcb53f1d45b145df6&quot;</span></pre></dt>
 <dd>
 
+<cite>buildCommit</cite> commit zos is built from
 
 </dd>
 
@@ -1441,7 +1449,7 @@ Checks for dependencies for zos (mainly ssh tools ssh, scp, sshfs)
     <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span>
     <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
-Prepare configuration environment for zos
+Prepare configuration environment for zos will create the zos.toml file and populate with default data if not there. will copy the ssh ~/.ssh/config and applies <cite>no strict host key checking and always forwarding agent</cite>
 
 </dd>
 <dt id="getAppConfig"><a name="getAppConfig,"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getAppConfig</span><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">OrderedTableRef</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
@@ -1499,6 +1507,12 @@ Get the current connection configuration ZosConnectionConfig object.
 Returns true if the current machine is in VirtualBox
 
 </dd>
+<dt id="removeVmConfig"><a name="removeVmConfig,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">removeVmConfig</span><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+Removes VM config
+
+</dd>
 
 </dl></div>
 
@@ -1509,7 +1523,7 @@ Returns true if the current machine is in VirtualBox
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-11-28 12:45:26 UTC</small>
+        <small>Made with Nim. Generated: 2018-11-29 07:11:47 UTC</small>
       </div>
     </div>
   </div>

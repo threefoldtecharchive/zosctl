@@ -1,3 +1,5 @@
+## errorcodes module contains all error codes (exit codes) zos can exit with 
+
 
 let cantCreateConfigDir* = 1                     ## Can't create configuration directory
 let sshKeyNotFound* = 2                          ## ssh key wasn't found.

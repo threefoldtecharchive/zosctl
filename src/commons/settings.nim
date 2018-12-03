@@ -4,16 +4,24 @@ import ./apphelp
 import ./logger
 import ./errorcodes
 
-let configDir* = ospaths.getConfigDir()
-let configFile* = configDir / "zos.toml"
+## settings module is the central point of all config related vars and functions of zos
+
+let configDir* = ospaths.getConfigDir() ## \
+  ## `configDir` config dir for zos (for linux it's ~/.config)
+
+let configFile* = configDir / "zos.toml" ## \
+  ## `configFile` config dir for zos (for linux it's ~/.config)
 
 let appTimeout* = 30
 let pingTimeout* = 5
 
-let appDeps* = @["ssh", "scp", "sshfs"]
+let appDeps* = @["ssh", "scp", "sshfs"] ## \
+  ## `appDeps` dependencies for the application 
 
-const buildBranchName* = staticExec("git rev-parse --abbrev-ref HEAD")
-const buildCommit* = staticExec("git rev-parse HEAD")
+const buildBranchName* = staticExec("git rev-parse --abbrev-ref HEAD") ## \
+  ## `buildBranchName` branch zos is built from
+const buildCommit* = staticExec("git rev-parse HEAD")  ## \
+  ## `buildCommit` commit zos is built from
 
 proc depsCheck*() = 
   ## Checks for dependencies for zos (mainly ssh tools ssh, scp, sshfs)
@@ -34,6 +42,8 @@ Host *
 
 proc prepareConfig*() = 
   ## Prepare configuration environment for zos
+  ## will create the zos.toml file and populate with default data if not there.
+  ## will copy the ssh ~/.ssh/config and applies `no strict host key checking and always forwarding agent`
   try:
     createDir(configDir)
   except:
@@ -68,7 +78,8 @@ proc getAppConfig*(): OrderedTableRef[string, string] =
   let tbl = loadConfig(configFile)
   result = tbl.getOrDefault("app")
 
-let appconfig* = getAppConfig()
+let appconfig* = getAppConfig() ## \
+  ## `appconfig` is the current config of the application
 
 proc isConfigured*(): bool =
   ## Checks if zos is already configured or not
@@ -141,3 +152,15 @@ proc getCurrentConnectionConfig*(): ZosConnectionConfig =
 proc activeZosIsVbox*(): bool = 
   ## Returns true if the current machine is in VirtualBox
   return getCurrentConnectionConfig().isvbox == true
+
+
+proc removeVmConfig*(name:string) = 
+  ## Removes VM config
+  debug(fmt"removing vm info {name}")
+  let activeZos = getActiveZosName()
+  var tbl = loadConfig(configFile)
+  if tbl.hasKey(name):
+    tbl.del(name)
+  if activeZos == name:
+    tbl["app"].del("defaultzos")
+  tbl.writeConfig(configFile)

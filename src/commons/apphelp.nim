@@ -3,6 +3,9 @@ import docopt
 import ./logger
 import ./errorcodes
 
+## apphelp module has all the information related to the commands allowed to zos
+## and the logic to check the arguments in `checkArgs` proc
+
 let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
