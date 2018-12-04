@@ -1,9 +1,9 @@
 import os
 import json
 import unittest
+import ipaddress
 import subprocess
 from jumpscale import j
-from netaddr import valid_ipv4
 from configparser import ConfigParser
 
 def run_cmd(cmd):
@@ -105,8 +105,8 @@ class SimpleTest(unittest.TestCase):
         username = container_ssh_info.stdout.decode().split("\n")[6].startswith("root")  
         self.assertTrue(username, True, msg=None)
         ip = container_ssh_info.stdout.decode().split("\n")[6].split(" ")[0].split("@")[1]
-        ip_check = valid_ipv4(ip)
-        self.assertTrue(ip_check, True, msg=None)
+        ip_check = ipaddress.ip_address(ip) 
+        self.assertIn("IPv4Address", ip_check, msg = "it's not an vaild ip")
 
     def file_upload(self):
         """
@@ -117,6 +117,8 @@ class SimpleTest(unittest.TestCase):
         file_upload_file = run_cmd("./zos container upload /tmp/test /tmp/")
         # check if the file is uploaded correctly or not using zos exec command line
         #############################################################################
+
+    # exec & shell & download 
 
     def container_mount(self):
         """
