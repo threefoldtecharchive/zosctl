@@ -14,12 +14,15 @@ python:
 
 branches:
   only:
-    - development
+    - development_qa
 
 install:
   - |
       curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
       sh init.sh -y
+
+before_script:  # need to add jumpscale part
+  - 
       
 script: 
   - nimble zos
