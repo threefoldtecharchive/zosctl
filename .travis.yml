@@ -21,10 +21,13 @@ install:
       curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
       sh init.sh -y
 
-before_script:  # need to add jumpscale part
-  - 
+before_script: 
+  - | 
+      export JUMPSCALEBRANCH=${JUMPSCALEBRANCH:-development}
+      export JSFULL=1
+      curl https://raw.githubusercontent.com/threefoldtech/jumpscale_core/$JUMPSCALEBRANCH/install.sh?$RANDOM > /tmp/install_jumpscale.sh;sudo -HE bash -c 'bash /tmp/install_jumpscale.sh'
       
-script: 
+script:
   - nimble zos
   - sudo python3 ./qa/zos_testcase.py
 
