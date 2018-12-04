@@ -3,7 +3,11 @@ import json
 import unittest
 import subprocess
 from jumpscale import j
+from netaddr import valid_ipv4
 from configparser import ConfigParser
+
+def run_cmd(cmd):
+    subprocess.run([cmd], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 class SimpleTest(unittest.TestCase):
 
@@ -15,9 +19,8 @@ class SimpleTest(unittest.TestCase):
         """
         create VM instance and then create containers on top of it 
         """
-        self.default_init = subprocess.run(["./zos init --name=default_init --port=12345 --reset"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        self.default_init_1 = subprocess.run(["./zos init --name=default_init_1 --port=123456 --reset"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-
+        default_init = run_cmd("./zos init --name=default_init --port=12345 --reset")
+        default_init_1 = run_cmd("./zos init --name=default_init_1 --port=12345 --reset")
 
     def setUp(self):
         pass
@@ -26,12 +29,12 @@ class SimpleTest(unittest.TestCase):
         """
         check if certain node is used as default or not
         """
-        set_default = subprocess.run(["./zos setdefault default_init"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        set_default = run_cmd("./zos setdefault default_init")
         # check if the default_init node is used as default or not
         parser = ConfigParser()
-        parser.read("~/.config/zos.toml')
+        parser.read("~/.config/zos.toml")
         node = parser.get('app', 'defaultzos')
-        assertEqual(node,'default_init' , msg = "default_init node is set as default")   # check with Thabet
+        assertEqual(node,'default_init' , msg = "default_init node isn't set as default")
 
     def test_ping(self):
         """
@@ -41,109 +44,108 @@ class SimpleTest(unittest.TestCase):
             "PONG Version: development @Revision: ffe97313ef00b018d3d66e3343d68fa107217df5"
         """
         ping = subprocess.run(["./zos ping"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        testping = ping.stdout.decode().split()
-        self.assertIn("PONG",testping, msg="the node is pingable")
+        testping = ping.stdout.decode()
+        self.assertIn("PONG",testping, msg="the node isn't pingable")
 
     def test_showconfig(self):
         """
             test showconfig command 
         """
-        showconfig =  subprocess.run(["./zos showconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        showconfig = run_cmd("./zos showconfig")
         output = showconfig.stdout.decode()
-        self.assertIn("defaultzos", output, msg="showconfig command is working correctly")
+        self.assertIn("defaultzos", output, msg="showconfig command isn't working correctly")
 
     def test_showactive(self):
         """
             test showactive command
         """
-        showactive =  subprocess.run(["./zos showactive"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        showactive = run_cmd("./zos showactive")
         output = showactive.stdout.decode()
         self.assertIn("default_init", output, msg="default_init node is an active node")
 
     def test_showactiveconfig(self):
-        showactiveconfig =  subprocess.run(["./zos showactiveconfig"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        output = json.loads(showactiveconfig.stdout.decode())
+        showactiveconfig = run_cmd("./zos showactiveconfig") 
+        output_showactiveconfig = json.loads(showactiveconfig.stdout.decode())
         # need to check if the output contains (address, isvbox, port)
-        if 'address' and 'isvbox' and 'port' not in output:
-            raise ValueError("wrong output") 
+        self.assertIn("address", output_showactiveconfig, msg="wrong output the command should contain address part")
+        self.assertIn("port", output_showactiveconfig, msg="wrong output the command should contain port part")
+        self.assertIn("isvbox", output_showactiveconfig, msg="wrong output the command should contain isvbox part")
 
     def test_create_container(): 
         """
             test create container 
             connect to vm instance remotely using js9 client and check the new created vms 
         """
-        container1 =  subprocess.run(["./zos container new --name=container1 --root=https://hub.grid.tf/thabet/redis.flist"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        container2 =  subprocess.run(["./zos container new --name=container2"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
+        container1 = run_cmd("./zos container new --name=container1 --root=https://hub.grid.tf/thabet/redis.flist")
+        container2 = run_cmd("./zos container new --name=container2")
         test_con = j.clients.zos.get('test', data={'host':'127.0.0.1', 'port':'12345'})
         con_list = test_con.containers.list()
-        self.assertIn("3" and "2", con_list.keys(), msg="two containers are created correctly")
-        
-    def test_containers_list(self):    
+        self.assertIn("container1", con_list, msg="first container isn't created correctly") 
+        self.assertIn("container2", con_list, msg="second container isn't created correctly")
+
+    def test_containers_list(self):     
         """
             test list containers
         """
-        container_list = subprocess.run(["./zos container list --json"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) # need to test the output 
-        
-    def test_containers_info(self):
-        """
-        show summarized container info
-        """
-        container_info = subprocess.run(["./zos container info"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        container_info_json = subprocess.run(["./zos container info --json"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)  
-        # showing info for certain container (need to check if it will passed to this function as list or string)
-        con_num = self.test_create_container()
-        container_info_ID = subprocess.run(["./zos container {} info".format(con_num)], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        # need to check container list
-
-    def test_containers_inspect(self):
-        """
-            inspect the current running 
-            container (showing full info)
-        """
-        con_num = self.test_create_container()
-        container_inspect = subprocess.run(["./zos container inspect"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        container_inspect_ID = subprocess.run(["./zos container {} inspect".format(con_num)], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        container_list = run_cmd("./zos container list --json")
+        output_container_list = json.loads(container_list.stdout.decode())
+        self.assertIn("id", output_container_list, msg="container list output should contain id part")
+        self.assertIn("cpu", output_container_list, msg="container list output should contain cpu part")
+        self.assertIn("root", output_container_list, msg="container list output should contain root part")
+        self.assertIn("storage", output_container_list, msg="container list output should contain storage part")
+        self.assertIn("pid", output_container_list, msg="container list output should contain pid part")
+        self.assertIn("ports", output_container_list, msg="container list output should contain ports part")
     
     def test_container_sshinfo(self):
         """
             show ssh info for certain container
         """
-        con_num = self.test_create_container()
-        container_ssh_info = subprocess.run(["./zos container sshenable"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
-        container_ssh_info_ID = subprocess.run(["./zos container {} sshenable".format(con_num)], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE) 
+        container_ssh_info = run_cmd("./zos container sshenable")
+        # check if it starts with root word
+        username = container_ssh_info.stdout.decode().split("\n")[6].startswith("root")  
+        self.assertTrue(username, True, msg=None)
+        ip = container_ssh_info.stdout.decode().split("\n")[6].split(" ")[0].split("@")[1]
+        ip_check = valid_ipv4(ip)
+        self.assertTrue(ip_check, True, msg=None)
 
-    def test_zerotier(self):   # may be not exist anymore 
+    def file_upload(self):
         """
-            zerotier info for certain container 
+            function to test upload for files to certain continer
         """
-        con_num = self.test_create_container()
-        container_zerotierinfo = subprocess.run(["./zos container {} zerotierinfo".format(con_num)], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        container_zerotierinfo_no_id = subprocess.run(["./zos container zerotierinfo"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        container_zerotierlist = subprocess.run(["./zos container {} zerotierlist".format(con_num)], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        container_zerotierlist_no_id = subprocess.run(["./zos container zerotierlist"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-
-    def test_container_sshinfo():
-
-    def file_transfer(self):
-        """
-            function to test upload & download for 
-            files and directories from and to certain continer
-        """
-        con_num = self.create_container()
         # create file to test upload function
         file_test = os.system('touch /tmp/test') 
-        file_upload_file = subprocess.run(["./zos container upload /tmp/test /tmp/"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        file_upload_file = run_cmd("./zos container upload /tmp/test /tmp/")
         # check if the file is uploaded correctly or not using zos exec command line
+        #############################################################################
 
+    def container_mount(self):
+        """
+            test mount command 
+        """
+        os.system("mkdir /tmp/testmount")
+        test_container_mount = run_cmd("./zos container mount / /tmp/testmount")
+        test_mount = os.path.ismount("/tmp/testmount")
+        self.assertTrue(test_mount, msg="mount point isn't set true")
 
-
+    def container_delete(self):
+        """
+            test delete container function
+        """
+        # delete the last container (container 3) which i just created
+        delete_container = run_cmd("./zos container delete")
+        # check the list of containers on vm instance node
+        test_con = j.clients.zos.get('test', data={'host':'127.0.0.1', 'port':'12345'})     
+        con_list = test_con.containers.list()
+        self.assertIn("container2", con_list, msg="second container isn't deleted correctly")
+        
     def tearDown(self):
         pass
 
     @classmethod
     def tearDownClass(cls):
         # delete the vm instance
-        container_list = subprocess.run(["zos remove --name=default_init"], shell=True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-
+        default_init_remove = run_cmd("zos remove --name=default_init")
+        default_init_1_remove = run_cmd("zos remove --name=default_init_1")
+        
     if __name__ == '__main__':
         unittest.main()
