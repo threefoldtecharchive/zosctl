@@ -1,0 +1,31 @@
+language: python
+
+os:
+- linux
+
+dist: trusty
+env:
+  - ARCH=x86_64
+
+sudo: required
+
+python:
+  - "3.5"
+
+branches:
+  only:
+    - development_qa
+
+install:
+  - |
+      sudo ./.travis_ci/prepare.sh
+
+before_script: 
+  - | 
+      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
+      sh init.sh -y
+      
+script:
+  - nimble zos
+  - sudo python3 ./qa/zos_testcase.py
+
