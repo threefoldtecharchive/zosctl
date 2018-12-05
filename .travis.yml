@@ -16,12 +16,12 @@ branches:
   only:
     - development_qa
 
-install: sudo ./.travis_ci/prepare.sh
+install: 
+  - sudo ./.travis_ci/prepare.sh
 
 before_script: 
-  - | 
-      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
-      sh init.sh -y
+  - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
+  - sh init.sh -y
       
 script:
   - nimble zos
