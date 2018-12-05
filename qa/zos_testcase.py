@@ -118,7 +118,7 @@ class SimpleTest(unittest.TestCase):
         # check if the file is uploaded correctly or not using zos exec command line
         #############################################################################
 
-    # exec & shell & download 
+    # exec & shell & download & jwt & public ip & complete download 
 
     def container_mount(self):
         """
