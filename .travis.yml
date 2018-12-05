@@ -18,14 +18,12 @@ branches:
 
 install:
   - |
-      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
-      sh init.sh -y
+      sudo ./.travis_ci/prepare.sh
 
 before_script: 
   - | 
-      export JUMPSCALEBRANCH=${JUMPSCALEBRANCH:-development}
-      export JSFULL=1
-      curl https://raw.githubusercontent.com/threefoldtech/jumpscale_core/$JUMPSCALEBRANCH/install.sh?$RANDOM > /tmp/install_jumpscale.sh;sudo -HE bash -c 'bash /tmp/install_jumpscale.sh'
+      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
+      sh init.sh -y
       
 script:
   - nimble zos
