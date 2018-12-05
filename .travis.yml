@@ -9,8 +9,7 @@ env:
 
 sudo: true
 
-python:
-  - "3.5"
+python: 3.5
 
 branches:
   only:
