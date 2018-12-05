@@ -24,8 +24,7 @@ install:
 before_script: 
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   - sh init.sh -y
-      
-script:
   - nimble zos
-  - sudo python3 ./qa/zos_testcase.py
+    
+script: sudo python3 ./qa/zos_testcase.py
 
