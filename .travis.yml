@@ -24,8 +24,9 @@ install:
 before_script: 
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   - sh init.sh -y
-  - nimble zos
   - export PATH=$HOME/.nimble/bin:$PATH
-    
+  - cd  zos
+  - nimble zos
+      
 script: sudo python3 ./qa/zos_testcase.py
 
