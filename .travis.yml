@@ -16,8 +16,7 @@ branches:
   only:
     - development_qa
 
-install:
-  - sudo ./.travis_ci/prepare.sh
+install: sudo ./.travis_ci/prepare.sh
 
 before_script: 
   - | 
