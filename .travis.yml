@@ -1,14 +1,9 @@
 language: python
 
-os:
-- linux
-
+os: linux
 dist: trusty
-env:
-  - ARCH=x86_64
-
+env: ARCH=x86_64
 sudo: true
-
 python: 3.5
 
 branches:
