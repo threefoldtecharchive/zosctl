@@ -30,7 +30,14 @@ type App* = object of RootObj
 proc currentconnection*(this: App): Redis =
   ## Gets the current connection to the active zos machine.
   result = open(this.currentconnectionConfig.address, this.currentconnectionConfig.port.Port, true)
+  if existsEnv("ZOS_JWT"):
+    # info("Authenticating to secure ZOS.")
+    let res = $result.execCommand("AUTH", getEnv("ZOS_JWT"))
+    if not res.contains("OK"):
+      echo res
+      quit invalidJwt
 
+    
 proc setContainerKV*(this:App, containerid:int, k, v: string) =
   ## Set containerid related key `k` to value `v`
   let theKey = fmt"container:{containerid}:{k}"
