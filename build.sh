@@ -11,7 +11,8 @@ sudo nimble uninstall redisparser -y > /dev/null 2>&1
 rm -f /tmp/nimblecache/nimblepkg/*
 
 set -ex
-nimble install redisclient@#head
+sudo nimble install redisclient@#head
+sudo nimble install asciitables
 
 brew install openssl@1.1
 
