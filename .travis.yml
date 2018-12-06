@@ -9,6 +9,11 @@ branches:
   only:
     - development_qa
 
+cache:
+  directories:
+    - "$HOME/.nimble"
+    - "$HOME/.choosenim"
+
 before_install:
 # prepare the machine for jumpscale installation 
   - sudo apt-get update
