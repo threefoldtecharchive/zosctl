@@ -268,13 +268,9 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   this.setContainerKV(result, "layeredssh", "false")
   this.setContainerKV(result, "sshenabled", "false")
   this.setContainerKV(result, "sshport", $containerSshport)
-  
-  # now create portforward on zos host (sshport) to 22 on that container.
-  args = %*{
-    "port": containerSshport,
-  }
-  info(fmt"opening port {containerSshport}")
-  discard this.currentconnection().zosCoreWithJsonNode("nft.open_port", args)
+
+  # now create portforward on zos host (sshport) to 22 on that container. no need to force nft.open_port
+
   args = %*{ 
     "container": parseInt(containerid),
     "host_port": $containerSshport,
