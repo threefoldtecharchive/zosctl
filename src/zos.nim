@@ -727,7 +727,7 @@ proc handleConfigured(args:Table[string, Value]) =
       quit unknownCommand
 
 when isMainModule:
-  let args = docopt(doc, version=fmt"zos 0.1.0 ({buildBranchName}#{buildCommit})")
+  let args = docopt(doc, version=fmt"zos {latestTag} ({buildBranchName}#{buildCommit})")
   checkArgs(args)
 
   if args["help"] and args["<cmdname>"]:

@@ -22,6 +22,9 @@ const buildBranchName* = staticExec("git rev-parse --abbrev-ref HEAD") ## \
   ## `buildBranchName` branch zos is built from
 const buildCommit* = staticExec("git rev-parse HEAD")  ## \
   ## `buildCommit` commit zos is built from
+  
+const latestTag* = staticExec("git describe --abbrev=0 --tags") ## \
+  ## `latestTag` latest tag on this branch
 
 proc depsCheck*() = 
   ## Checks for dependencies for zos (mainly ssh tools ssh, scp, sshfs)
