@@ -37,3 +37,11 @@ nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:
 ```
 - `cp src/zos /usr/local/bin`
 
+
+
+##  virtualbox gives -s unknown option 
+
+Most likely your virtualbox is outdated (make sure you have >= 5.2)
+
+## sshtools not installed
+zos requires `sshfs`, `scp`, `ssh` dependencies 

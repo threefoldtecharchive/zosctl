@@ -12,6 +12,12 @@ just download this binary and copy to e.g. /usr/local/bin
 
 if you want to build see [here how to build](doc/building.md)
 
+### requirements
+- Virtualbox >= 5.2
+- ssh
+- scp
+- sshfs
+
 ## Where to get started.
 
 Don't forget to intstall ZeroTier and configure the right network:
@@ -31,7 +37,7 @@ zos commands documentation is available at [Commands reference](doc/cmds/README.
 In the first time of using zos you will see a friendly message indicating what you should do
 
 ```bash
-To create new machine in VirtualBox use
+To create new machine in VirtualBox use (requires version >= 5.2)
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>]
 
 To configure it to use a specific zosmachine

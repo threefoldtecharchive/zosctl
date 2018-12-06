@@ -50,3 +50,5 @@ nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:
 #### Generating docs
 - we have task `genDocs` to generate html code documentation in `src/htmldocs` and it's invoked using `nimble genDocs`
 - browsable from `src/htmldocs` or https://htmlpreview.github.io/?https://raw.githubusercontent.com/threefoldtech/zos/development/src/htmldocs/commons/app.html
+
+
