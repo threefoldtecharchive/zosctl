@@ -17,6 +17,8 @@ before_install:
   - sudo rm -f /usr/bin/python3
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
+  - sudo apt-get install python3.5-gdbm
+  - 
 
 install: 
   - sudo ./.travis_ci/prepare.sh
@@ -25,7 +27,6 @@ before_script:
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   - sh init.sh -y
   - export PATH=$HOME/.nimble/bin:$PATH
-  - cd  zos
   - nimble zos
       
 script: sudo python3 ./qa/zos_testcase.py
