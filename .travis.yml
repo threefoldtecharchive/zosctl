@@ -12,6 +12,7 @@ branches:
 
 before_install:
 # prepare the machine for jumpscale installation 
+  - sudo apt-get update
   - sudo apt-get install -y python3.5 python3.5-dev
   - sudo rm -f /usr/bin/python
   - sudo rm -f /usr/bin/python3
