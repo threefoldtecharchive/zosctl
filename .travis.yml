@@ -18,7 +18,7 @@ before_install:
   - sudo rm -f /usr/bin/python3
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
-  - sudo apt-get -y install python3.5-gdbm 
+  - sudo apt-get -y install python3-gdbm 
 
 install: 
   - sudo ./.travis_ci/prepare.sh
