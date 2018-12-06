@@ -13,12 +13,12 @@ branches:
 before_install:
 # prepare the machine for jumpscale installation 
   - sudo apt-get install -y python3.5 python3.5-dev
-  - sudo apt-get -y install python3.5-gdbm
   - sudo rm -f /usr/bin/python
   - sudo rm -f /usr/bin/python3
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
-   
+  - sudo apt-get -y install python3.5-gdbm 
+
 install: 
   - sudo ./.travis_ci/prepare.sh
 
