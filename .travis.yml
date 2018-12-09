@@ -32,7 +32,7 @@ before_script:
   - sh init.sh -y
   - export PATH=$HOME/.nimble/bin:$PATH
   - export CHOOSENIM_NO_ANALYTICS=1
-  - nimble -y zos
-      
+  - sudo nimble zos -y  
+  
 script: sudo python3 ./qa/zos_testcase.py
 
