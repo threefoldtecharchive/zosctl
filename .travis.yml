@@ -32,5 +32,5 @@ before_script:
   - sudo service zerotier-one start
   - sudo zerotier-cli join c7c8172af1f387a6
   
-script: sudo python3 ./qa/zos_testcase.py
+script: sudo python3 ./qa/zos_testcase_node.py
 
