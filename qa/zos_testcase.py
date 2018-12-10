@@ -15,7 +15,7 @@ class SimpleTest(unittest.TestCase):
     test cases to test using ZOS with virtualbaox instance 
     """
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls):  # may be will change this and make it node on kds farm 
         """
         create VM instance and then create containers on top of it 
         """
@@ -25,7 +25,7 @@ class SimpleTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_setdefault():
+    def test_setdefault(self):
         """
         check if certain node is used as default or not
         """
@@ -71,7 +71,14 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("port", output_showactiveconfig, msg="wrong output the command should contain port part")
         self.assertIn("isvbox", output_showactiveconfig, msg="wrong output the command should contain isvbox part")
 
-    def test_create_container(): 
+    def test_cmd(self):
+        """
+            funcation to test command cmd in zos
+        """
+        test_cmd_node = run_cmd("zos cmd 'nft.list'")
+        self.assertIn("tcp", test_cmd_node.stdout, msg="cmd doesn't working correctly")
+
+    def test_create_container(self): 
         """
             test create container 
             connect to vm instance remotely using js9 client and check the new created vms 
@@ -100,27 +107,47 @@ class SimpleTest(unittest.TestCase):
         """
             show ssh info for certain container
         """
-        container_ssh_info = run_cmd("./zos container sshenable")
+        container_ssh_info = run_cmd("./zos container sshinfo")
         # check if it starts with root word
         username = container_ssh_info.stdout.decode().split("\n")[6].startswith("root")  
         self.assertTrue(username, True, msg=None)
         ip = container_ssh_info.stdout.decode().split("\n")[6].split(" ")[0].split("@")[1]
+        port = container_ssh_info.stdout.decode().split("\n")[6].split(" ")[2]
         ip_check = ipaddress.ip_address(ip) 
         self.assertIn("IPv4Address", ip_check, msg = "it's not an vaild ip")
+        return ip, port
 
-    def file_upload(self):
+    def test_file_upload(self):
         """
             function to test upload for files to certain continer
         """
         # create file to test upload function
-        file_test = os.system('touch /tmp/test') 
-        file_upload_file = run_cmd("./zos container upload /tmp/test /tmp/")
-        # check if the file is uploaded correctly or not using zos exec command line
-        #############################################################################
+        os.system('touch /tmp/test') 
+        file_upload = run_cmd("./zos container upload /tmp/test /tmp/")
+        # test if the file is uploaded or not 
+        port, ip = self.test_container_sshinfo()
+        os.system('mkdir /tmp/test_upload')
+        os.system('scp -{} root@{}:/tmp/test /tmp/test_upload/'.format(port, ip))
+        check_upload = os.path.isfile('/tmp/test_upload/test')
+        self.assertTrue(check_upload, msg="upload function isn't working correctly")
 
-    # exec & shell & download & jwt & public ip & complete download 
+    def test_file_download(self):
+        """
+            function to test download for files to certain continer
+        """ 
+        file_download = run_cmd("./zos container download /etc/shadow /tmp/")
+        check_download = os.path.isfile('/tmp/shadow')
+        self.assertTrue(check_download, msg="download function isn't working correctly")
+    
+    def test_exec(self):
+        """
+            function to test exec cmd
+        """
+        exec_cmd = run_cmd("./zos container exec 'touch /tmp/test_exec'")
+        check_exec_cmd = run_cmd("./zos container exec 'ls /tmp/ | grep test_exec'")
+        self.assertIn("test_exec", check_exec_cmd.stdout, msg="exec function doesn't working correctly")
 
-    def container_mount(self):
+    def test_container_mount(self):
         """
             test mount command 
         """
@@ -129,7 +156,7 @@ class SimpleTest(unittest.TestCase):
         test_mount = os.path.ismount("/tmp/testmount")
         self.assertTrue(test_mount, msg="mount point isn't set true")
 
-    def container_delete(self):
+    def test_container_delete(self):
         """
             test delete container function
         """
