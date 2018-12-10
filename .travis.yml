@@ -9,11 +9,6 @@ branches:
   only:
     - development_qa
 
-cache:
-  directories:
-    - "$HOME/.nimble"
-    - "$HOME/.choosenim"
-
 before_install:
 # prepare the machine for jumpscale installation 
   - sudo apt-get update
@@ -28,11 +23,14 @@ install:
   - sudo ./.travis_ci/prepare.sh
 
 before_script: 
-  - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
-  - sh init.sh -y
-  - export PATH=$HOME/.nimble/bin:$PATH
-  - export CHOOSENIM_NO_ANALYTICS=1
-  - sudo nimble zos -y  
+  # download zos binary and working with it 
+  - wget https://github.com/threefoldtech/zos/releases/download/0.1.6/zos_linux
+  - sudo cp zos_linux /usr/bin/zos
+  - sudo chmod +x /usr/bin/zos
+  # install zerotier on the machine
+  - curl -s 'https://pgp.mit.edu/pks/lookup?op=get&search=0x1657198823E52A61' | gpg --import && if z=$(curl -s 'https://install.zerotier.com/' | gpg); then echo "$z" | sudo bash; fi
+  - sudo service zerotier-one start
+  - sudo zerotier-cli join c7c8172af1f387a6
   
 script: sudo python3 ./qa/zos_testcase.py
 
