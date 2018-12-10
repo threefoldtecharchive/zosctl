@@ -25,7 +25,7 @@ class SimpleTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_setdefault(self):
+    def test01_setdefault(self):
         """
         check if certain node is used as default or not
         """
@@ -36,7 +36,7 @@ class SimpleTest(unittest.TestCase):
         node = parser.get('app', 'defaultzos')
         assertEqual(node,'default_init' , msg = "default_init node isn't set as default")
 
-    def test_ping(self):
+    def test02_ping(self):
         """
         test zos ping command 
         
@@ -55,7 +55,7 @@ class SimpleTest(unittest.TestCase):
         output = showconfig.stdout.decode()
         self.assertIn("defaultzos", output, msg="showconfig command isn't working correctly")
 
-    def test_showactive(self):
+    def test03_showactive(self):
         """
             test showactive command
         """
@@ -63,7 +63,7 @@ class SimpleTest(unittest.TestCase):
         output = showactive.stdout.decode()
         self.assertIn("default_init", output, msg="default_init node is an active node")
 
-    def test_showactiveconfig(self):
+    def test04_showactiveconfig(self):
         showactiveconfig = run_cmd("zos showactiveconfig") 
         output_showactiveconfig = json.loads(showactiveconfig.stdout.decode())
         # need to check if the output contains (address, isvbox, port)
@@ -71,14 +71,14 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("port", output_showactiveconfig, msg="wrong output the command should contain port part")
         self.assertIn("isvbox", output_showactiveconfig, msg="wrong output the command should contain isvbox part")
 
-    def test_cmd(self):
+    def test05_cmd(self):
         """
             funcation to test command cmd in zos
         """
         test_cmd_node = run_cmd("zos cmd 'nft.list'")
         self.assertIn("tcp", test_cmd_node.stdout, msg="cmd doesn't working correctly")
 
-    def test_create_container(self): 
+    def test06_create_container(self): 
         """
             test create container 
             connect to vm instance remotely using js9 client and check the new created vms 
@@ -90,7 +90,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("container1", con_list, msg="first container isn't created correctly") 
         self.assertIn("container2", con_list, msg="second container isn't created correctly")
 
-    def test_containers_list(self):     
+    def test07_containers_list(self):     
         """
             test list containers
         """
@@ -103,7 +103,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("pid", output_container_list, msg="container list output should contain pid part")
         self.assertIn("ports", output_container_list, msg="container list output should contain ports part")
     
-    def test_container_sshinfo(self):
+    def test08_container_sshinfo(self):
         """
             show ssh info for certain container
         """
@@ -117,7 +117,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("IPv4Address", ip_check, msg = "it's not an vaild ip")
         return ip, port
 
-    def test_file_upload(self):
+    def test09_file_upload(self):
         """
             function to test upload for files to certain continer
         """
@@ -131,7 +131,7 @@ class SimpleTest(unittest.TestCase):
         check_upload = os.path.isfile('/tmp/test_upload/test')
         self.assertTrue(check_upload, msg="upload function isn't working correctly")
 
-    def test_file_download(self):
+    def test10_file_download(self):
         """
             function to test download for files to certain continer
         """ 
@@ -139,7 +139,7 @@ class SimpleTest(unittest.TestCase):
         check_download = os.path.isfile('/tmp/shadow')
         self.assertTrue(check_download, msg="download function isn't working correctly")
     
-    def test_exec(self):
+    def test11_exec(self):
         """
             function to test exec cmd
         """
@@ -147,7 +147,7 @@ class SimpleTest(unittest.TestCase):
         check_exec_cmd = run_cmd("zos container exec 'ls /tmp/ | grep test_exec'")
         self.assertIn("test_exec", check_exec_cmd.stdout, msg="exec function doesn't working correctly")
 
-    def test_container_mount(self):
+    def test12_container_mount(self):
         """
             test mount command 
         """
@@ -156,7 +156,7 @@ class SimpleTest(unittest.TestCase):
         test_mount = os.path.ismount("/tmp/testmount")
         self.assertTrue(test_mount, msg="mount point isn't set true")
 
-    def test_container_delete(self):
+    def test13_container_delete(self):
         """
             test delete container function
         """
