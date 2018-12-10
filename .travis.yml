@@ -27,7 +27,7 @@ before_script:
   - wget https://github.com/threefoldtech/zos/releases/download/0.1.6/zos_linux
   - sudo cp zos_linux /usr/bin/zos
   - sudo chmod +x /usr/bin/zos
-  # install zerotier on the machine
+  # install zerotier on the machine (using node on kds farm)
   - curl -s 'https://pgp.mit.edu/pks/lookup?op=get&search=0x1657198823E52A61' | gpg --import && if z=$(curl -s 'https://install.zerotier.com/' | gpg); then echo "$z" | sudo bash; fi
   - sudo zerotier-cli join c7c8172af1f387a6
   
