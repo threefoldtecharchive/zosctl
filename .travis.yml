@@ -19,6 +19,7 @@ before_install:
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
   - sudo apt-get -y install python-gdbm 
   - sudo apt-get -y install python-apt
+  - sudo pip3 install nose
 
 install: 
   - sudo ./.travis_ci/prepare.sh
@@ -32,5 +33,5 @@ before_script:
   - curl -s https://install.zerotier.com/ | sudo bash
   - sudo zerotier-cli join c7c8172af1f387a6
   
-script: sudo python3 -m unittest -v ./qa/zos_testcase_node.py
+script: sudo nosetests -s -v ./qa/zos_testcase_node.py
 
