@@ -18,6 +18,7 @@ before_install:
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
   - sudo apt-get -y install python3-gdbm 
+  - sudo apt-get -y install python3-apt
 
 install: 
   - sudo ./.travis_ci/prepare.sh
@@ -25,8 +26,8 @@ install:
 before_script: 
   # download zos binary and working with it 
   - wget https://github.com/threefoldtech/zos/releases/download/0.1.6/zos_linux
-  - sudo cp zos_linux /usr/bin/zos
-  - sudo chmod +x /usr/bin/zos
+  - sudo cp zos_linux /usr/sbin/zos
+  - sudo chmod +x /usr/sbin/zos
   # install zerotier on the machine
   - curl -s https://install.zerotier.com/ | sudo bash
   - sudo zerotier-cli join c7c8172af1f387a6
