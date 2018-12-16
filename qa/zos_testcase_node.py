@@ -11,7 +11,7 @@ def run_cmd(cmd):
 # create func which create a container using 0-OS and return the container id
 def con_num(machine_name):
     test_con = j.clients.zos.get('test', data={'host':'10.102.147.99', 'port':'6379'})
-    test_con.containers.create("test_del", "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist")
+    test_con.containers.create(machine_name, "https://hub.grid.tf/tf-bootable/ubuntu:lts.flist")
     containers = test_con.containers.list()
     for con in containers:               
         if con.name == machine_name:
@@ -37,7 +37,7 @@ class SimpleTest(unittest.TestCase):
         """
         check if certain node is used as default or not
         """
-        set_default = run_cmd("/root/zos setdefault default_init")
+        set_default = run_cmd("/usr/sbin/zos setdefault default_init")
         # check if the default_init node is used as default or not
         parser = ConfigParser()
         parser.read("/root/.config/zos.toml")
@@ -55,7 +55,7 @@ class SimpleTest(unittest.TestCase):
         testping = ping.stdout.decode()
         self.assertIn("PONG",testping, msg="the node isn't pingable")
 
-    def test_showconfig(self):
+    def test03_showconfig(self):
         """
             test showconfig command 
         """
@@ -63,7 +63,7 @@ class SimpleTest(unittest.TestCase):
         output = showconfig.stdout.decode()
         self.assertIn("defaultzos", output, msg="showconfig command isn't working correctly")
 
-    def test03_showactive(self):
+    def test04_showactive(self):
         """
             test showactive command
         """
@@ -71,7 +71,7 @@ class SimpleTest(unittest.TestCase):
         output = showactive.stdout.decode()
         self.assertIn("default_init", output, msg="default_init node is an active node")
 
-    def test04_showactiveconfig(self):
+    def test05_showactiveconfig(self):
         showactiveconfig = run_cmd("/usr/sbin/zos showactiveconfig")
         output_showactiveconfig = json.loads(showactiveconfig.stdout.decode())
         # need to check if the output contains (address, isvbox, port)
@@ -79,7 +79,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("port", output_showactiveconfig, msg="wrong output the command should contain port part")
         self.assertIn("isvbox", output_showactiveconfig, msg="wrong output the command should contain isvbox part")
 
-    def test05_cmd(self):
+    def test06_cmd(self):
         """
             funcation to test command cmd in zos
         """
@@ -87,7 +87,7 @@ class SimpleTest(unittest.TestCase):
         test_cmd_node_output = test_cmd_node.stdout.decode()
         self.assertIn("tcp", test_cmd_node_output, msg="cmd doesn't working correctly")
 
-    def test06_create_container(self): 
+    def test07_create_container(self): 
         """
             test create container 
             connect to vm instance remotely using js9 client and check the new created vms 
@@ -98,7 +98,7 @@ class SimpleTest(unittest.TestCase):
         con_str = ' '.join(str(e) for e in con_list)
         self.assertIn("Container <container>", con_str, msg="second container isn't created correctly")
 
-    def test07_containers_list(self):     
+    def test08_containers_list(self):     
         """
             test list containers
         """
@@ -111,7 +111,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("pid", output_container_list, msg="container list output should contain pid part")
         self.assertIn("ports", output_container_list, msg="container list output should contain ports part")
     
-    def test08_container_sshinfo(self):
+    def test09_container_sshinfo(self):
         """
             show ssh info for certain container
         """
@@ -123,7 +123,7 @@ class SimpleTest(unittest.TestCase):
         self.assertIn("10.102.147.99", ip_check, msg = "it's not an vaild ip")
         return port
 
-    def test09_file_upload(self):
+    def test10_file_upload(self):
         """
             function to test upload for files to certain container
         """
@@ -135,7 +135,7 @@ class SimpleTest(unittest.TestCase):
         check_upload = os.system("ssh root@10.102.147.99 -p {} 'ls /tmp/ | grep test_upload'".format(port))
         self.assertEqual(check_upload, 0, msg="upload function isn't working correctly")
     
-    def test10_file_download(self):
+    def test11_file_download(self):
         """
             function to test download for files to certain continer
         """ 
@@ -143,7 +143,7 @@ class SimpleTest(unittest.TestCase):
         check_download = os.path.isfile('/tmp/test_download')
         self.assertTrue(check_download, msg="download function isn't working correctly")
     
-    def test11_exec(self):
+    def test12_exec(self):
         """
             function to test exec cmd
         """
@@ -152,7 +152,7 @@ class SimpleTest(unittest.TestCase):
         check_exec = os.system("ssh root@10.102.147.99 -p {} 'ls /tmp/ | grep test_exec'".format(port))
         self.assertEqual(check_exec, 0, msg="exec function isn't working correctly")
         
-    def test12_container_mount(self):
+    def test13_container_mount(self):
         """
             test mount command 
         """
@@ -161,7 +161,7 @@ class SimpleTest(unittest.TestCase):
         test_mount = os.path.ismount("/tmp/testmount")
         self.assertTrue(test_mount, msg="mount point isn't set true")
 
-    def test13_container_delete(self):
+    def test14_container_delete(self):
         """
             test delete container function
         """
@@ -178,9 +178,6 @@ class SimpleTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # delete zos container 
-        con_number = con_num("container")
-        delete_container = run_cmd("/usr/sbin/zos container {} delete".format(con_number))
         # delete zos node instance
         default_init_remove = run_cmd("/usr/sbin/zos remove --name=default_init")
                
