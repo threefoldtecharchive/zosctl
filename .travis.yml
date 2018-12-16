@@ -19,7 +19,7 @@ before_install:
   - sudo apt-get -y install python3-gdbm 
   - sudo apt-get -y install python-apt
   - sudo pip install pip --upgrade
-  - sudo pip3 install nose
+  - sudo pip install nose
 
 install: 
   - sudo ./.travis_ci/prepare.sh
