@@ -28,7 +28,7 @@ class SimpleTest(unittest.TestCase):
         """
             configures instance with name zosmachine on address 
         """
-        default_init = run_cmd("/usr/sbin/zos configure --name=default_init --address=10.102.147.99 --port=6379")
+        default_init = run_cmd("zos configure --name=default_init --address=10.102.147.99 --port=6379")
 
     def setUp(self):
         pass
@@ -37,10 +37,10 @@ class SimpleTest(unittest.TestCase):
         """
         check if certain node is used as default or not
         """
-        set_default = run_cmd("/usr/sbin/zos setdefault default_init")
+        set_default = run_cmd("zos setdefault default_init")
         # check if the default_init node is used as default or not
         parser = ConfigParser()
-        parser.read("/root/.config/zos.toml")
+        parser.read("~/.config/zos.toml")
         node = parser.get('app', 'defaultzos')
         self.assertEqual(node,'default_init' , msg = "default_init node isn't set as default")
 
@@ -51,7 +51,7 @@ class SimpleTest(unittest.TestCase):
         ./zos ping            
             "PONG Version: development @Revision: ffe97313ef00b018d3d66e3343d68fa107217df5"
         """
-        ping = run_cmd("/usr/sbin/zos ping")
+        ping = run_cmd("zos ping")
         testping = ping.stdout.decode()
         self.assertIn("PONG",testping, msg="the node isn't pingable")
 
@@ -59,7 +59,7 @@ class SimpleTest(unittest.TestCase):
         """
             test showconfig command 
         """
-        showconfig = run_cmd("/usr/sbin/zos showconfig")
+        showconfig = run_cmd("zos showconfig")
         output = showconfig.stdout.decode()
         self.assertIn("defaultzos", output, msg="showconfig command isn't working correctly")
 
@@ -67,12 +67,12 @@ class SimpleTest(unittest.TestCase):
         """
             test showactive command
         """
-        showactive = run_cmd("/usr/sbin/zos showactive")
+        showactive = run_cmd("zos showactive")
         output = showactive.stdout.decode()
         self.assertIn("default_init", output, msg="default_init node is an active node")
 
     def test05_showactiveconfig(self):
-        showactiveconfig = run_cmd("/usr/sbin/zos showactiveconfig")
+        showactiveconfig = run_cmd("zos showactiveconfig")
         output_showactiveconfig = json.loads(showactiveconfig.stdout.decode())
         # need to check if the output contains (address, isvbox, port)
         self.assertIn("address", output_showactiveconfig, msg="wrong output the command should contain address part")
@@ -83,7 +83,7 @@ class SimpleTest(unittest.TestCase):
         """
             funcation to test command cmd in zos
         """
-        test_cmd_node = run_cmd("/usr/sbin/zos cmd 'nft.list'")
+        test_cmd_node = run_cmd("zos cmd 'nft.list'")
         test_cmd_node_output = test_cmd_node.stdout.decode()
         self.assertIn("tcp", test_cmd_node_output, msg="cmd doesn't working correctly")
 
@@ -92,7 +92,7 @@ class SimpleTest(unittest.TestCase):
             test create container 
             connect to vm instance remotely using js9 client and check the new created vms 
         """
-        container = run_cmd("/usr/sbin/zos container new --name=container")
+        container = run_cmd("zos container new --name=container")
         test_con = j.clients.zos.get('test', data={'host':'10.102.147.99', 'port':'6379'})
         con_list = test_con.containers.list()
         con_str = ' '.join(str(e) for e in con_list)
@@ -102,7 +102,7 @@ class SimpleTest(unittest.TestCase):
         """
             test list containers
         """
-        container_list = run_cmd("/usr/sbin/zos container list --json")
+        container_list = run_cmd("zos container list --json")
         output_container_list = container_list.stdout.decode()
         self.assertIn("id", output_container_list, msg="container list output should contain id part")
         self.assertIn("cpu", output_container_list, msg="container list output should contain cpu part")
@@ -115,7 +115,7 @@ class SimpleTest(unittest.TestCase):
         """
             show ssh info for certain container
         """
-        container_ssh_info = run_cmd("/usr/sbin/zos container sshinfo")
+        container_ssh_info = run_cmd("zos container sshinfo")
         # check if it return a vaild ip or not
         ip = container_ssh_info.stdout.decode().split()[len(container_ssh_info.stdout.decode().split()) - 3].split("@")[1]
         port = container_ssh_info.stdout.decode().split()[len(container_ssh_info.stdout.decode().split()) - 1]   
@@ -129,7 +129,7 @@ class SimpleTest(unittest.TestCase):
         """
         # create file to test upload function
         os.system('touch /tmp/test_upload')
-        file_upload = run_cmd("/usr/sbin/zos container upload /tmp/test_upload /tmp/")
+        file_upload = run_cmd("zos container upload /tmp/test_upload /tmp/")
         # test if the file is uploaded or not using ssh
         port = self.test08_container_sshinfo()
         check_upload = os.system("ssh root@10.102.147.99 -p {} 'ls /tmp/ | grep test_upload'".format(port))
@@ -139,7 +139,7 @@ class SimpleTest(unittest.TestCase):
         """
             function to test download for files to certain continer
         """ 
-        file_download = run_cmd("/usr/sbin/zos container download /etc/profile /tmp/test_download")
+        file_download = run_cmd("zos container download /etc/profile /tmp/test_download")
         check_download = os.path.isfile('/tmp/test_download')
         self.assertTrue(check_download, msg="download function isn't working correctly")
     
@@ -147,7 +147,7 @@ class SimpleTest(unittest.TestCase):
         """
             function to test exec cmd
         """
-        exec_cmd = run_cmd("/usr/sbin/zos container exec 'touch /tmp/test_exec'")
+        exec_cmd = run_cmd("zos container exec 'touch /tmp/test_exec'")
         port = self.test08_container_sshinfo()
         check_exec = os.system("ssh root@10.102.147.99 -p {} 'ls /tmp/ | grep test_exec'".format(port))
         self.assertEqual(check_exec, 0, msg="exec function isn't working correctly")
@@ -157,7 +157,7 @@ class SimpleTest(unittest.TestCase):
             test mount command 
         """
         os.system("mkdir /tmp/testmount")
-        test_container_mount = run_cmd("/usr/sbin/zos container mount / /tmp/testmount")
+        test_container_mount = run_cmd("zos container mount / /tmp/testmount")
         test_mount = os.path.ismount("/tmp/testmount")
         self.assertTrue(test_mount, msg="mount point isn't set true")
 
@@ -166,7 +166,7 @@ class SimpleTest(unittest.TestCase):
             test delete container function
         """
         con_number = con_num("test_del")
-        delete_container = run_cmd("/usr/sbin/zos container {} delete".format(con_number))  
+        delete_container = run_cmd("zos container {} delete".format(con_number))  
         # check the list of containers on vm instance node
         test_con = j.clients.zos.get('test', data={'host':'10.102.147.99', 'port':'6379'})     
         con_list = test_con.containers.list()
@@ -179,7 +179,7 @@ class SimpleTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # delete zos node instance
-        default_init_remove = run_cmd("/usr/sbin/zos remove --name=default_init")
+        default_init_remove = run_cmd("zos remove --name=default_init")
                
     if __name__ == '__main__':
         unittest.main()
