@@ -18,7 +18,6 @@ before_install:
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
   - sudo apt-get -y install python3-gdbm 
   - sudo apt-get -y install python-apt
-  - sudo pip install pip --upgrade
   - sudo pip install nose
 
 install: 
