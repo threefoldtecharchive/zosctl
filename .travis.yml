@@ -1,9 +1,7 @@
 language: python
 
 os: linux
-dist: 
-  - xenial
-  - osx
+dist: xenial
 env: ARCH=x86_64
 sudo: true
 python: 3.5
@@ -12,8 +10,6 @@ branches:
     - development_qa
 
 before_install:
-# need to fix this part to make it work with osx
-# prepare the machine for jumpscale installation 
   - sudo apt-get update
   - sudo apt-get install -y python3.5 python3.5-dev
   - sudo rm -f /usr/bin/python
@@ -36,5 +32,5 @@ before_script:
   - curl -s https://install.zerotier.com/ | sudo bash
   - sudo zerotier-cli join c7c8172af1f387a6
   
-script: nosetests -s -v ./qa/zos_testcase_node.py
+script: sudo nosetests -s -v ./qa/zos_testcase_node.py
 
