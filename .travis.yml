@@ -1,7 +1,9 @@
 language: python
 
 os: linux
-dist: xenial
+dist: 
+  - xenial
+  - osx
 env: ARCH=x86_64
 sudo: true
 python: 3.5
@@ -10,6 +12,7 @@ branches:
     - development_qa
 
 before_install:
+# need to fix this part to make it work with osx
 # prepare the machine for jumpscale installation 
   - sudo apt-get update
   - sudo apt-get install -y python3.5 python3.5-dev
@@ -17,9 +20,8 @@ before_install:
   - sudo rm -f /usr/bin/python3
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python
   - sudo ln -s /usr/bin/python3.5 /usr/bin/python3
-  - sudo apt-get -y install python-gdbm 
+  - sudo apt-get -y install python3-gdbm 
   - sudo apt-get -y install python-apt
-  - sudo apt-get install python3-pip
   - sudo pip3 install nose
 
 install: 
@@ -34,5 +36,5 @@ before_script:
   - curl -s https://install.zerotier.com/ | sudo bash
   - sudo zerotier-cli join c7c8172af1f387a6
   
-script: sudo nosetests -s -v ./qa/zos_testcase_node.py
+script: nosetests -s -v ./qa/zos_testcase_node.py
 
