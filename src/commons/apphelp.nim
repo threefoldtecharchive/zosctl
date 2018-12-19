@@ -14,49 +14,48 @@ To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--secret=<secret>]
 """
 
-
 let doc* = """
 Usage:
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
   zos configure --name=<zosmachine> [--address=<address>] [--port=<port>] [--setdefault] [--vbox]
   zos remove --name=<zosmachine>
   zos forgetvm --name=<zosmachine>
-  zos ping
-  zos showconfig
+  zos ping [--on=<on>]
+  zos showconfig 
   zos setdefault <zosmachine>
   zos showactiveconfig
-  zos showactive
-  zos cmd <zoscommand> [--jsonargs=<args>]
-  zos exec <command>
-  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
-  zos container inspect
-  zos container info [--json]
-  zos container list [--json]
-  zos container <id> inspect
-  zos container <id> info
-  zos container <id> delete
-  zos container <id> zerotierinfo
-  zos container <id> zerotierlist
-  zos container zerotierinfo
-  zos container zerotierlist
-  zos container <id> zosexec <command>
-  zos container zosexec <command>
-  zos container <id> sshenable
-  zos container <id> sshinfo
-  zos container <id> shell
-  zos container <id> exec <command>
-  zos container <id> js9 <command>
-  zos container js9 <command>
-  zos container <id> mount <src> <dest>
-  zos container mount <src> <dest>
-  zos container sshenable
-  zos container sshinfo
-  zos container shell
-  zos container exec <command>
-  zos container <id> upload <file> <dest>
-  zos container <id> download <file> <dest>
-  zos container upload <file> <dest>
-  zos container download <file> <dest>
+  zos showactive 
+  zos cmd <zoscommand> [--jsonargs=<args>] [--on=<on>]
+  zos exec <command> [--on=<on>]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh] [--on=<on>]
+  zos container inspect [--on=<on>]
+  zos container info [--json] [--on=<on>]
+  zos container list [--json] [--on=<on>]
+  zos container <id> inspect [--on=<on>]
+  zos container <id> info [--on=<on>]
+  zos container <id> delete [--on=<on>]
+  zos container <id> zerotierinfo [--on=<on>]
+  zos container <id> zerotierlist [--on=<on>]
+  zos container zerotierinfo [--on=<on>]
+  zos container zerotierlist [--on=<on>]
+  zos container <id> zosexec <command> [--on=<on>]
+  zos container zosexec <command> [--on=<on>]
+  zos container <id> sshenable [--on=<on>]
+  zos container <id> sshinfo [--on=<on>]
+  zos container <id> shell [--on=<on>]
+  zos container <id> exec <command> [--on=<on>]
+  zos container <id> js9 <command> [--on=<on>]
+  zos container js9 <command> [--on=<on>]
+  zos container <id> mount <src> <dest> [--on=<on>]
+  zos container mount <src> <dest> [--on=<on>]
+  zos container sshenable [--on=<on>]
+  zos container sshinfo [--on=<on>]
+  zos container shell [--on=<on>]
+  zos container exec <command> [--on=<on>]
+  zos container <id> upload <file> <dest> [--on=<on>]
+  zos container <id> download <file> <dest> [--on=<on>]
+  zos container upload <file> <dest> [--on=<on>]
+  zos container download <file> <dest> [--on=<on>]
   zos help <cmdname>
   zos --version
 
@@ -79,7 +78,8 @@ Options:
   --ports=<ports>                 portforwards [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
   --reset                         resets the zos virtualbox machine  
-  --json                          shows json output               
+  --json                          shows json output
+  --on=<on>                       specify host to execute the command on. [default:]               
 """
 
 

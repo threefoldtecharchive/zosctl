@@ -310,7 +310,7 @@ proc handleConfigured(args:Table[string, Value]) =
   ## handle commands of configured zos
   ## all of the available commands
   let app = initApp()
-  
+
   proc handleInit() = 
     let name = $args["--name"]
     let disksize = parseInt($args["--disksize"])
@@ -740,8 +740,23 @@ when isMainModule:
   if not isConfigured():
     handleUnconfigured(args)
   else:
+    let currentInstance = getActiveZosName()
     try:
+      var instanceName = currentInstance
+      # special check for --on argument
+      if args["--on"]:
+        instanceName = $args["--on"]
+        try:
+          discard getConnectionConfigForInstance(instanceName)
+        except:
+          error(fmt"{instanceName} doesn't have a valid configurations in ~/.zos.toml")
+          quit invalidMachineName
+        info(fmt"executing commands against instance {instanceName}") 
+        setdefault(instanceName)
+    
       handleConfigured(args)
     except:
       echo getCurrentExceptionMsg()
       quit generalError
+    finally:
+      setdefault(currentInstance)
