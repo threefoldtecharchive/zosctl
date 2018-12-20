@@ -154,11 +154,11 @@ class ZosTest(BaseTest):
         """
             test delete container function
         """
-        self.create_con(test_del)
-        con_number = self.list_con(test_del)
+        self.create_container(test_del)
+        con_number = self.list_container(test_del)
         delete_container = run_cmd("zos container {} delete".format(con_number))  
         # check the list of containers on zos node
-        con_number = self.list_con(test_del)
+        con_number = self.list_container(test_del)
         self.assertFalse(con_number, msg="container doesn't deleted correctly")
         
     def tearDown(self):
