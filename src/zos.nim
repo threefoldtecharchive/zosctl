@@ -748,15 +748,16 @@ when isMainModule:
         instanceName = $args["--on"]
         try:
           discard getConnectionConfigForInstance(instanceName)
+          info(fmt"executing commands against instance {instanceName}") 
+          setdefault(instanceName)
+          handleConfigured(args)
         except:
           error(fmt"{instanceName} doesn't have a valid configurations in ~/.zos.toml")
           quit invalidMachineName
-        info(fmt"executing commands against instance {instanceName}") 
-        setdefault(instanceName)
-    
-      handleConfigured(args)
+        finally:
+          setdefault(currentInstance)
+      else:
+        handleConfigured(args)
     except:
       echo getCurrentExceptionMsg()
       quit generalError
-    finally:
-      setdefault(currentInstance)
