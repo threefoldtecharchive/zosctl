@@ -27,7 +27,7 @@ Don't forget to intstall ZeroTier and configure the right network:
 A quick and easy tutorial [can be found here](doc/tutorials/jumpscale_container_fresh_install.md)
 
 - [Building](building.md)
-- Detailed [Commands reference](cmds/README.md)
+- Detailed [Commands reference](doc/cmds/README.md)
 - Source code generated [documentation](https://htmlpreview.github.io/?https://raw.githubusercontent.com/threefoldtech/zos/development/src/htmldocs/zos.html)
 
 ## Commands documentation
