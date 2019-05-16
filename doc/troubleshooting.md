@@ -56,7 +56,7 @@ SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 make sure that you have `zos.toml` file and it's contain zos configuration 
 ` ~/.config/zos.toml ` 
 
-to solve the problem `rm ~/.config/zos.toml` and regenrate it, by configuring zosmachine 
+to solve the problem `rm ~/.config/zos.toml` and regenrate it, by configuring new zosmachine 
 
 ##  virtualbox gives -s unknown option 
 
