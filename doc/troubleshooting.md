@@ -37,7 +37,26 @@ nim c -d:ssl  --dynlibOverride:ssl --dynlibOverride:crypto --threads:on --passC:
 ```
 - `cp src/zos /usr/local/bin`
 
+## Traceback (most recent call last) error
 
+if you are getting error like this 
+
+```
+Traceback (most recent call last)
+zos.nim(740)             zos
+settings.nim(89)         isConfigured
+tables.nim(813)          hasKey
+tables.nim(614)          hasKey
+tableimpl.nim(31)        rawGet
+SIGSEGV: Illegal storage access. (Attempt to read from nil?)
+```
+
+### Fix
+
+make sure that you have `zos.toml` file and it's contain zos configuration 
+` ~/.config/zos.toml ` 
+
+to solve the problem `rm ~/.config/zos.toml` and regenrate it, by configuring zosmachine 
 
 ##  virtualbox gives -s unknown option 
 
