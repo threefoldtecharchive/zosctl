@@ -79,7 +79,7 @@ prepareConfig()
 proc getAppConfig*(): OrderedTableRef[string, string] =
   ## Gets the application section configuration
   let tbl = loadConfig(configFile)
-  result = tbl.getOrDefault("app")
+  result = tbl.getOrDefault("app", newOrderedTable[string, string]())
 
 let appconfig* = getAppConfig() ## \
   ## `appconfig` is the current config of the application
@@ -95,7 +95,7 @@ proc getActiveZosName*(): string =
 
 proc isDebug*(): bool =
   ## Checks if the application running in debug mode
-  return appconfig["debug"] == "true" or (os.existsEnv("ZOS_DEBUG") and os.getEnv("ZOS_DEBUG") == "1")
+  return appconfig.hasKey("debug") and appconfig["debug"] == "true" or (os.existsEnv("ZOS_DEBUG") and os.getEnv("ZOS_DEBUG") == "1")
   
 
 proc getZerotierId*(): string =

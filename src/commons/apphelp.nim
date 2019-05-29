@@ -1,5 +1,5 @@
 import strutils, strformat, os, ospaths, osproc, tables, uri, parsecfg, json, marshal, net, logging
-import docopt 
+import docopt
 import ./logger
 import ./errorcodes
 
@@ -10,7 +10,7 @@ let firstTimeMessage* = """First time to run zos?
 To create new machine in VirtualBox use
   zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
-To configure it to use a specific zosmachine 
+To configure it to use a specific zosmachine
   zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--secret=<secret>]
 """
 
@@ -80,22 +80,24 @@ Options:
   --hostname=<hostname>           container hostname [default:]
   --ports=<ports>                 portforwards [default:]
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
-  --reset                         resets the zos virtualbox machine  
-  --json                          shows json output               
+  --reset                         resets the zos virtualbox machine
+  --json                          shows json output
 """
 
 
 
-var helpContainer = initTable[string,string]() 
+var helpContainer = initTable[string,string]()
 
 helpContainer["new"] = """
 zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
-  creates a new container 
+  creates a new container
+
 """
 
 helpContainer["inspect"] = """
 zos container inspect
   inspect the current running container (showing full info)
+
 """
 
 helpContainer["info"] = """
@@ -103,42 +105,46 @@ zos container info [--json]
   shows summarized info on running containers
 zos container <id> info
   show summarized container info
+
 """
 
 helpContainer["delete"] = """
 zos container <id> delete
   deletes containers
+
 """
 
 helpContainer["exec"] = """
 zos container <id> exec <command>
   executes a command on a specific container
+
 """
 
 helpContainer["sshenable"] = """
 zos container <id> sshenable
   enables ssh on a container
-"""
 
+"""
 
 helpContainer["sshinfo"] = """
 zos container <id> sshinfo
   shows sshinfo to access container
-"""
 
+"""
 
 helpContainer["shell"] = """
 zos container <id> shell
   ssh into a container
-"""
 
+"""
 
 helpContainer["download"] = """
 zos container <id> download <file> <dest>
   download <file> to <dest> from container <id>
 
 zos container download <file> <dest>
-  downloads <file> to <dest> from the last created container by zos 
+  downloads <file> to <dest> from the last created container by zos
+
 """
 
 helpContainer["upload"] = """
@@ -152,33 +158,34 @@ zos container upload <file> <dest>
 
 helpContainer["mount"] = """
 zos container <id> mount <src> <dest>
-  mount src on specific container to dest using sshfs 
+  mount src on specific container to dest using sshfs
 zos container mount <src> <dest>
-  mount src on the last zos created container to dest using sshfs   
-"""
+  mount src on the last zos created container to dest using sshfs
 
+"""
 
 var helpContainerMsg = ""
 
 for v in helpContainer.values:
-  helpContainerMsg &= v 
+  helpContainerMsg &= v
 
 
 var helpTopCommands = initTable[string, string]()
 helpTopCommands["init"] = """
 zos init --name=<zosmachine> [--disksize=<disksize>] [--memory=<memorysize>] [--redisport=<redisport>] [--reset]
 
-creates a new virtualbox machine named zosmachine with optional disksize 20 GB and memory 4GB  
+creates a new virtualbox machine named zosmachine with optional disksize 20 GB and memory 4GB
   --disksize=<disksize>           disk size in GB [default: 20]
   --memory=<memorysize>           memory size in GB [default: 4]
   --port=<port>                   redis port [default:4444]
-  --reset                         resets the zos virtualbox machine                 
+  --reset                         resets the zos virtualbox machine
 
 """
 
 helpTopCommands["ping"] = """
 zos ping
   checks connection to active zos machine.
+
 """
 
 helpTopCommands["configure"] = """
@@ -192,28 +199,32 @@ zos configure --name=<zosmachine> --address=<address> [--port=<port>] [--setdefa
 
 helpTopCommands["forgetvm"] = """
 zos forgetvm --name=<zosmachine>
-  removes machine configurations. 
+  removes machine configurations.
 
 """
 
 helpTopCommands["showconfig"] = """
 zos showconfig
   shows application config
+
 """
 
 helpTopCommands["setdefault"] = """
 zos setdefault <zosmachine>
   sets the default instance to work with.
+
 """
 
 helpTopCommands["showdefault"] = """
 zos showdefault
   shows default configured instance.
+
 """
 
 helpTopCommands["showactive"] = """
 zos showactive
   shows active machine zos configured against.
+
 """
 helpTopCommands["cmd"] = """
 zos cmd <zoscommand> [--jsonargs='{}']
@@ -222,11 +233,13 @@ zos cmd <zoscommand> [--jsonargs='{}']
 example:
 zos cmd "filesystem.open" --jsonargs='{"file":"/root/.ssh/authorized_keys", "mode":"r"}'
 "0ed49546-1ead-49da-a852-345a2e298891"
+
 """
 
 helpTopCommands["exec"] = """
-zos exec <command> 
+zos exec <command>
   execute shell command on zero-os host e.g "ls /root -al" (can be very dangerous)
+
 """
 
 helpTopCommands["container"] = helpContainerMsg
@@ -235,7 +248,7 @@ proc getHelp*(cmdname:string) =
   ## Shows help for certain command or all if `cmdname` is empty.
   let fullparams = commandLineParams()
   if cmdname == "":
-    echo doc 
+    echo doc
   elif cmdname == "init":
     echo helpTopCommands["init"]
   elif cmdname == "ping":
@@ -284,7 +297,6 @@ proc getHelp*(cmdname:string) =
       echo helpContainer["upload"]
     elif "mount" in fullparams:
       echo helpContainer["mount"]
-    
   else:
     echo firstTimeMessage
     echo doc
@@ -313,7 +325,7 @@ proc checkArgs*(args: Table[string, Value]) =
   if args["--address"]:
     let address = $args["--address"]
     try:
-      discard $parseIpAddress(address) 
+      discard $parseIpAddress(address)
     except:
       error(fmt"invalid --address {address}")
       quit malformedArgs
@@ -327,10 +339,10 @@ proc checkArgs*(args: Table[string, Value]) =
         porterror = true
     except:
         porterror = true
-    
+
     if porterror:
       error(fmt("invalid --port {port} (should be a number and less than 65535)"))
-      quit malformedArgs 
+      quit malformedArgs
 
   if args["--redisport"]:
     let redisport = $args["--redisport"]
@@ -342,11 +354,11 @@ proc checkArgs*(args: Table[string, Value]) =
         porterror = true
     except:
       porterror = true
-  
+
     if porterror:
       error(fmt"invalid --redisport {redisport} (should be a number and less than 65535)")
       quit malformedArgs
-    
+
   if args["<id>"]:
     let contid = $args["<id>"]
     try:
@@ -361,4 +373,4 @@ proc checkArgs*(args: Table[string, Value]) =
     except:
       error("invalid --jsonargs {jsonargs}")
       quit malformedArgs
-  
+
