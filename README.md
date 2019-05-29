@@ -366,5 +366,11 @@ myfile                                                                          
 MYUPLOADED FILE
 ```
 
+## Zerotier notes
+Don't forget to intstall ZeroTier and configure the right network:
+
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid. `zerotier-cli join 9bee8941b5717835`
+- to use special zerotier network instead of the public network you can set `GRID_ZEROTIER_ID_TESTING` or `GRID_ZEROTIER_ID` environment variables to your special network.
+
 # Owner
 [@xmonader](https://github.com/xmonader)
