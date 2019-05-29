@@ -729,7 +729,6 @@ proc handleConfigured(args:Table[string, Value]) =
 when isMainModule:
   let args = docopt(doc, version=fmt"zos {latestTag} ({buildBranchName}#{buildCommit})")
   checkArgs(args)
-
   if args["help"] and args["<cmdname>"]:
     getHelp($args["<cmdname>"])
     quit 0
