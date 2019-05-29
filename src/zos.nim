@@ -76,7 +76,7 @@ proc init(name="local", datadiskSize=20, memory=4, redisPort=4444) =
     quit portForwardExists
   if not exists(name):
     try:
-      newVM(name, "/tmp/zos.iso", datadiskSize*1024, memory*1024, redisPort)
+      newVM(name, zosDownloadsDir / "zos.iso", datadiskSize*1024, memory*1024, redisPort)
     except:
       error(getCurrentExceptionMsg())
     info(fmt"created machine {name}")

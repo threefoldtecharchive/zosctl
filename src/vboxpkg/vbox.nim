@@ -338,14 +338,16 @@ proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =
   ## networkId to work against specific zerotier network
   ## Overwrite forces redownload
   var downloadLink = ""
-  var destPath = ""
+  var destPath = getHomeDir() / ".zos"
+  createDir(destPath)
 
+  
   if networkId.len == 0:
     downloadLink = "https://bootstrap.grid.tf/iso/development/0/development%20debug"
-    destPath = "/tmp/zos.iso"
+    destPath = destPath / "zos.iso"
   else:
     downloadLink = fmt"https://bootstrap.grid.tf/iso/development/{networkId}/development%20debug"
-    destPath = fmt"/tmp/zos_{networkId}.iso"
+    destPath = destPath / fmt"zos_{networkId}.iso"
 
   # echo fmt"DOWNLOAD LINK: {downloadLink}"
   if overwrite == true or not fileExists(destpath):

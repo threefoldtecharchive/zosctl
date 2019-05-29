@@ -12,6 +12,8 @@ let configDir* = ospaths.getConfigDir() ## \
 let configFile* = configDir / "zos.toml" ## \
   ## `configFile` config dir for zos (for linux it's ~/.config)
 
+let zosDownloadsDir* = getHomeDir() / ".zos"
+
 let appTimeout* = 30
 let pingTimeout* = 5
 
