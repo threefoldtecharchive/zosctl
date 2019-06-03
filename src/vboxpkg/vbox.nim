@@ -343,10 +343,10 @@ proc downloadZOSIso*(networkId: string="", overwrite:bool=false): string =
 
   
   if networkId.len == 0:
-    downloadLink = "https://bootstrap.grid.tf/iso/development/0/development%20debug"
+    downloadLink = "https://bootstrap.grid.tf/iso/master/0/development%20debug"
     destPath = destPath / "zos.iso"
   else:
-    downloadLink = fmt"https://bootstrap.grid.tf/iso/development/{networkId}/development%20debug"
+    downloadLink = fmt"https://bootstrap.grid.tf/iso/master/{networkId}/development%20debug"
     destPath = destPath / fmt"zos_{networkId}.iso"
 
   # echo fmt"DOWNLOAD LINK: {downloadLink}"
