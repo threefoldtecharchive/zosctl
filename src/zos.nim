@@ -613,6 +613,18 @@ proc handleConfigured(args:Table[string, Value]) =
     let downloadCmd = rsyncDownload(sshSrc, dest, isDir, portFlag)
     discard execCmd(downloadCmd)
   
+  proc handleContainerInvoke() = 
+    var containerid = app.getLastContainerId()
+    try:
+      containerid = parseInt($args["<id>"])
+    except:
+      discard
+    app.quitIfContainerDoesntExist(containerid)
+    try:
+      discard app.invokeInContainer(containerid, $args["<command>"])
+    except:
+      discard
+
   proc handleContainerZerotierInfo() =
     var containerid = app.getLastContainerId()
     try:
@@ -714,6 +726,8 @@ proc handleConfigured(args:Table[string, Value]) =
       handleContainerShell()
     elif args["container"] and args["exec"]:
       handleContainerExec()
+    elif args["container"] and args["invoke"]:
+      handleContainerInvoke()
     elif args["container"] and args["upload"]:
       handleContainerUpload()
     elif args["container"] and args["download"]:

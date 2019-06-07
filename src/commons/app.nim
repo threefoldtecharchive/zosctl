@@ -287,7 +287,7 @@ proc layerSSH*(this:App, containerid:int, timeout=30) =
   ## Layers ssh supported flist on top of the current image if it doesn't support ssh service.
   let activeZos = getActiveZosName()
   #let sshflist = "https://hub.grid.tf/thabet/busyssh.flist"
-  let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:18.04.flist"
+  let sshflist = "https://hub.grid.tf/tf-bootable/ubuntu:16.04.flist"
 
   var tbl = loadConfig(configFile)
 
@@ -333,6 +333,8 @@ proc cmdContainer*(this:App, containerid:int, command: string, timeout=5): strin
   result = this.currentconnection.zosContainerCmd(containerid, command, timeout)
   echo $result  
 
+proc invokeInContainer*(this:App, containerid:int, command:string): string =
+  discard this.currentconnection.containersCoreWithJsonNodeNoWait(containerid, command) 
   
 proc sshInfo*(this:App, containerid: int): string = 
   ## Gets sshinfo (ip, sshport, key used) to connect to container `containerid`
@@ -378,9 +380,11 @@ proc sshEnable*(this: App, containerid:int): string =
     ## TODO: why zero-os can't resolve paths of binaries?
     # Specify the full path for now..
     discard this.execContainer(containerid, "/bin/mkdir -p /root/.ssh")
+    discard this.execContainer(containerid, "/bin/mkdir -p /etc/ssh")
     discard this.execContainer(containerid, "/bin/chmod 700 -R /etc/ssh")
 
     this.setContainerKV(containerid, "sshenabled", "true")
+
 
   discard this.execContainerSilently(containerid, "service ssh start")
   discard this.execContainer(containerid, "service ssh status")

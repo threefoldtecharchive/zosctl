@@ -121,6 +121,13 @@ proc containerSend*(con:Redis|AsyncRedis, payload: JsonNode, bash=false, timeout
     first = first[1..^2]
   result = outputFromResponse(con.getResponseString(first))
 
+
+proc containerSendNoWait*(con:Redis|AsyncRedis, payload: JsonNode, bash=false, timeout=5): string =
+  ## Send command in container layer to zero-os
+  discard con.zosSend(payload, bash, timeout)
+  result = ""
+
+
 proc containersCoreWithJsonNode*(con:Redis|AsyncRedis, containerid:int, command: string="hostname", payloadNode:JsonNode=nil, timeout:int=5): string =
   let cmdid = newUUID()
   let containercmdId = newUUID()
@@ -159,6 +166,48 @@ proc containersCoreWithJsonNode*(con:Redis|AsyncRedis, containerid:int, command:
     },
   }
   result =  con.containerSend(payload, false, timeout)
+
+
+proc containersCoreWithJsonNodeNoWait*(con:Redis|AsyncRedis, containerid:int, command: string="hostname", payloadNode:JsonNode=nil, timeout:int=5): string =
+  let cmdid = newUUID()
+  let containercmdId = newUUID()
+
+  var payload = %*{
+    "id": cmdid,
+    "command": "corex.dispatch",
+    "arguments": nil,
+    "queue": nil,
+    "max_time": nil,
+    "stream": false,
+    "tags": nil
+  }
+  let commandparts = command.split()
+  var commandargs: seq[string] = @[]
+  let binname = commandparts[0]
+  if len(commandparts)>1:
+    commandargs = commandparts[1..^1]
+
+  payload["arguments"] = %*{
+    "container": containerid,
+    "command": {
+        "command": "core.system",
+        "arguments": %*{
+          "name": commandparts[0],
+          "args": commandargs,
+          "dir":"",
+          "stdin":"",
+          "env":nil
+        } ,
+        "queue": nil,
+        "max_time": nil,
+        "stream": false,
+        "tags": nil,
+        "id": nil,
+    },
+  }
+  result =  con.containerSendNoWait(payload, false, timeout)
+
+
 
 proc containersCore*(con:Redis|AsyncRedis, containerid: int, command: string="hostname", arguments="", timeout:int=5):string =
   var payloadNode: JsonNode = nil

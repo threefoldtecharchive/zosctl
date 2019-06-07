@@ -53,6 +53,8 @@ Usage:
   zos container sshinfo
   zos container shell
   zos container exec <command>
+  zos container invoke <command>
+  zos container <id> invoke <command>
   zos container <id> upload <file> <dest>
   zos container <id> download <file> <dest>
   zos container upload <file> <dest>
@@ -116,6 +118,19 @@ zos container <id> delete
 
 helpContainer["exec"] = """
 zos container <id> exec <command>
+  executes a command on a specific container
+
+"""
+
+
+helpContainer["invoke"] = """
+
+Invokes commands without using ssh unlike `exec`
+
+zos container <id> invoke <command>
+  executes a command on a specific container
+
+zos container invoke <command>
   executes a command on a specific container
 
 """
