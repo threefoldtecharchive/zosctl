@@ -28,7 +28,7 @@ Usage:
   zos showactive
   zos cmd <zoscommand> [--jsonargs=<args>]
   zos exec <command>
-  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+  zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh] [--zerotier=<zerotier>]
   zos container inspect
   zos container info [--json]
   zos container list [--json]
@@ -84,6 +84,7 @@ Options:
   --jsonargs=<jsonargs>           json encoded arguments [default: "{}"]
   --reset                         resets the zos virtualbox machine
   --json                          shows json output
+  --zerotier=<zerotier>           zerotier [default:]
 """
 
 
@@ -91,9 +92,10 @@ Options:
 var helpContainer = initTable[string,string]()
 
 helpContainer["new"] = """
-zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh]
+zos container new [--name=<name>] [--root=<rootflist>] [--hostname=<hostname>] [--ports=<ports>] [--env=<envvars>] [--sshkey=<sshkey>] [--privileged] [--ssh] [--zerotier=<zerotier>]
   creates a new container
 
+  if zerotier not specified it'll join  pub tf network `9bee8941b5717835` or env variables `GRID_ZEROTIER_ID` or `GRID_ZEROTIER_ID_TESTING`
 """
 
 helpContainer["inspect"] = """
