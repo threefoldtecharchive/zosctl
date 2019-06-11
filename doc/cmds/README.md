@@ -17,6 +17,7 @@
 - [container zerotierinfo](container_zerotierinfo.md)
 - [container zerotierlist](container_zerotierlist.md)
 - [container exec](container_exec.md)
+- [container invoke](container_invoke.md)
 - [container mount](container_mount.md)
 - [container upload](container_upload.md)
 - [container download](container_download.md)
