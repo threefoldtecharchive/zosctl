@@ -152,10 +152,10 @@ proc newContainer(this:App, name:string, root:string, hostname="", privileged=fa
   
       let hostport = parts[0]
       let containerport = parts[1]
-      if not hostport.isDigit():
-        error(fmt"""malformed ports {ports}: {hostport} isn't a digit""")
-        quit malformedArgs
-      if not hostport.isDigit():
+      # if not hostport.isDigit():
+      #   error(fmt"""malformed ports {ports}: {hostport} isn't a digit""")
+      #   quit malformedArgs
+      if not containerport.isDigit():
         error(fmt"""malformed ports {ports}: {hostport} isn't a digit""")
         quit malformedArgs
       portsMap[hostport] = parseInt(containerport)
