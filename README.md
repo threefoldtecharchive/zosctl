@@ -20,9 +20,10 @@ if you want to build see [here how to build](doc/building.md)
 
 ## Where to get started.
 
-Don't forget to intstall ZeroTier and configure the right network:
+Don't forget to intstall ZeroTier and configure zerotier networks:
 
-- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.
+- a dedicated, private zerotier network on which one or more private Zero-OS's have been booted with the development flag enabled and a controlling laptop is connected by the zerotier client.  This allows direct interaction with these nodes.
+- connect to network ```9bee8941b5717835``` which is the public network of ThreeFold Grid.  The actual hardware nodes are no longer available for testing purposes but the ZOS client can be used to manage containers on virtual Zero-OS deployments.  For reserving capacity and deploying virtual Zero-OS's please see the instructions [here](https://github.com/threefoldfoundation/info_grid/tree/development/docs/developers/capacity_reservation)
 
 A quick and easy tutorial [can be found here](doc/tutorials/jumpscale_container_fresh_install.md)
 
