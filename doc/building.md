@@ -9,7 +9,7 @@ https://github.com/nim-lang/nimble#installation (0.9 is required)
 
 ### build zos
 
-- clone `git clone https://github.com/threefoldtech/zos`
+- clone `git clone https://github.com/threefoldtech/zosctl`
 - switch to directory `cd zos` 
 - we need to make sure that redisclient and redisparser on 0.1.1 
 `nimble uninstall redisclient`
